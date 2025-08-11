@@ -1,0 +1,60 @@
+:root {
+  /* Classic deep-blue sci‑fi theme */
+  --bg: #0b1221;
+  --panel: #111b33;
+  --border: rgba(66, 133, 244, 0.35);
+  --glow: 0 0 0 1px rgba(66, 133, 244, 0.25), 0 0 20px rgba(66, 133, 244, 0.15) inset;
+  --text: #e6f1ff;
+  --sub: #8aa2c2;
+  --accent: #42a5f5;
+
+  --btn-primary-bg: #1976d2;
+  --btn-primary-color: #ffffff;
+  --btn-secondary-bg: #0f172a;
+  --btn-secondary-color: #e6f1ff;
+
+  --radius: 10px;
+}
+
+/* Utility panel style (optional reuse) */
+.card-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--glow);
+}
+
+.btn-primary {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-color);
+}
+
+.btn-secondary {
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-color);
+  border: 1px solid var(--border);
+}
+
+/* OpenLayers controls theme */
+.ol-zoom {
+  background: var(--panel) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 10px !important;
+  box-shadow: var(--glow) !important;
+  padding: 4px !important;
+}
+
+.ol-control button {
+  background: var(--btn-primary-bg) !important;
+  color: var(--btn-primary-color) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 6px !important;
+  width: 28px !important;
+  height: 28px !important;
+}
+
+/* FeaturePopup common text colors */
+.popup .hd { color: var(--sub) !important; }
+.popup { background: var(--panel) !important; border: 1px solid var(--border) !important; box-shadow: var(--glow) !important; color: var(--text) !important; }
+
+
