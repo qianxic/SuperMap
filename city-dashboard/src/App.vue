@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import DashboardLayout from '@/components/Layout/DashboardLayout.vue'
+import '@/styles/theme.css'
 </script>
 
 <template>
@@ -7,20 +8,6 @@ import DashboardLayout from '@/components/Layout/DashboardLayout.vue'
 </template>
 
 <style>
-/* 全局CSS变量 */
-:root {
-  --bg: #0b1221;
-  --panel: #111b33;
-  --border: rgba(66, 133, 244, 0.35);
-  --glow: 0 0 0 1px rgba(66, 133, 244, 0.25), 0 0 20px rgba(66, 133, 244, 0.15) inset;
-  --text: #e6f1ff;
-  --sub: #8aa2c2;
-  --accent: #42a5f5;
-  --header-h: 64px;
-  --gap: 16px;
-  --radius: 10px;
-}
-
 /* 全局样式重置 */
 * {
   box-sizing: border-box;

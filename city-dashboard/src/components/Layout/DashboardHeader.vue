@@ -3,7 +3,7 @@
     <div class="header-left"></div>
     
     <div class="header-center">
-      <div class="screen-title">城市智慧管理平台</div>
+      <div class="screen-title">基于大语言模型的智能化城市管理平台</div>
     </div>
     
     <div class="header-right">

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
-type ToolId = 'draw' | 'buffer' | 'layer' | '';
+type ToolId = 'draw' | 'buffer' | 'layer' | 'bianji' | 'llm' | '';
 
 export const useAnalysisStore = defineStore('analysis', () => {
   // 分析状态
@@ -17,6 +17,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
   // 绘制工具状态
   const drawMode = ref<string>('') // 'point', 'line', 'polygon'
   const selectionMode = ref<string>('') // 
+  const currentLayer = ref<any>(null)
   
   // Actions
   function setAnalysisStatus(status: string) {
@@ -45,6 +46,10 @@ export const useAnalysisStore = defineStore('analysis', () => {
   function setSelectionMode(mode: string) {
     selectionMode.value = mode
   }
+
+  function setCurrentLayer(layer: any) {
+    currentLayer.value = layer
+  }
   
   return {
     // State
@@ -52,12 +57,14 @@ export const useAnalysisStore = defineStore('analysis', () => {
     toolPanel,
     drawMode,
     selectionMode,
+    currentLayer,
     
     // Actions
     setAnalysisStatus,
     openTool,
     closeTool,
     setDrawMode,
-    setSelectionMode
+    setSelectionMode,
+    setCurrentLayer
   }
 })

@@ -1,17 +1,17 @@
 :root {
-  /* Classic deep-blue sci‑fi theme */
-  --bg: #0b1221;
-  --panel: #111b33;
-  --border: rgba(66, 133, 244, 0.35);
-  --glow: 0 0 0 1px rgba(66, 133, 244, 0.25), 0 0 20px rgba(66, 133, 244, 0.15) inset;
-  --text: #e6f1ff;
-  --sub: #8aa2c2;
-  --accent: #42a5f5;
+  /* Clean and professional light theme */
+  --bg: #f8f9fa;
+  --panel: #ffffff;
+  --border: #dee2e6;
+  --glow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --text: #212529;
+  --sub: #6c757d;
+  --accent: #007bff;
 
-  --btn-primary-bg: #1976d2;
+  --btn-primary-bg: #007bff;
   --btn-primary-color: #ffffff;
-  --btn-secondary-bg: #0f172a;
-  --btn-secondary-color: #e6f1ff;
+  --btn-secondary-bg: #e9ecef;
+  --btn-secondary-color: #212529;
 
   --radius: 10px;
 }

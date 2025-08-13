@@ -1,7 +1,7 @@
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useAnalysisStore } from '@/stores/analysisStore'
 import { useMapStore } from '@/stores/mapStore'
-
+const ol = window.ol;
 type DrawType = 'Point' | 'LineString' | 'Polygon';
 
 export function useDraw() {

@@ -1,52 +1,59 @@
 <template>
-  <div class="button-group" :class="{ inline: layout === 'inline' }">
-    <slot></slot>
+  <div class="button-group">
+    <button
+      v-for="btn in buttons"
+      :key="btn.id"
+      :class="{ 'active': activeButton === btn.id }"
+      @click="$emit('select', btn.id)"
+    >
+      {{ btn.text }}
+    </button>
   </div>
 </template>
-<!-- 按钮组 -->
+
 <script setup lang="ts">
-const props = defineProps({
-  layout: {
-    type: String,
-    default: 'block',
-    validator: (value) => ['block', 'inline'].includes(value)
-  },
-  columns: {
-    type: Number,
-    default: 3
-  },
-  gap: {
-    type: String,
-    default: '8px'
-  }
-})
+interface Button {
+  id: string;
+  text: string;
+}
+
+defineProps<{
+  buttons: Button[];
+  activeButton: string;
+}>();
+
+defineEmits(['select']);
 </script>
 
 <style scoped>
 .button-group {
-  display: grid;
-  gap: v-bind(gap);
-  margin-bottom: 8px;
+  display: flex;
+  background-color: var(--btn-secondary-bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  padding: 4px;
+  width: fit-content;
 }
 
-.button-group:not(.inline) {
-  grid-template-columns: repeat(v-bind(columns), 1fr);
+button {
+  padding: 6px 16px;
+  border: none;
+  background-color: transparent;
+  color: var(--sub);
+  cursor: pointer;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease-in-out;
 }
 
-.button-group.inline {
-  grid-template-columns: auto;
-  grid-auto-flow: column;
+button.active {
+  background-color: var(--accent);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(66, 165, 245, 0.3);
 }
 
-.button-group :deep(.btn) {
-  margin-right: 0;
-}
-
-.button-group.inline :deep(.btn) {
-  margin-right: 8px;
-}
-
-.button-group.inline :deep(.btn:last-child) {
-  margin-right: 0;
+button:not(.active):hover {
+  color: var(--text);
 }
 </style>

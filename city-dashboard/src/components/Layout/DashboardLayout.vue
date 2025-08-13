@@ -3,19 +3,18 @@
     <DashboardHeader />
     
     <div class="screen-main">
-      <div class="map-container">
-        <SuperMapViewer />
-      </div>
-      <div class="right-panel-container">
-        <PanelWindow 
-          :visible="true" 
-          :embed="true" 
-          :width="'100%'" 
-          :height="'100%'"
-        >
-          <RightPanel />
-        </PanelWindow>
-      </div>
+      <splitpanes class="default-theme">
+        <pane size="75">
+          <div class="map-container">
+            <SuperMapViewer />
+          </div>
+        </pane>
+        <pane size="25">
+          <div class="right-panel-container">
+            <RightPanel />
+          </div>
+        </pane>
+      </splitpanes>
     </div>
   </div>
 </template>
@@ -24,8 +23,40 @@
 import DashboardHeader from './DashboardHeader.vue'
 import SuperMapViewer from '../Map/SuperMapViewer.vue'
 import RightPanel from './RightPanel.vue'
-import PanelWindow from '../UI/PanelWindow.vue'
+import { Splitpanes, Pane } from 'splitpanes'
+import 'splitpanes/dist/splitpanes.css'
 </script>
+
+<style>
+.splitpanes__pane {
+  background-color: transparent !important;
+}
+.splitpanes__splitter {
+  background-color: transparent !important;
+  position: relative;
+  width: 5px !important;
+  border: none !important;
+  transition: background-color 0.2s ease-in-out;
+}
+.splitpanes__splitter:before {
+  content: '';
+  position: absolute;
+  left: -2px;
+  top: 0;
+  width: 10px;
+  height: 100%;
+  background: transparent;
+  z-index: 1;
+  transition: background-color 0.2s ease-in-out;
+}
+.splitpanes__splitter:hover:before {
+  background-color: rgba(66, 165, 245, 0.2) !important;
+}
+.splitpanes__splitter:hover {
+    background-color: var(--primary-color) !important;
+}
+
+</style>
 
 <style scoped>
 .dashboard-layout {
@@ -39,13 +70,12 @@ import PanelWindow from '../UI/PanelWindow.vue'
 
 .screen-main {
   height: calc(100vh - 64px);
+  width: 100%;
   padding: 16px;
-  display: flex;
-  gap: 16px;
 }
 
 .map-container {
-  flex: 3;
+  width: 100%;
   height: 100%;
   background: var(--panel);
   border: 1px solid var(--border);
@@ -57,7 +87,7 @@ import PanelWindow from '../UI/PanelWindow.vue'
 }
 
 .right-panel-container {
-  flex: 1;
+  width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;

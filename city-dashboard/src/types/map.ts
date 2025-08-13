@@ -2,6 +2,7 @@ export interface MapConfig {
   baseUrl: string;
   dataUrl: string;
   datasetName: string;
+  vectorLayers: { name: string, style?: any }[];
   center: [number, number];
   zoom: number;
   projection: string;
@@ -18,6 +19,7 @@ export interface MapLayer {
   name: string;
   layer: any; // ol.layer.Layer - 稍后会处理
   visible: boolean;
+  type?: string;
 }
 
 export interface FeatureInfo {

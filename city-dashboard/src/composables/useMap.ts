@@ -1,4 +1,4 @@
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useMapStore } from '@/stores/mapStore'
 import { useAnalysisStore } from '@/stores/analysisStore'
 import { useLayerManager } from '@/composables/useLayerManager'
@@ -53,17 +53,72 @@ export function useMap() {
       })
       map.addLayer(baseLayer)
       
+      mapStore.mapConfig.vectorLayers.forEach(layerConfig => {
+        let style;
+        if (layerConfig.style) {
+          const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+          const strokeOptions = { 
+            ...layerConfig.style.stroke, 
+            color: accentColor || 'blue' 
+          };
+          
+          style = new ol.style.Style({
+            stroke: new ol.style.Stroke(strokeOptions),
+            fill: new ol.style.Fill(layerConfig.style.fill)
+          });
+        }
+        
+        const vectorLayer = new ol.layer.Vector({
+          source: new ol.source.Vector({
+            loader: (extent: any, resolution: any, projection: any) => {
+              const featureService = new ol.supermap.FeatureService(mapStore.mapConfig.dataUrl);
+              
+              const parts = layerConfig.name.split('@');
+              const dataset = parts[0];
+              const datasource = parts[1];
+
+              const getFeaturesBySQLParams = new ol.supermap.GetFeaturesBySQLParameters({
+                queryParameter: new ol.supermap.FilterParameter({
+                  name: dataset,
+                  attributeFilter: "1=1" 
+                }),
+                datasetNames: [`${datasource}:${dataset}`],
+                returnContent: true
+              });
+
+              featureService.getFeaturesBySQL(getFeaturesBySQLParams, (serviceResult: any) => {
+                if (serviceResult.result && serviceResult.result.features) {
+                  const features = (new ol.format.GeoJSON()).readFeatures(serviceResult.result.features);
+                  vectorLayer.getSource().addFeatures(features);
+                }
+              });
+            },
+            strategy: ol.loadingstrategy.bbox
+          }),
+          style: style // 如果 style 未定义，则使用默认样式
+        });
+        map.addLayer(vectorLayer);
+        mapStore.vectorLayers.push({
+          id: layerConfig.name,
+          name: layerConfig.name.split('@')[0],
+          layer: vectorLayer,
+          visible: true,
+          type: 'vector'
+        });
+      });
+      
       const hoverSource = new ol.source.Vector()
+      const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
       const hoverLayer = new ol.layer.Vector({
         source: hoverSource,
         style: new ol.style.Style({
           image: new ol.style.Circle({ 
             radius: 8, 
-            stroke: new ol.style.Stroke({color:'#42a5f5', width:2}), 
-            fill: new ol.style.Fill({color:'rgba(66,165,245,0.25)'}) 
+            stroke: new ol.style.Stroke({color: accentColor, width:2}), 
+            fill: new ol.style.Fill({color: accentColor.replace(')', ', 0.25)').replace('rgb', 'rgba')}) 
           }),
-          stroke: new ol.style.Stroke({color:'#42a5f5', width:2}),
-          fill: new ol.style.Fill({color:'rgba(66,165,245,0.15)'})
+          stroke: new ol.style.Stroke({color: accentColor, width:2}),
+          fill: new ol.style.Fill({color: accentColor.replace(')', ', 0.15)').replace('rgb', 'rgba')})
         })
       })
       map.addLayer(hoverLayer)
@@ -74,11 +129,11 @@ export function useMap() {
         style: new ol.style.Style({
           image: new ol.style.Circle({ 
             radius: 5, 
-            stroke: new ol.style.Stroke({color:'#ffca28', width:1.5}), 
-            fill: new ol.style.Fill({color:'rgba(255,202,40,0.15)'}) 
+            stroke: new ol.style.Stroke({color: accentColor, width:1.5}), 
+            fill: new ol.style.Fill({color: accentColor.replace(')', ', 0.15)').replace('rgb', 'rgba')}) 
           }),
-          stroke: new ol.style.Stroke({color:'#ffca28', width:1.5}),
-          fill: new ol.style.Fill({color:'rgba(255,202,40,0.08)'})
+          stroke: new ol.style.Stroke({color: accentColor, width:1.5}),
+          fill: new ol.style.Fill({color: accentColor.replace(')', ', 0.08)').replace('rgb', 'rgba')})
         })
       })
       map.addLayer(selectLayer)
@@ -102,7 +157,6 @@ export function useMap() {
       }
       window.addEventListener('drawLayerCompleted', handleDrawLayerCompleted)
         
-      console.log('地图初始化完成')
     } catch (error) {
       console.error('地图初始化失败:', error)
     }
@@ -123,7 +177,7 @@ export function useMap() {
       hoverTimer.value = window.setTimeout(() => {
         handleFeatureHover(hoverSource)
       }, 120)
-      console.log(evt)
+      
     })
     
     map.on('click', (evt: any) => {
@@ -156,13 +210,55 @@ export function useMap() {
       return
     }
     
-    await handleNormalClick(selectSource)
+    await handleNormalClick(evt, selectSource)
   }
 
-  const handleNormalClick = async (selectSource: any): Promise<void> => {
-    selectSource.clear()
-    mapStore.setSelectedFeature(null)
-    mapStore.hidePopup()
+  const handleNormalClick = async (evt: any, selectSource: any): Promise<void> => {
+    const map = evt.map;
+    const feature = map.forEachFeatureAtPixel(
+      evt.pixel,
+      (f: any, l: any) => {
+        const isInteractiveLayer = l && l !== mapStore.baseLayer && l !== mapStore.hoverLayer && l !== mapStore.selectLayer;
+        if (isInteractiveLayer) {
+          return f;
+        }
+        return undefined;
+      },
+      {
+        hitTolerance: 5
+      }
+    );
+
+    selectSource.clear();
+    mapStore.setSelectedFeature(null);
+
+    if (feature) {
+      selectSource.addFeature(feature);
+      mapStore.setSelectedFeature(feature);
+
+      const properties = feature.getProperties();
+      let content = '';
+      
+      const fieldsToShow: { key: string, label: string }[] = [
+        { key: 'PAC_1', label: '邮编' },
+        { key: 'NAME_1', label: '区名称' }
+      ];
+
+      fieldsToShow.forEach(field => {
+        if (properties[field.key]) {
+          content += `<div class="kv"><span class="k">${field.label}</span><span class="v">${properties[field.key]}</span></div>`;
+        }
+      });
+
+      mapStore.showPopup(
+        { x: evt.pixel[0], y: evt.pixel[1] },
+        content,
+        feature,
+        evt.coordinate
+      );
+    } else {
+      mapStore.hidePopup();
+    }
   }
 
   const cleanup = (): void => {
@@ -173,19 +269,26 @@ export function useMap() {
   
   onUnmounted(cleanup)
 
+  watch(() => analysisStore.drawMode, (newMode) => {
+    if (!mapStore.map) return;
+    const targetElement = mapStore.map.getTargetElement();
+    if (['point', 'line', 'polygon'].includes(newMode)) {
+      targetElement.style.cursor = 'crosshair';
+    } else {
+      targetElement.style.cursor = 'default';
+    }
+  });
+
   onMounted(() => {
     const drawCompleteHandler = (e: Event) => {
-      console.log('useMap 收到绘制完成事件:', (e as CustomEvent).detail)
       layerManager.acceptDrawLayer((e as CustomEvent).detail)
     }
     
     const removeLayerHandler = (e: Event) => {
-      console.log('useMap 收到移除图层事件:', (e as CustomEvent).detail)
       const { layer } = (e as CustomEvent).detail
       if (layer && mapStore.map) {
         try {
           mapStore.map.removeLayer(layer)
-          console.log('图层已从地图中移除')
         } catch (error) {
           console.error('移除图层时出错:', error)
         }

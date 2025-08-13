@@ -11,6 +11,7 @@ const useMapStore = defineStore('map', () => {
   const baseLayer = ref<any>(null) // ol.layer.Tile
   const hoverLayer = ref<any>(null) // ol.layer.Vector
   const selectLayer = ref<any>(null) // ol.layer.Vector
+  const vectorLayers = ref<MapLayer[]>([])
 
   const customLayers = ref<MapLayer[]>([])
   
@@ -43,9 +44,18 @@ const useMapStore = defineStore('map', () => {
   })
   
   const mapConfig = ref<MapConfig>({
-    baseUrl: "http://localhost:8090/iserver/services/map-WorkSpace1/rest/maps/武汉市底图",
-    dataUrl: 'http://localhost:8090/iserver/services/data-WorkSpace1/rest/data',
+    baseUrl: "http://localhost:8090/iserver/services/map-WuHan/rest/maps/武汉_市级",
+    dataUrl: 'http://localhost:8090/iserver/services/data-WuHan/rest/data',
     datasetName: 'wuhan:武汉_县级',
+    vectorLayers: [
+      { 
+        name: '武汉_县级@wuhan',
+        style: {
+          stroke: { width: 1.5 }, // 移除 color 属性
+          fill: { color: 'rgba(0, 0, 255, 0)' }
+        }
+      }
+    ],
     center: [114.37, 30.69],
     zoom: 8,
     projection: 'EPSG:4326',
@@ -124,8 +134,12 @@ const useMapStore = defineStore('map', () => {
       customLayers.value.forEach(item => {
         try { map.value.removeLayer(item.layer) } catch (_) { /* noop */ }
       })
+      vectorLayers.value.forEach(item => {
+        try { map.value.removeLayer(item.layer) } catch (_) { /* noop */ }
+      })
     }
     customLayers.value = []
+    vectorLayers.value = []
     if (selectLayer.value && selectLayer.value.getSource()) {
       selectLayer.value.getSource().clear()
     }
@@ -140,6 +154,7 @@ const useMapStore = defineStore('map', () => {
     baseLayer,
     hoverLayer,
     selectLayer,
+    vectorLayers,
     hoveredFeature,
     selectedFeature,
     currentCoordinate,

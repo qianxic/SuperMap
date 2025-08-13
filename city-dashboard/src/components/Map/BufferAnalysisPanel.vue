@@ -3,36 +3,62 @@
     v-show="analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'buffer'"
     class="buffer-analysis-panel"
   >
-    <!-- 缓冲区参数 -->
-    <div class="section-title">缓冲距离(米)</div>
-    
-    <div class="form-item">
-      <input 
-        v-model.number="bufferDistance" 
-        type="number" 
-        min="1" 
-        step="10"
-        class="form-input"
-        @input="onDistanceChange"
+    <!-- 选择分析区域 -->
+    <div class="analysis-section">
+      <div class="section-title">选择分析区域</div>
+      <SecondaryButton 
+        text="选择分析区域"
+        @click="selectFeatureFromMap"
+        :active="isSelectingFeature"
       />
+      
+      <!-- 显示选中要素信息 -->
+      <div v-if="featureInfo" class="feature-info">
+        <div class="info-item">
+          <span class="info-label">要素类型:</span>
+          <span class="info-value">{{ featureInfo.type }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">要素名称:</span>
+          <span class="info-value">{{ featureInfo.name }}</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 缓冲区参数 -->
+    <div class="analysis-section">
+      <div class="section-title">缓冲距离参数</div>
+      <div class="form-item">
+        <label class="form-label">距离 (米)</label>
+        <input 
+          v-model.number="bufferDistance" 
+          type="number" 
+          min="1" 
+          step="10"
+          class="form-input"
+          placeholder="请输入缓冲距离"
+          @input="onDistanceChange"
+        />
+      </div>
     </div>
 
     <!-- 分析操作 -->
-    <ButtonGroup :columns="1">
-      <SecondaryButton 
+    <div class="analysis-section">
+      <PrimaryButton 
         text="执行缓冲区分析"
         @click="executeBufferAnalysis"
+        :disabled="!selectedFeature"
       />
-    </ButtonGroup>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { watch } from 'vue'
+import { watch, computed } from 'vue'
 import { useAnalysisStore } from '@/stores/analysisStore'
 import { useBufferAnalysis } from '@/composables/useBufferAnalysis'
+import PrimaryButton from '@/components/UI/PrimaryButton.vue'
 import SecondaryButton from '@/components/UI/SecondaryButton.vue'
-import ButtonGroup from '@/components/UI/ButtonGroup.vue'
 
 const analysisStore = useAnalysisStore()
 
@@ -40,12 +66,16 @@ const {
   selectedFeature,
   bufferDistance,
   featureInfo,
-  isAnalyzing,
   setSelectedFeature,
   selectFeatureFromMap,
   clearMapSelection,
   executeBufferAnalysis
 } = useBufferAnalysis()
+
+// 是否正在选择要素
+const isSelectingFeature = computed(() => {
+  return analysisStore.toolPanel.activeTool === 'buffer' && !selectedFeature.value
+})
 
 // 距离变化时的处理（可以添加实时预览等功能）
 const onDistanceChange = () => {
@@ -76,55 +106,111 @@ watch(() => analysisStore.toolPanel.activeTool, (tool) => {
 .buffer-analysis-panel {
   height: 100%;
   overflow-y: auto;
-  padding: 0 4px;
-}
-
-
-
-.section-title {
-  font-size: 12px;
-  color: var(--sub);
-  margin-bottom: 8px;
-  font-weight: 500;
-}
-
-
-
-
-
-.parameter-form {
+  padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 20px;
+}
+
+.analysis-section {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  transition: all 0.3s ease;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.analysis-section:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(66, 165, 245, 0.3);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.section-title {
+  font-size: 13px;
+  color: var(--text);
+  margin-bottom: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
 }
 
 .form-item {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-bottom: 16px;
+  gap: 8px;
 }
 
-.form-item label {
+.form-label {
   font-size: 12px;
   color: var(--sub);
   font-weight: 500;
 }
 
+.feature-info {
+  margin-top: 12px;
+  padding: 16px;
+  background: rgba(66, 165, 245, 0.08);
+  border: 1px solid rgba(66, 165, 245, 0.2);
+  border-radius: 12px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.info-item:last-child {
+  margin-bottom: 0;
+}
+
+.info-label {
+  font-size: 11px;
+  color: var(--sub);
+  font-weight: 500;
+}
+
+.info-value {
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
 .form-input {
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.08);
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 12px;
   color: var(--text);
   font-size: 13px;
   outline: none;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  width: 100%;
 }
 
 .form-input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(66, 165, 245, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 0 2px rgba(66, 165, 245, 0.15);
+  transform: translateY(-1px);
+}
+
+.form-input::placeholder {
+  color: var(--sub);
+  opacity: 0.7;
 }
 
 /* 隐藏数字输入框的上下箭头 */
