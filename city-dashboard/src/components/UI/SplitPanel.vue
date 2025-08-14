@@ -76,9 +76,7 @@ const splitThemeClass = computed(() => {
   transition: background-color 0.2s ease-in-out;
 }
 
-.default-split-theme .splitpanes__splitter:hover:before {
-  background-color: rgba(66, 165, 245, 0.2) !important;
-}
+
 
 .default-split-theme .splitpanes__splitter:hover {
   background-color: var(--accent) !important;
@@ -161,9 +159,7 @@ const splitThemeClass = computed(() => {
   transition: background-color 0.2s ease-in-out;
 }
 
-.custom-split-theme .splitpanes__splitter:hover:before {
-  background-color: rgba(66, 165, 245, 0.2) !important;
-}
+
 
 .custom-split-theme .splitpanes__splitter:hover {
   background-color: var(--accent) !important;

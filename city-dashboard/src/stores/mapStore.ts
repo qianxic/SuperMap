@@ -26,6 +26,7 @@ const useMapStore = defineStore('map', () => {
   const popupVisible = ref<boolean>(false)
   const popupPosition = ref<{ x: number, y: number }>({ x: 0, y: 0 })
   const popupContent = ref<string>('')
+  
   const popupFeature = ref<any>(null) // ol.Feature
   const popupCoordinate = ref<number[] | null>(null) // [lon, lat]
   

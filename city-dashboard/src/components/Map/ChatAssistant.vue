@@ -25,7 +25,7 @@
       <!-- 输入区域 -->
       <template #pane-1>
         <div class="input-container">
-          <InputGroup
+          <LLMInputGroup
             v-model="newMessage"
             placeholder="请输入您的需求..."
             as="textarea"
@@ -44,7 +44,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import InputGroup from '@/components/UI/InputGroup.vue';
+import LLMInputGroup from '@/components/UI/LLMInputGroup.vue';
 import SplitPanel from '@/components/UI/SplitPanel.vue';
 
 interface Message {
@@ -98,11 +98,7 @@ const sendMessage = () => {
   animation: fadeIn 0.3s ease-out;
 }
 
-.messages-container:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(66, 165, 245, 0.3);
-  box-shadow: 0 4px 16px rgba(66, 165, 245, 0.1);
-}
+
 
 .input-container {
   height: 100%;
@@ -128,29 +124,26 @@ const sendMessage = () => {
   padding-right: 44px;
 }
 
-.input-container:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(66, 165, 245, 0.3);
-  box-shadow: 0 4px 16px rgba(66, 165, 245, 0.1);
-}
+
 
 /* 自定义滚动条样式 */
 .messages-container::-webkit-scrollbar {
-  width: 6px;
+  width: 3px;
+  height: 1.5px;
 }
 
 .messages-container::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 3px;
+  background: rgba(200, 200, 200, 0.1);
+  border-radius: 1.5px;
 }
 
 .messages-container::-webkit-scrollbar-thumb {
-  background: rgba(66, 165, 245, 0.4);
-  border-radius: 3px;
+  background: rgba(150, 150, 150, 0.3);
+  border-radius: 1.5px;
 }
 
 .messages-container::-webkit-scrollbar-thumb:hover {
-  background: rgba(66, 165, 245, 0.6);
+  background: rgba(150, 150, 150, 0.5);
 }
 
 .message {
@@ -213,10 +206,7 @@ const sendMessage = () => {
   z-index: 10;
 }
 
-.action-button:hover:not(:disabled) {
-  background: rgba(66, 165, 245, 0.9);
-  transform: scale(1.05);
-}
+
 
 .action-button:active:not(:disabled) {
   transform: translateY(0);

@@ -1,6 +1,9 @@
 <template>
-  <div 
-    v-show="analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'bianji'"
+  <PanelWindow 
+    :visible="analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'bianji'"
+    :embed="true"
+    :width="'100%'"
+    :height="'100%'"
     class="edit-tools-panel"
   >
     <!-- 图层选择 -->
@@ -37,7 +40,7 @@
       </div>
     </div>
     
-  </div>
+  </PanelWindow>
 </template>
 
 <script setup lang="ts">
@@ -45,6 +48,7 @@ import { ref, watch, computed } from 'vue'
 import { useAnalysisStore } from '@/stores/analysisStore.ts'
 import { useMapStore } from '@/stores/mapStore.ts'
 import SecondaryButton from '@/components/UI/SecondaryButton.vue'
+import PanelWindow from '@/components/UI/PanelWindow.vue'
 
 const analysisStore = useAnalysisStore()
 const mapStore = useMapStore()
@@ -125,6 +129,7 @@ defineExpose({
   display: flex;
   flex-direction: column;
   gap: 20px;
+  /* 使用全局滚动条样式 */
 }
 
 .analysis-section {
@@ -136,10 +141,7 @@ defineExpose({
   animation: fadeIn 0.3s ease-out;
 }
 
-.analysis-section:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(66, 165, 245, 0.3);
-}
+
 
 @keyframes fadeIn {
   from {

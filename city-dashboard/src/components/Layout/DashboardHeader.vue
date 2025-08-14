@@ -1,48 +1,40 @@
 <template>
   <div class="screen-header">
-    <div class="header-left"></div>
-    
-    <div class="header-center">
+    <div class="header-left">
       <div class="screen-title">基于大语言模型的智能化城市管理平台</div>
     </div>
     
     <div class="header-right">
-      <div class="time-display">{{ currentTime }}</div>
+      <ButtonGroup
+        :buttons="modeButtons"
+        :active-button="activeMode"
+        @select="setMode"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, provide } from 'vue'
+import ButtonGroup from '@/components/UI/ButtonGroup.vue'
 
-// 当前时间
-const currentTime = ref<string>('')
-const timeTimer = ref<number | null>(null)
+// 模式管理 - 使用 provide/inject 或全局状态
+const activeMode = ref<'traditional' | 'llm'>('llm');
+const modeButtons = [
+  { id: 'llm', text: 'LLM 模式' },
+  { id: 'traditional', text: '传统模式' },
+];
 
-// 更新时间显示
-const updateTime = () => {
-  const now = new Date()
-  currentTime.value = now.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  })
-}
+const setMode = (modeId: 'traditional' | 'llm') => {
+  activeMode.value = modeId;
+  // 触发全局事件，通知其他组件模式变化
+  window.dispatchEvent(new CustomEvent('modeChanged', { detail: modeId }));
+};
 
-// 生命周期
-onMounted(() => {
-  updateTime()
-  timeTimer.value = window.setInterval(updateTime, 1000)
-})
+// 提供模式状态给其他组件使用
+provide('activeMode', activeMode);
 
-onUnmounted(() => {
-  if (timeTimer.value) {
-    clearInterval(timeTimer.value)
-  }
-})
+
 </script>
 
 <style scoped>
@@ -65,26 +57,17 @@ onUnmounted(() => {
 .screen-title {
   font-size: 20px;
   font-weight: 700;
-  color: var(--text);
+  color: var(--accent);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
-.header-center {
-  flex: 0 0 auto;
+.header-left {
+  flex: 1;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
-.time-display {
-  font-size: 14px;
-  color: var(--text);
-  font-family: 'Consolas', 'Monaco', monospace;
-  letter-spacing: 1px;
-  padding: 4px 12px;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-}
 
 .header-right {
   flex: 1;
@@ -101,11 +84,5 @@ onUnmounted(() => {
   .screen-title {
     font-size: 18px;
   }
-  
-  .time-display {
-    font-size: 12px;
-  }
-  
-
 }
 </style>

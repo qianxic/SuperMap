@@ -1,6 +1,6 @@
 <template>
   <button 
-    class="primary-btn"
+    class="btn"
     :class="[
       variant,
       { active: isActive }
@@ -11,7 +11,7 @@
     <slot>{{ text }}</slot>
   </button>
 </template>
-<!-- 主按钮 -->
+<!-- 次按钮 -->
 <script setup lang="ts">
 const props = defineProps({
   text: {
@@ -20,8 +20,8 @@ const props = defineProps({
   },
   variant: {
     type: String,
-    default: 'primary',
-    validator: (value) => ['primary', 'secondary'].includes(value)
+    default: 'secondary',
+    validator: (value: string) => ['primary', 'secondary', 'danger'].includes(value)
   },
   disabled: {
     type: Boolean,
@@ -37,7 +37,7 @@ const emit = defineEmits(['click'])
 
 const isActive = props.active
 
-const handleClick = (event) => {
+const handleClick = (event: MouseEvent) => {
   if (!props.disabled) {
     emit('click', event)
   }
@@ -45,44 +45,62 @@ const handleClick = (event) => {
 </script>
 
 <style scoped>
-.primary-btn {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 6px;
-  font-size: 12px;
+.btn { 
+  padding: 6px 8px; 
+  border: 1px solid var(--border); 
+  border-radius: 6px; 
+  background: var(--btn-secondary-bg); 
+  color: var(--btn-secondary-color); 
+  font-size: 12px; 
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.primary-btn.primary { 
-  background: var(--btn-primary-bg); 
-  color: var(--btn-primary-color); 
-  box-shadow: inset 0 0 12px rgba(59,130,246,.5); 
-}
-
-.primary-btn.primary:hover:not(:disabled) {
-  background: #1976d2;
-  box-shadow: inset 0 0 16px rgba(59,130,246,.7);
-}
-
-.primary-btn.secondary { 
-  background: var(--btn-secondary-bg); 
-  color: var(--btn-secondary-color); 
-  border: 1px solid var(--border); 
-}
-
-.primary-btn.secondary:hover:not(:disabled) {
+.btn:hover:not(:disabled) {
   background: var(--accent);
   border-color: var(--accent);
   color: white;
 }
 
-.primary-btn:disabled { 
-  opacity: 0.6; 
+.btn:disabled { 
+  opacity: 0.4; 
   cursor: not-allowed; 
 }
 
-.primary-btn.active {
-  transform: scale(0.98);
+.btn.primary { 
+  background: var(--accent); 
+  color: white; 
+  border-color: var(--accent);
+}
+
+.btn.secondary {
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-color);
+}
+
+.btn.danger {
+  background: #ff4757;
+  color: white;
+  border-color: #ff4757;
+}
+
+.btn.active {
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-color);
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.primary-btn.primary:hover:not(:disabled) {
+  background: #1976d2;
+  border-color: #1976d2;
+  color: white;
+  box-shadow: none;
+}
+
+.primary-btn.secondary:hover:not(:disabled) {
+  background: var(--btn-secondary-bg);
+  border-color: var(--border);
+  color: var(--btn-secondary-color);
 }
 </style>

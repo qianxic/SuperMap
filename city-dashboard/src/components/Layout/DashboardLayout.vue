@@ -4,12 +4,12 @@
     
     <div class="screen-main">
       <splitpanes class="default-theme">
-        <pane size="75">
+        <pane size="70" min-size="50">
           <div class="map-container">
             <SuperMapViewer />
           </div>
         </pane>
-        <pane size="25">
+        <pane size="30" min-size="30">
           <div class="right-panel-container">
             <RightPanel />
           </div>
@@ -49,9 +49,7 @@ import 'splitpanes/dist/splitpanes.css'
   z-index: 1;
   transition: background-color 0.2s ease-in-out;
 }
-.splitpanes__splitter:hover:before {
-  background-color: rgba(66, 165, 245, 0.2) !important;
-}
+
 .splitpanes__splitter:hover {
     background-color: var(--primary-color) !important;
 }
@@ -104,11 +102,7 @@ import 'splitpanes/dist/splitpanes.css'
   transition: all 0.3s ease;
 }
 
-.panel:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--glow), 0 8px 25px rgba(0, 0, 0, 0.3);
-  border-color: rgba(66, 165, 245, 0.5);
-}
+
 
 /* 响应式设计 */
 @media (max-width: 1400px) {

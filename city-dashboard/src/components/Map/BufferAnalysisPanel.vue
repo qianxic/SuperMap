@@ -1,6 +1,9 @@
 <template>
-  <div 
-    v-show="analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'buffer'"
+  <PanelWindow 
+    :visible="analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'buffer'"
+    :embed="true"
+    :width="'100%'"
+    :height="'100%'"
     class="buffer-analysis-panel"
   >
     <!-- 选择分析区域 -->
@@ -30,12 +33,11 @@
       <div class="section-title">缓冲距离参数</div>
       <div class="form-item">
         <label class="form-label">距离 (米)</label>
-        <input 
+        <TraditionalInputGroup
           v-model.number="bufferDistance" 
           type="number" 
-          min="1" 
-          step="10"
-          class="form-input"
+          :min="1" 
+          :step="10"
           placeholder="请输入缓冲距离"
           @input="onDistanceChange"
         />
@@ -44,21 +46,21 @@
 
     <!-- 分析操作 -->
     <div class="analysis-section">
-      <PrimaryButton 
+      <SecondaryButton 
         text="执行缓冲区分析"
         @click="executeBufferAnalysis"
-        :disabled="!selectedFeature"
       />
     </div>
-  </div>
+  </PanelWindow>
 </template>
 
 <script setup lang="ts">
 import { watch, computed } from 'vue'
 import { useAnalysisStore } from '@/stores/analysisStore'
 import { useBufferAnalysis } from '@/composables/useBufferAnalysis'
-import PrimaryButton from '@/components/UI/PrimaryButton.vue'
 import SecondaryButton from '@/components/UI/SecondaryButton.vue'
+import TraditionalInputGroup from '@/components/UI/TraditionalInputGroup.vue'
+import PanelWindow from '@/components/UI/PanelWindow.vue'
 
 const analysisStore = useAnalysisStore()
 
@@ -110,6 +112,7 @@ watch(() => analysisStore.toolPanel.activeTool, (tool) => {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  /* 使用全局滚动条样式 */
 }
 
 .analysis-section {
@@ -121,10 +124,7 @@ watch(() => analysisStore.toolPanel.activeTool, (tool) => {
   animation: fadeIn 0.3s ease-out;
 }
 
-.analysis-section:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(66, 165, 245, 0.3);
-}
+
 
 @keyframes fadeIn {
   from {
@@ -188,44 +188,5 @@ watch(() => analysisStore.toolPanel.activeTool, (tool) => {
   color: var(--accent);
   font-weight: 600;
 }
-
-.form-input {
-  padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  color: var(--text);
-  font-size: 13px;
-  outline: none;
-  transition: all 0.3s ease;
-  width: 100%;
-}
-
-.form-input:focus {
-  border-color: var(--accent);
-  background: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 0 0 2px rgba(66, 165, 245, 0.15);
-  transform: translateY(-1px);
-}
-
-.form-input::placeholder {
-  color: var(--sub);
-  opacity: 0.7;
-}
-
-/* 隐藏数字输入框的上下箭头 */
-.form-input[type="number"]::-webkit-outer-spin-button,
-.form-input[type="number"]::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.form-input[type="number"] {
-  -moz-appearance: textfield;
-  appearance: textfield;
-}
-
-
-
 
 </style>

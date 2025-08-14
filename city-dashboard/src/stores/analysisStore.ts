@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
-type ToolId = 'draw' | 'buffer' | 'layer' | 'bianji' | 'llm' | '';
+type ToolId = 'draw' | 'buffer' | 'distance' | 'gotowhere' | 'layer' | 'bianji' | 'llm' | '';
 
 export const useAnalysisStore = defineStore('analysis', () => {
   // 分析状态

@@ -1,6 +1,9 @@
 <template>
-  <div 
-    v-show="analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'layer'"
+  <PanelWindow 
+    :visible="analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'layer'"
+    :embed="true"
+    :width="'100%'"
+    :height="'100%'"
     class="layer-manager-panel"
   >
     <!-- 地图图层管理 -->
@@ -26,7 +29,7 @@
         </div>
       </div>
     </div>
-  </div>
+  </PanelWindow>
   
 </template>
 
@@ -36,6 +39,7 @@ import { useMapStore } from '@/stores/mapStore'
 import { useAnalysisStore } from '@/stores/analysisStore'
 import SecondaryButton from '@/components/UI/SecondaryButton.vue'
 import { useLayerManager } from '@/composables/useLayerManager'
+import PanelWindow from '@/components/UI/PanelWindow.vue'
 
 interface MapLayerItem {
   key: string;
@@ -86,6 +90,7 @@ const handleRemove = (item: MapLayerItem) => {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  /* 使用全局滚动条样式 */
 }
 
 .analysis-section {
@@ -97,10 +102,7 @@ const handleRemove = (item: MapLayerItem) => {
   animation: fadeIn 0.3s ease-out;
 }
 
-.analysis-section:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(66, 165, 245, 0.3);
-}
+
 
 @keyframes fadeIn {
   from {
@@ -168,7 +170,7 @@ const handleRemove = (item: MapLayerItem) => {
 
 .feature-item {
   background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(66,165,245,0.15);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 10px 14px;
   display: flex;
@@ -179,12 +181,7 @@ const handleRemove = (item: MapLayerItem) => {
   animation: fadeIn 0.3s ease-out;
 }
 
-.feature-item:hover {
-  background: rgba(255,255,255,0.08);
-  border-color: rgba(66,165,245,0.3);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(66,165,245,0.2);
-}
+
 
 
 

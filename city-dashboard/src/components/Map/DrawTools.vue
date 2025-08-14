@@ -1,6 +1,9 @@
 <template>
-  <div 
-    v-show="analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'draw'"
+  <PanelWindow 
+    :visible="analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'draw'"
+    :embed="true"
+    :width="'100%'"
+    :height="'100%'"
     class="draw-tools-panel"
   >
     <!-- 绘制模式选择 -->
@@ -28,7 +31,7 @@
     <!-- 图层配置 -->
     <div class="analysis-section">
       <div class="section-title">图层配置</div>
-      <FormInput 
+      <TraditionalInputGroup 
         v-model="layerName" 
         label="图层名称" 
         placeholder="请输入图层名称"
@@ -51,8 +54,7 @@
     </div>
     
     <div class="tip" v-if="analysisStore.drawMode">在地图上点击开始绘制{{ analysisStore.drawMode === 'point' ? '点' : analysisStore.drawMode === 'line' ? '线' : '面' }}</div>
-    <div class="tip" v-else>选择绘制工具开始创建要素</div>
-  </div>
+  </PanelWindow>
 </template>
 
 <script setup lang="ts">
@@ -61,7 +63,8 @@ import { useAnalysisStore } from '@/stores/analysisStore.ts'
 import { useDraw } from '@/composables/useDraw.ts'
 import { useLayerManager } from '@/composables/useLayerManager.ts'
 import SecondaryButton from '@/components/UI/SecondaryButton.vue'
-import FormInput from '@/components/UI/FormInput.vue'
+import TraditionalInputGroup from '@/components/UI/TraditionalInputGroup.vue'
+import PanelWindow from '@/components/UI/PanelWindow.vue'
 
 const analysisStore = useAnalysisStore()
 const layerManager = useLayerManager()
@@ -149,6 +152,7 @@ defineExpose({
   display: flex;
   flex-direction: column;
   gap: 20px;
+  /* 使用全局滚动条样式 */
 }
 
 .analysis-section {
@@ -160,10 +164,7 @@ defineExpose({
   animation: fadeIn 0.3s ease-out;
 }
 
-.analysis-section:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(66, 165, 245, 0.3);
-}
+
 
 @keyframes fadeIn {
   from {

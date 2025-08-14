@@ -27,7 +27,11 @@ export function useMap() {
       const map = new ol.Map({
         target: mapContainer.value,
         controls: new ol.Collection([
-          new ol.supermap.control.Logo({ link: "https://iclient.supermap.io" })
+          new ol.supermap.control.Logo({ link: "https://iclient.supermap.io" }),
+          new ol.control.Zoom({
+            className: 'custom-zoom-control',
+            target: undefined
+          })
         ]),
         view: new ol.View({
           projection: mapStore.mapConfig.projection,

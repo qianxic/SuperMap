@@ -6,14 +6,7 @@
     :height="'100%'"
     class="right-panel-content"
   >
-    <!-- 模式切换器 -->
-    <div class="mode-switcher">
-      <ButtonGroup
-        :buttons="modeButtons"
-        :active-button="activeMode"
-        @select="setMode"
-      />
-    </div>
+
 
     <!-- 传统功能区 -->
     <div v-if="activeMode === 'traditional'" class="traditional-panel">
@@ -27,6 +20,8 @@
           </div>
           <div class="button-row">
             <PrimaryButton text="缓冲区分析" @click="toggleBuffer" />
+            <PrimaryButton text="最优路径分析" @click="toggleDistance" />
+            <PrimaryButton text="可达性分析" @click="toggleGotowhere" />
           </div>
         </div>
       </div>
@@ -38,6 +33,8 @@
         <DrawTools v-if="analysisStore.toolPanel.activeTool === 'draw'" />
         <EditTools v-if="analysisStore.toolPanel.activeTool === 'bianji'" />
         <BufferAnalysisPanel v-if="analysisStore.toolPanel.activeTool === 'buffer'" />
+        <DistanceAnalysisPanel v-if="analysisStore.toolPanel.activeTool === 'distance'" />
+        <AccessibilityAnalysisPanel v-if="analysisStore.toolPanel.activeTool === 'gotowhere'" />
         <LayerManager v-if="analysisStore.toolPanel.activeTool === 'layer'" />
         <div v-if="!analysisStore.toolPanel.visible" class="default-content">
           <div class="welcome-message">
@@ -55,26 +52,35 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAnalysisStore } from '@/stores/analysisStore'
 import DrawTools from '@/components/Map/DrawTools.vue'
 import EditTools from '@/components/Map/EditTools.vue'
 import BufferAnalysisPanel from '@/components/Map/BufferAnalysisPanel.vue'
+import DistanceAnalysisPanel from '@/components/Map/DistanceAnalysisPanel.vue'
+import AccessibilityAnalysisPanel from '@/components/Map/AccessibilityAnalysisPanel.vue'
 import LayerManager from '@/components/Map/LayerManager.vue'
 import PrimaryButton from '@/components/UI/PrimaryButton.vue'
+import SecondaryButton from '@/components/UI/SecondaryButton.vue'
 import PanelWindow from '@/components/UI/PanelWindow.vue'
-import ButtonGroup from '@/components/UI/ButtonGroup.vue'
-import ChatAssistant from '@/components/LLM/ChatAssistant.vue'
 
-// 模式管理
+import ChatAssistant from '@/components/Map/ChatAssistant.vue'
+
+// 模式管理 - 从父组件注入或监听全局事件
 const activeMode = ref<'traditional' | 'llm'>('llm');
-const modeButtons = [
-  { id: 'llm', text: 'LLM 模式' },
-  { id: 'traditional', text: '传统模式' },
-];
-const setMode = (modeId: 'traditional' | 'llm') => {
-  activeMode.value = modeId;
+
+// 监听模式变化事件
+const handleModeChange = (event: CustomEvent) => {
+  activeMode.value = event.detail;
 };
+
+onMounted(() => {
+  window.addEventListener('modeChanged', handleModeChange as EventListener);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('modeChanged', handleModeChange as EventListener);
+});
 
 const analysisStore = useAnalysisStore()
 
@@ -82,6 +88,8 @@ const isDrawOpen = computed(() => analysisStore.toolPanel.visible && analysisSto
 const isBufferOpen = computed(() => analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'buffer')
 const isLayerOpen = computed(() => analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'layer')
 const isbianji = computed(() => analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'bianji')
+const isDistanceOpen = computed(() => analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'distance')
+const isGotowhereOpen = computed(() => analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'gotowhere')
 
 const toggleDraw = () => {
   if (isDrawOpen.value) {
@@ -114,6 +122,22 @@ const toggleLayerManager = () => {
     analysisStore.openTool('layer', '图层管理')
   }
 }
+
+const toggleDistance = () => {
+  if (isDistanceOpen.value) {
+    analysisStore.closeTool()
+  } else {
+    analysisStore.openTool('distance', '最优路径分析')
+  }
+}
+
+const toggleGotowhere = () => {
+  if (isGotowhereOpen.value) {
+    analysisStore.closeTool()
+  } else {
+    analysisStore.openTool('gotowhere', '可达性分析')
+  }
+}
 </script>
 
 <style scoped>
@@ -138,10 +162,7 @@ const toggleLayerManager = () => {
   }
 }
 
-.mode-switcher {
-  margin-bottom: 16px;
-  flex-shrink: 0;
-}
+
 
 .traditional-panel, .llm-panel {
   flex-grow: 1;
@@ -161,12 +182,7 @@ const toggleLayerManager = () => {
   animation: fadeIn 0.3s ease-out;
 }
 
-.function-buttons-container:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(66, 165, 245, 0.3);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(66, 165, 245, 0.1);
-}
+
 
 .buttons-grid {
   display: flex;
@@ -198,8 +214,7 @@ const toggleLayerManager = () => {
 }
 
 .button-row :deep(.primary-button):hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(66, 165, 245, 0.3);
+  /* 保留悬停状态，但不显示颜色变化 */
 }
 
 /* 响应式设计 */
@@ -218,7 +233,10 @@ const toggleLayerManager = () => {
   flex-grow: 1;
   min-height: 0;
   overflow: hidden;
+  transition: all 0.3s ease;
 }
+
+
 
 .divider {
   height: 1px;
@@ -233,12 +251,20 @@ const toggleLayerManager = () => {
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.3s ease;
 }
+
+
 
 .welcome-message {
   text-align: center;
   color: var(--sub);
+  transition: all 0.3s ease;
+  padding: 16px;
+  border-radius: 8px;
 }
+
+
 
 .welcome-message p {
   margin: 0;

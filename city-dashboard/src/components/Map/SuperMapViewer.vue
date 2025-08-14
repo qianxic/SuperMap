@@ -1,6 +1,8 @@
 <template>
   <div class="map-container">
     <div ref="mapContainer" class="map-view"></div>
+    <!-- 缩放控件（左上角） -->
+    <ZoomControls />
     <!-- 要素弹窗 -->
     <FeaturePopup />
     <!-- 坐标显示（左下角） -->
@@ -17,6 +19,7 @@ import { useMap } from '@/composables/useMap'
 import FeaturePopup from './FeaturePopup.vue'
 import CoordinateDisplay from './CoordinateDisplay.vue'
 import ScaleBar from './ScaleBar.vue'
+import ZoomControls from './ZoomControls.vue'
 
 
 // 组合式函数
@@ -45,5 +48,10 @@ onMounted(() => {
   position: absolute;
   inset: 0;
   border-radius: 8px;
+}
+
+/* 隐藏默认的 OpenLayers 缩放控件 */
+:deep(.custom-zoom-control) {
+  display: none !important;
 }
 </style>
