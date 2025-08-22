@@ -84,7 +84,7 @@
 /* Fixed layer colors (do not follow theme) */
 :root, [data-theme="dark"] {
   /* 行政区划 - 武汉_县级 */
-  --layer-stroke-武汉_县级: #606b75;
+  --layer-stroke-武汉_县级: var(--accent);
   --layer-fill-武汉_县级: rgba(0, 0, 0, 0);
 
   /* 交通设施 - 公路 */

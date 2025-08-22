@@ -72,14 +72,34 @@ import { useMapStore } from '@/stores/mapStore'
 
 // 模式管理 - 从父组件注入或监听全局事件
 const activeMode = ref<'traditional' | 'llm'>('llm');
+// 跟踪是否首次进入传统模式
+const isFirstTimeTraditional = ref<boolean>(true);
 
 // 监听模式变化事件
 const handleModeChange = (event: CustomEvent) => {
-  activeMode.value = event.detail;
+  const newMode = event.detail;
+  activeMode.value = newMode;
+  
+  // 当首次进入传统模式时，自动打开图层管理界面
+  if (newMode === 'traditional' && isFirstTimeTraditional.value) {
+    isFirstTimeTraditional.value = false;
+    // 延迟执行，确保组件已完全渲染
+    setTimeout(() => {
+      analysisStore.openTool('layer', '图层管理');
+    }, 100);
+  }
 };
 
 onMounted(() => {
   window.addEventListener('modeChanged', handleModeChange as EventListener);
+  
+  // 如果初始化时就是传统模式，也自动打开图层管理界面
+  if (activeMode.value === 'traditional' && isFirstTimeTraditional.value) {
+    isFirstTimeTraditional.value = false;
+    setTimeout(() => {
+      analysisStore.openTool('layer', '图层管理');
+    }, 100);
+  }
 });
 
 onUnmounted(() => {

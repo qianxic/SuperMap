@@ -63,7 +63,7 @@ const useMapStore = defineStore('map', () => {
           return {
             name: layer.name,
             style: {
-              stroke: { width: 1.5, color: '#007bff' },
+              stroke: { width: 1.5, color: 'var(--accent)' },
               fill: { color: 'rgba(0, 0, 0, 0)' } // 完全透明
             }
           }

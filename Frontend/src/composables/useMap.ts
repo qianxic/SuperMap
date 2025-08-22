@@ -314,7 +314,7 @@ export function useMap() {
 
     // 明确的图层颜色映射（按图层名），优先级低于 CSS 变量
     const fallbackColorMap: Record<string, { stroke: string; fill: string } > = {
-      '武汉_县级': { stroke: '#606b75', fill: 'rgba(0,0,0,0)' },
+      '武汉_县级': { stroke: accentFallback, fill: 'rgba(0,0,0,0)' },
       '公路': { stroke: '#f39c12', fill: 'rgba(243,156,18,0.08)' },
       '铁路': { stroke: '#8e44ad', fill: 'rgba(142,68,173,0.08)' },
       '水系面': { stroke: '#2980b9', fill: 'rgba(41,128,185,0.18)' },
