@@ -1,7 +1,7 @@
 <template>
   <div class="screen-header">
     <div class="header-left">
-      <div class="screen-title">基于大语言模型的智能化城市管理平台</div>
+      <div class="screen-title">基于LLM的智能化城市管理平台</div>
     </div>
     
     <div class="header-right">

@@ -81,6 +81,45 @@
   --field-value-color: #ffffff;
 }
 
+/* Fixed layer colors (do not follow theme) */
+:root, [data-theme="dark"] {
+  /* 行政区划 - 武汉_县级 */
+  --layer-stroke-武汉_县级: #606b75;
+  --layer-fill-武汉_县级: rgba(0, 0, 0, 0);
+
+  /* 交通设施 - 公路 */
+  --layer-stroke-公路: #f39c12;
+  --layer-fill-公路: rgba(243, 156, 18, 0.08);
+
+  /* 交通设施 - 铁路 */
+  --layer-stroke-铁路: #8e44ad;
+  --layer-fill-铁路: rgba(142, 68, 173, 0.08);
+
+  /* 水系 - 水系面 */
+  --layer-stroke-水系面: #2980b9;
+  --layer-fill-水系面: rgba(41, 128, 185, 0.18);
+
+  /* 水系 - 水系线 */
+  --layer-stroke-水系线: #3498db;
+  --layer-fill-水系线: rgba(52, 152, 219, 0.10);
+
+  /* 建筑物 - 建筑物面 */
+  --layer-stroke-建筑物面: #7f8c8d;
+  --layer-fill-建筑物面: rgba(127, 140, 141, 0.20);
+
+  /* 地名点 - 居民地地名点 */
+  --layer-stroke-居民地地名点: #e74c3c;
+  --layer-fill-居民地地名点: rgba(231, 76, 60, 0.35);
+
+  /* 公共服务 - 学校 */
+  --layer-stroke-学校: #27ae60;
+  --layer-fill-学校: rgba(39, 174, 96, 0.35);
+
+  /* 公共服务 - 医院 */
+  --layer-stroke-医院: #c0392b;
+  --layer-fill-医院: rgba(192, 57, 43, 0.35);
+}
+
 /* Utility panel style (optional reuse) */
 .card-panel {
   background: var(--panel);
@@ -186,4 +225,24 @@
   color: var(--field-value-color);
   word-break: break-word;
   margin-left: 8px;
+}
+
+/* Layer group styles */
+.layer-group {
+  margin-bottom: 16px;
+}
+
+.group-title {
+  font-size: 12px;
+  color: var(--sub);
+  margin-bottom: 8px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.group-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }

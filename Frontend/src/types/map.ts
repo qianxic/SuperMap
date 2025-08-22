@@ -7,12 +7,18 @@ export interface WuhanLayer {
   dataService?: string
 }
 
+export interface BaseMapConfig {
+  light: string // 浅色主题底图URL
+  dark: string  // 深色主题底图URL
+}
+
 export interface APIConfig {
   baseUrl: string
   mapService: string
   dataService: string
   datasetName: string
   wuhanLayers: WuhanLayer[]
+  baseMaps: BaseMapConfig // 新增底图配置
   timeout: number
   retryCount: number
   devMode: boolean

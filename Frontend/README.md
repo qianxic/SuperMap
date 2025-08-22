@@ -184,6 +184,61 @@ const result = await superMapClient.getFeaturesBySQL({
 })
 ```
 
+### 基于 features.json 的分页驱动读取（推荐）
+为确保与服务器分页保持一致，先预读 `features.json` 获取分页元数据，再把 `fromIndex`/`toIndex` 注入到要素查询参数中：
+
+```typescript
+// 以 wuhan:武汉_县级 为例
+const base = 'http://localhost:8090/iserver/services/data-WuHan/rest/data'
+const datasource = 'wuhan'
+const dataset = '武汉_县级'
+
+// 1) 预读分页元数据（GET features.json）
+const metaUrl = `${base}/datasources/${datasource}/datasets/${dataset}/features.json`
+const meta = await (await fetch(metaUrl)).json()
+
+// 2) 按 JSON 中字段严格取值
+const startIndex: number = typeof meta.startIndex === 'number' ? meta.startIndex : 0
+const featureCount: number = typeof meta.featureCount === 'number' ? meta.featureCount : 20
+const fromIndex = startIndex
+const toIndex = startIndex + featureCount - 1
+
+// 3) 应用于范围查询（Bounds）
+const boundsParams = new ol.supermap.GetFeaturesByBoundsParameters({
+  datasetNames: [`${datasource}:${dataset}`],
+  bounds: ol.extent.boundingExtent([[113.7, 29.97], [115.08, 31.36]]),
+  returnContent: true,
+  returnFeaturesOnly: true,
+  maxFeatures: -1,
+  fromIndex,
+  toIndex
+})
+new ol.supermap.FeatureService(base).getFeaturesByBounds(boundsParams, (res: any) => {
+  // 处理要素
+})
+
+// 4) 应用于几何查询（Geometry）
+const geometryParams = new ol.supermap.GetFeaturesByGeometryParameters({
+  datasetNames: [`${datasource}:${dataset}`],
+  geometry: new ol.geom.Point([114.3, 30.6]).buffer(0.001),
+  spatialQueryMode: ol.supermap.SpatialQueryMode.INTERSECT,
+  returnContent: true,
+  returnFeaturesOnly: true,
+  attributeFilter: '',
+  fields: ['*'],
+  fromIndex,
+  toIndex
+})
+new ol.supermap.FeatureService(base).getFeaturesByGeometry(geometryParams, (res: any) => {
+  // 处理要素
+})
+```
+
+说明：
+- 严格使用 `features.json` 中的 `startIndex`（起始索引）与 `featureCount`（要素数量）计算分页范围：`fromIndex = startIndex`，`toIndex = startIndex + featureCount - 1`。
+- 如需核对服务返回数据，可在请求回调中打印 `res.result.startIndex` 与 `res.result.featureCount`。
+- 当前项目在 `useMap.ts` 已实现上述流程，并在控制台打印完整的“服务器地址”“请求参数”“分页参数”与“完整API响应JSON”。
+
 ### 配置管理系统
 ```typescript
 // 动态配置加载

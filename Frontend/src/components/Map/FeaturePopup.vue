@@ -2,8 +2,8 @@
   <PanelWindow
     :visible="mapStore.popupVisible"
     title="要素信息"
-    :width="350"
-    :height="400"
+    :width="175"
+    :height="popupHeight"
     position="absolute"
     :left="adjustedPosition.x"
     :top="adjustedPosition.y"
@@ -24,21 +24,26 @@ import PanelWindow from '@/components/UI/PanelWindow.vue'
 
 const mapStore = useMapStore()
 
-// 计算调整后的位置，使弹窗居中显示在点击位置
+// 计算弹窗高度为屏幕高度的1/4（缩小一半）
+const popupHeight = computed(() => {
+  return Math.floor(window.innerHeight / 4)
+})
+
+// 计算调整后的位置，使弹窗显示在鼠标位置的右侧，高度为屏幕高度的1/4
 const adjustedPosition = computed(() => {
   const windowWidth = window.innerWidth
   const windowHeight = window.innerHeight
-  const popupWidth = 350
-  const popupHeight = 400
+  const popupWidth = 175 // 宽度缩小一半
   
-  let x = mapStore.popupPosition.x - popupWidth / 2 // 窗口宽度的一半
-  let y = mapStore.popupPosition.y - popupHeight // 窗口高度，使弹窗显示在点击位置上方
+  // 将弹窗放在鼠标位置的右侧
+  let x = mapStore.popupPosition.x + 10 // 鼠标位置右侧，留10px间距
+  let y = mapStore.popupPosition.y - popupHeight.value / 2 // 垂直居中于鼠标位置
   
   // 确保弹窗不会超出屏幕边界
+  if (x + popupWidth > windowWidth) x = mapStore.popupPosition.x - popupWidth - 10 // 如果右侧放不下，放在左侧
   if (x < 0) x = 0
-  if (x + popupWidth > windowWidth) x = windowWidth - popupWidth
   if (y < 0) y = 0
-  if (y + popupHeight > windowHeight) y = windowHeight - popupHeight
+  if (y + popupHeight.value > windowHeight) y = windowHeight - popupHeight.value
   
   return { x, y }
 })

@@ -10,6 +10,11 @@ export const createAPIConfig = (): APIConfig => {
     mapService,
     dataService,
     datasetName: import.meta.env.VITE_SUPERMAP_DATASET_NAME || '武汉_县级@wuhan@@武汉',
+    // 底图配置 - 根据主题自动切换
+    baseMaps: {
+      light: 'https://www.supermapol.com/proxy/gqzvimgx/iserver/services/map_china-1-_331nhzuk/rest/maps/China_Light',
+      dark: 'https://www.supermapol.com/proxy/dd2z0vuq/iserver/services/map_china-1-_hl5n2ma6/rest/maps/China_Dark'
+    },
     // 武汉工作空间的所有子图层配置 - 根据实际SuperMap服务结构
     wuhanLayers: [
       // 武汉市县级图层
@@ -209,6 +214,18 @@ export const testLayerConfig = () => {
   })
   
   return config
+}
+
+// 获取当前主题对应的底图URL
+export const getCurrentBaseMapUrl = (theme: 'light' | 'dark'): string => {
+  const config = createAPIConfig()
+  return config.baseMaps[theme]
+}
+
+// 获取所有底图配置
+export const getBaseMapConfig = () => {
+  const config = createAPIConfig()
+  return config.baseMaps
 }
 
 export default createAPIConfig

@@ -75,7 +75,7 @@ export function useFeatureLoader() {
    * @param datasetName 数据集名称
    * @param batchSize 批次大小
    */
-  const loadAllFeatures = async (datasetName: string, batchSize: number = 20) => {
+  const loadAllFeatures = async (datasetName: string, batchSize: number = 999999) => {
     try {
       resetState()
       isLoading.value = true

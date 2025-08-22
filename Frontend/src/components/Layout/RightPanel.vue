@@ -47,7 +47,7 @@
     <!-- LLM 助手区 -->
     <PanelContainer v-if="activeMode === 'llm'" class="llm-panel">
       <div class="chat-container">
-        <ChatAssistant />
+        <ChatAssistant :initial-layers="layersStatus" :map-ready="mapStore.isMapReady" />
       </div>
     </PanelContainer>
   </PanelWindow>
@@ -68,6 +68,7 @@ import PanelWindow from '@/components/UI/PanelWindow.vue'
 import PanelContainer from '@/components/UI/PanelContainer.vue'
 
 import ChatAssistant from '@/components/Map/ChatAssistant.vue'
+import { useMapStore } from '@/stores/mapStore'
 
 // 模式管理 - 从父组件注入或监听全局事件
 const activeMode = ref<'traditional' | 'llm'>('llm');
@@ -86,6 +87,7 @@ onUnmounted(() => {
 });
 
 const analysisStore = useAnalysisStore()
+const mapStore = useMapStore()
 
 const isDrawOpen = computed(() => analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'draw')
 const isBufferOpen = computed(() => analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'buffer')
@@ -93,6 +95,10 @@ const isLayerOpen = computed(() => analysisStore.toolPanel.visible && analysisSt
 const isbianji = computed(() => analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'bianji')
 const isDistanceOpen = computed(() => analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'distance')
 const isGotowhereOpen = computed(() => analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'gotowhere')
+
+const layersStatus = computed(() => {
+  return mapStore.vectorLayers.map(l => ({ name: l.name, visible: l.visible }))
+})
 
 const toggleDraw = () => {
   if (isDrawOpen.value) {

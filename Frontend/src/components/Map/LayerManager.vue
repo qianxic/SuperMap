@@ -10,21 +10,26 @@
     <div class="analysis-section">
       <div class="section-title">地图图层管理</div>
       <div class="layer-list">
-        <div class="layer-item" v-for="item in mapLayers" :key="item.key">
-          <div class="layer-info">
-            <div class="layer-name">{{ item.name }}</div>
-            <div class="layer-desc">{{ item.desc }}</div>
-          </div>
-          <div class="layer-operations">
-            <SecondaryButton
-              :text="item.visible ? '隐藏' : '显示'"
-              @click="handleToggleVisibility(item)"
-            />
-            <SecondaryButton
-              text="移除"
-              variant="danger"
-              @click="handleRemove(item)"
-            />
+        <div class="layer-group" v-for="group in groupedLayers" :key="group.name">
+          <div class="group-title">{{ group.name }}</div>
+          <div class="group-items">
+            <div class="layer-item" v-for="item in group.items" :key="item.key">
+              <div class="layer-info">
+                <div class="layer-name">{{ item.displayName }}</div>
+                <div class="layer-desc">{{ item.desc }}</div>
+              </div>
+              <div class="layer-operations">
+                <SecondaryButton
+                  :text="item.visible ? '隐藏' : '显示'"
+                  @click="handleToggleVisibility(item)"
+                />
+                <SecondaryButton
+                  text="移除"
+                  variant="danger"
+                  @click="handleRemove(item)"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -54,60 +59,36 @@ const mapStore = useMapStore()
 const analysisStore = useAnalysisStore()
 const { toggleLayerVisibility, removeLayer } = useLayerManager()
 
-const mapLayers = computed<MapLayerItem[]>(() => {
-  const items: MapLayerItem[] = []
-  
-  // 按图层类型分组显示
-  const layerGroups = {
-    '行政区划': ['武汉_县级'],
-    '交通设施': ['公路', '铁路'],
-    '水系': ['水系线', '水系面'],
-    '建筑物': ['建筑物面'],
-    '地名点': ['居民地地名点'],
-    '公共服务': ['学校', '医院']
-  }
-  
-  mapStore.vectorLayers.forEach(vl => {
-    const layerName = vl.name
-    let groupName = '其他'
-    let desc = '矢量数据'
-    
-    // 根据图层名称确定分组和描述
-    for (const [group, layers] of Object.entries(layerGroups)) {
-      if (layers.includes(layerName)) {
-        groupName = group
-        break
-      }
-    }
-    
-    // 根据图层类型设置描述
-    if (vl.type === 'raster') {
-      desc = '栅格数据 (DEM)'
-    } else if (layerName.includes('点')) {
-      desc = '点要素'
-    } else if (layerName.includes('线')) {
-      desc = '线要素'
-    } else if (layerName.includes('面')) {
-      desc = '面要素'
-    }
-    
-    items.push({
-      key: vl.id,
-      name: `${groupName} - ${layerName}`,
-      desc: desc,
-      visible: vl.layer.getVisible(),
-      isVector: vl.type === 'vector'
-    });
-  });
-  
-  // 按分组排序
-  return items.sort((a, b) => {
-    const groupOrder = ['行政区划', '交通设施', '水系', '建筑物', '地名点', '公共服务', '其他']
-    const aGroup = a.name.split(' - ')[0]
-    const bGroup = b.name.split(' - ')[0]
-    return groupOrder.indexOf(aGroup) - groupOrder.indexOf(bGroup)
+const groupedLayers = computed(() => {
+  const groups = [
+    { name: '行政区划', layers: ['武汉_县级'] },
+    { name: '交通设施', layers: ['公路', '铁路'] },
+    { name: '水系', layers: ['水系线', '水系面'] },
+    { name: '建筑物', layers: ['建筑物面'] },
+    { name: '地名点', layers: ['居民地地名点'] },
+    { name: '公共服务', layers: ['医院', '学校'] }
+  ]
+
+  return groups.map(group => {
+    const items = mapStore.vectorLayers
+      .filter(vl => group.layers.includes(vl.name))
+      .map(vl => ({
+        key: vl.id,
+        displayName: `${group.name} - ${vl.name}`,
+        desc: inferDesc(vl.name, vl.type),
+        visible: vl.layer.getVisible()
+      }))
+    return { name: group.name, items }
   })
 })
+
+function inferDesc(name: string, type: string): string {
+  if (type === 'raster') return '栅格数据 (DEM)'
+  if (name.includes('点')) return '点要素'
+  if (name.includes('线')) return '线要素'
+  if (name.includes('面')) return '面要素'
+  return '矢量数据'
+}
 
 const handleToggleVisibility = (item: MapLayerItem) => {
   toggleLayerVisibility(item.key)
