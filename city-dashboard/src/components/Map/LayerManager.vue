@@ -94,12 +94,13 @@ const handleRemove = (item: MapLayerItem) => {
 }
 
 .analysis-section {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface, rgba(255, 255, 255, 0.03));
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 16px;
   transition: all 0.3s ease;
   animation: fadeIn 0.3s ease-out;
+  margin-bottom: 16px;
 }
 
 
@@ -129,7 +130,7 @@ const handleRemove = (item: MapLayerItem) => {
 
 .layer-item {
   display: flex; align-items: center; justify-content: space-between;
-  background: rgba(255,255,255,0.06);
+  background: var(--surface, rgba(255,255,255,0.06));
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 10px 14px;
@@ -169,7 +170,7 @@ const handleRemove = (item: MapLayerItem) => {
 }
 
 .feature-item {
-  background: rgba(255,255,255,0.03);
+  background: var(--surface, rgba(255,255,255,0.03));
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 10px 14px;

@@ -31,13 +31,16 @@ import 'splitpanes/dist/splitpanes.css'
 .splitpanes__pane {
   background-color: transparent !important;
 }
+
 .splitpanes__splitter {
-  background-color: transparent !important;
+  background-color: var(--splitter-bg) !important;
   position: relative;
   width: 5px !important;
   border: none !important;
-  transition: background-color 0.2s ease-in-out;
+  transition: all 0.2s ease-in-out;
+  opacity: 0.5;
 }
+
 .splitpanes__splitter:before {
   content: '';
   position: absolute;
@@ -51,7 +54,9 @@ import 'splitpanes/dist/splitpanes.css'
 }
 
 .splitpanes__splitter:hover {
-    background-color: var(--primary-color) !important;
+  background-color: var(--splitter-hover) !important;
+  opacity: 1;
+  transform: scaleX(1.2);
 }
 
 </style>

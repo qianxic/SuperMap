@@ -1,6 +1,16 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import DashboardLayout from '@/components/Layout/DashboardLayout.vue'
+import { useThemeStore } from '@/stores/themeStore'
 import '@/styles/theme.css'
+
+// 确保主题在应用启动时正确初始化
+const themeStore = useThemeStore()
+
+onMounted(() => {
+  themeStore.applySystemTheme()
+  themeStore.setupSystemThemeListener()
+})
 </script>
 
 <template>
@@ -28,29 +38,29 @@ html, body {
   width: 100vw;
 }
 
-/* 滚动条样式 */
+/* 滚动条样式 - 支持主题切换 */
 ::-webkit-scrollbar {
   width: 3px;
   height: 1.5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(200, 200, 200, 0.1);
+  background: var(--scrollbar-track, rgba(200, 200, 200, 0.1));
   border-radius: 1.5px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(150, 150, 150, 0.3);
+  background: var(--scrollbar-thumb, rgba(150, 150, 150, 0.3));
   border-radius: 1.5px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(150, 150, 150, 0.5);
+  background: var(--scrollbar-thumb-hover, rgba(150, 150, 150, 0.5));
 }
 
-/* 选择文本样式 */
+/* 选择文本样式 - 支持主题切换 */
 ::selection {
-  background: rgba(66, 165, 245, 0.3);
+  background: var(--selection-bg, rgba(66, 165, 245, 0.3));
   color: var(--text);
 }
 </style>

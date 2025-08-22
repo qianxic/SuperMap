@@ -13,7 +13,46 @@
   --btn-secondary-bg: #e9ecef;
   --btn-secondary-color: #212529;
 
+  /* Light theme specific variables */
+  --surface: rgba(0, 0, 0, 0.03);
+  --surface-hover: rgba(0, 0, 0, 0.06);
+  --divider: #dee2e6;
+  --splitter-bg: rgba(0, 0, 0, 0.1);
+  --splitter-hover: #007bff;
+
   --radius: 10px;
+}
+
+/* Windows-style dark theme */
+[data-theme="dark"] {
+  --bg: #1e1e1e;
+  --panel: #2d2d30;
+  --border: #3c3c3c;
+  --glow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --text: #ffffff;
+  --sub: #cccccc;
+  --accent: #0078d4;
+
+  --btn-primary-bg: #0078d4;
+  --btn-primary-color: #ffffff;
+  --btn-secondary-bg: #373737;
+  --btn-secondary-color: #ffffff;
+
+  /* Dark theme specific variables */
+  --surface: rgba(255, 255, 255, 0.03);
+  --surface-hover: rgba(255, 255, 255, 0.06);
+  --divider: #484848;
+  --splitter-bg: rgba(255, 255, 255, 0.1);
+  --splitter-hover: #0078d4;
+  --overlay: rgba(0, 0, 0, 0.6);
+  
+  /* Scrollbar colors for dark theme */
+  --scrollbar-track: rgba(255, 255, 255, 0.1);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.3);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.5);
+  
+  /* Selection colors for dark theme */
+  --selection-bg: rgba(0, 120, 212, 0.4);
 }
 
 /* Utility panel style (optional reuse) */
@@ -51,10 +90,21 @@
   border-radius: 6px !important;
   width: 28px !important;
   height: 28px !important;
+  transition: all 0.2s ease;
+}
+
+.ol-control button:hover {
+  background: var(--surface-hover, var(--btn-primary-bg)) !important;
+  transform: translateY(-1px);
 }
 
 /* FeaturePopup common text colors */
 .popup .hd { color: var(--sub) !important; }
-.popup { background: var(--panel) !important; border: 1px solid var(--border) !important; box-shadow: var(--glow) !important; color: var(--text) !important; }
+.popup { 
+  background: var(--panel) !important; 
+  border: 1px solid var(--border) !important; 
+  box-shadow: var(--glow) !important; 
+  color: var(--text) !important; 
+}
 
 

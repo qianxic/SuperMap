@@ -174,7 +174,7 @@ const toggleGotowhere = () => {
 /* 功能按钮容器样式 */
 .function-buttons-container {
   flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface, rgba(255, 255, 255, 0.03));
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 20px;

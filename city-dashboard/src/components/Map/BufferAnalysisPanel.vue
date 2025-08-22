@@ -116,12 +116,13 @@ watch(() => analysisStore.toolPanel.activeTool, (tool) => {
 }
 
 .analysis-section {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface, rgba(255, 255, 255, 0.03));
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 16px;
   transition: all 0.3s ease;
   animation: fadeIn 0.3s ease-out;
+  margin-bottom: 16px;
 }
 
 

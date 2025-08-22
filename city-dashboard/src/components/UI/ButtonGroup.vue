@@ -50,7 +50,7 @@ button {
 button.active {
   background-color: var(--accent);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(66, 165, 245, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 120, 212, 0.3);
 }
 
 button:not(.active):hover {

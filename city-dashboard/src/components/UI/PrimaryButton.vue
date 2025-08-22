@@ -79,21 +79,26 @@ const handleClick = (event: MouseEvent) => {
 }
 
 .btn.danger {
-  background: #ff4757;
+  background: #dc3545;
   color: white;
-  border-color: #ff4757;
+  border-color: #dc3545;
+}
+
+.btn.danger:hover:not(:disabled) {
+  background: #c82333;
+  border-color: #c82333;
 }
 
 .btn.active {
-  background: var(--btn-secondary-bg);
+  background: var(--surface, var(--btn-secondary-bg));
   color: var(--btn-secondary-color);
   border-color: var(--border);
   box-shadow: none;
 }
 
 .primary-btn.primary:hover:not(:disabled) {
-  background: #1976d2;
-  border-color: #1976d2;
+  background: var(--surface-hover, #1976d2);
+  border-color: var(--surface-hover, #1976d2);
   color: white;
   box-shadow: none;
 }
