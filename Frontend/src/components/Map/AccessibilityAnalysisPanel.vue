@@ -96,6 +96,7 @@ import SecondaryButton from '@/components/UI/SecondaryButton.vue'
 import TraditionalInputGroup from '@/components/UI/TraditionalInputGroup.vue'
 import DropdownSelect from '@/components/UI/DropdownSelect.vue'
 import PanelWindow from '@/components/UI/PanelWindow.vue'
+import TipWindow from '@/components/UI/TipWindow.vue'
 
 const analysisStore = useAnalysisStore()
 

@@ -115,7 +115,7 @@ const formatLayerStatus = (layers: LayerStatus[]): string => {
   const enabledLines = enabled.map(l => `- **${l.name}: 开启**`);
   const disabledLines = disabled.map(l => `- ${l.name}: 关闭`);
   const lines = [...enabledLines, ...disabledLines];
-  return ['您好！底图初始化完成。图层状态如下:', ...lines].join('\n');
+  return ['您好！地图初始化完成。图层状态如下:', ...lines].join('\n');
 }
 
 const demoMessage = (): string => {

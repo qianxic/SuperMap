@@ -131,33 +131,105 @@ export function useMap() {
       updateLayerStyles()
       
       const hoverSource = new ol.source.Vector()
-      const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
-      const hoverLayer = new ol.layer.Vector({
-        source: hoverSource,
-        style: new ol.style.Style({
+      
+      // 创建动态样式函数以确保主题变化时正确获取颜色
+      const createHoverStyle = () => {
+        const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#007bff';
+        const hoverFillColor = getComputedStyle(document.documentElement).getPropertyValue('--map-hover-fill').trim() || 'rgba(0, 123, 255, 0.3)';
+        
+        return new ol.style.Style({
           image: new ol.style.Circle({ 
             radius: 6, 
             stroke: new ol.style.Stroke({color: accentColor, width: 2}), 
-            fill: new ol.style.Fill({color: getComputedStyle(document.documentElement).getPropertyValue('--map-hover-fill').trim()}) 
+            fill: new ol.style.Fill({color: hoverFillColor}) 
           }),
           stroke: new ol.style.Stroke({color: accentColor, width: 2}),
-          fill: new ol.style.Fill({color: getComputedStyle(document.documentElement).getPropertyValue('--map-hover-fill').trim()})
-        })
+          fill: new ol.style.Fill({color: hoverFillColor})
+        });
+      };
+      
+      const hoverLayer = new ol.layer.Vector({
+        source: hoverSource,
+        style: createHoverStyle(),
+        zIndex: 999 // 确保悬停图层在选择图层下方
       })
       map.addLayer(hoverLayer)
         
       const selectSource = new ol.source.Vector()
+      
+      // 创建动态样式函数确保选中高亮可见
+      const createSelectStyle = () => {
+        const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#007bff';
+        const grayFillColor = getComputedStyle(document.documentElement).getPropertyValue('--map-select-fill').trim() || 'rgba(128, 128, 128, 0.3)';
+        
+        return (feature: any) => {
+          const geometry = feature.getGeometry();
+          if (!geometry) {
+            // 如果没有几何对象，使用默认样式
+            return new ol.style.Style({
+              image: new ol.style.Circle({ 
+                radius: 8, 
+                stroke: new ol.style.Stroke({color: accentColor, width: 3}), 
+                fill: new ol.style.Fill({color: grayFillColor})
+              }),
+              stroke: new ol.style.Stroke({color: accentColor, width: 3}),
+              fill: new ol.style.Fill({color: grayFillColor})
+            });
+          }
+          
+          const geometryType = geometry.getType();
+          
+          switch (geometryType) {
+            case 'Point':
+            case 'MultiPoint':
+              // 点要素使用圆形高亮
+              return new ol.style.Style({
+                image: new ol.style.Circle({ 
+                  radius: 8, 
+                  stroke: new ol.style.Stroke({color: accentColor, width: 3}), 
+                  fill: new ol.style.Fill({color: grayFillColor})
+                })
+              });
+              
+            case 'LineString':
+            case 'MultiLineString':
+              // 线要素使用加粗线条高亮
+              return new ol.style.Style({
+                stroke: new ol.style.Stroke({
+                  color: accentColor, 
+                  width: 5,
+                  lineCap: 'round',
+                  lineJoin: 'round'
+                })
+              });
+              
+            case 'Polygon':
+            case 'MultiPolygon':
+              // 面要素使用边框和填充高亮
+              return new ol.style.Style({
+                stroke: new ol.style.Stroke({color: accentColor, width: 3}),
+                fill: new ol.style.Fill({color: grayFillColor})
+              });
+              
+            default:
+              // 默认样式
+              return new ol.style.Style({
+                image: new ol.style.Circle({ 
+                  radius: 8, 
+                  stroke: new ol.style.Stroke({color: accentColor, width: 3}), 
+                  fill: new ol.style.Fill({color: grayFillColor})
+                }),
+                stroke: new ol.style.Stroke({color: accentColor, width: 3}),
+                fill: new ol.style.Fill({color: grayFillColor})
+              });
+          }
+        };
+      };
+      
       const selectLayer = new ol.layer.Vector({
         source: selectSource,
-        style: new ol.style.Style({
-          image: new ol.style.Circle({ 
-            radius: 8, 
-            stroke: new ol.style.Stroke({color: accentColor, width: 3}), 
-            fill: new ol.style.Fill({color: 'rgba(0,0,0,0)'}) 
-          }),
-          stroke: new ol.style.Stroke({color: accentColor, width: 3}),
-          fill: new ol.style.Fill({color: 'rgba(0,0,0,0)'})
-        })
+        style: createSelectStyle(),
+        zIndex: 1000 // 确保选择图层在最顶层
       })
       map.addLayer(selectLayer)
       selectSourceRef.value = selectSource
@@ -223,6 +295,92 @@ export function useMap() {
         }
       }
     });
+    
+    // 更新选择图层样式
+    if (mapStore.selectLayer) {
+      const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#007bff';
+      const grayFillColor = getComputedStyle(document.documentElement).getPropertyValue('--map-select-fill').trim() || 'rgba(128, 128, 128, 0.3)';
+      
+      const newSelectStyle = (feature: any) => {
+        const geometry = feature.getGeometry();
+        if (!geometry) {
+          return new ol.style.Style({
+            image: new ol.style.Circle({ 
+              radius: 8, 
+              stroke: new ol.style.Stroke({color: accentColor, width: 3}), 
+              fill: new ol.style.Fill({color: grayFillColor})
+            }),
+            stroke: new ol.style.Stroke({color: accentColor, width: 3}),
+            fill: new ol.style.Fill({color: grayFillColor})
+          });
+        }
+        
+        const geometryType = geometry.getType();
+        
+        switch (geometryType) {
+          case 'Point':
+          case 'MultiPoint':
+            return new ol.style.Style({
+              image: new ol.style.Circle({ 
+                radius: 8, 
+                stroke: new ol.style.Stroke({color: accentColor, width: 3}), 
+                fill: new ol.style.Fill({color: grayFillColor})
+              })
+            });
+            
+          case 'LineString':
+          case 'MultiLineString':
+            return new ol.style.Style({
+              stroke: new ol.style.Stroke({
+                color: accentColor, 
+                width: 5,
+                lineCap: 'round',
+                lineJoin: 'round'
+              })
+            });
+            
+          case 'Polygon':
+          case 'MultiPolygon':
+            return new ol.style.Style({
+              stroke: new ol.style.Stroke({color: accentColor, width: 3}),
+              fill: new ol.style.Fill({color: grayFillColor})
+            });
+            
+          default:
+            return new ol.style.Style({
+              image: new ol.style.Circle({ 
+                radius: 8, 
+                stroke: new ol.style.Stroke({color: accentColor, width: 3}), 
+                fill: new ol.style.Fill({color: grayFillColor})
+              }),
+              stroke: new ol.style.Stroke({color: accentColor, width: 3}),
+              fill: new ol.style.Fill({color: grayFillColor})
+            });
+        }
+      };
+      
+      mapStore.selectLayer.setStyle(newSelectStyle);
+      // 强制刷新图层
+      mapStore.selectLayer.changed();
+    }
+    
+    // 更新悬停图层样式
+    if (mapStore.hoverLayer) {
+      const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#007bff';
+      const hoverFillColor = getComputedStyle(document.documentElement).getPropertyValue('--map-hover-fill').trim() || 'rgba(0, 123, 255, 0.3)';
+      
+      const newHoverStyle = new ol.style.Style({
+        image: new ol.style.Circle({ 
+          radius: 6, 
+          stroke: new ol.style.Stroke({color: accentColor, width: 2}), 
+          fill: new ol.style.Fill({color: hoverFillColor}) 
+        }),
+        stroke: new ol.style.Stroke({color: accentColor, width: 2}),
+        fill: new ol.style.Fill({color: hoverFillColor})
+      });
+      
+      mapStore.hoverLayer.setStyle(newHoverStyle);
+    }
   }
 
   // 监听主题变化，更新图层样式和底图
@@ -1016,34 +1174,57 @@ export function useMap() {
       }
     );
 
-    selectSource.clear();
+    // 清除单次点击选择的要素，但保留几何选择的要素
+    const currentFeatures = selectSource.getFeatures();
+    const persistentFeatures = mapStore.getPersistentSelectedFeatures();
+    
+    // 移除不在持久化列表中的要素（即单次点击选择的要素）
+    const featuresToRemove = currentFeatures.filter((f: any) => {
+      return !persistentFeatures.some((pf: any) => 
+        pf.id === f.getId() || 
+        (pf.geometry && f.getGeometry && 
+         JSON.stringify(pf.geometry.coordinates) === JSON.stringify(f.getGeometry().getCoordinates()))
+      );
+    });
+    
+    featuresToRemove.forEach((f: any) => selectSource.removeFeature(f));
     mapStore.setSelectedFeature(null);
 
-         if (feature) {
-       // 如果点击到要素，显示其属性信息
-       selectSource.addFeature(feature);
-       mapStore.setSelectedFeature(feature);
+    if (feature) {
+      // 如果点击到要素，添加到选择图层并显示其属性信息
+      console.log('选中要素:', feature);
+      console.log('要素几何类型:', feature.getGeometry()?.getType());
+      console.log('选择图层源:', selectSource);
+      console.log('选择图层:', mapStore.selectLayer);
+      
+      selectSource.addFeature(feature);
+      mapStore.setSelectedFeature(feature);
+      
+      // 强制刷新选择图层
+      if (mapStore.selectLayer) {
+        mapStore.selectLayer.changed();
+      }
 
-       // 生成详细的要素属性信息 - 显示所有从数据服务中读取的数据
-       const properties = feature.getProperties();
-       let content = '<div class="feature-info">';
-       
-       // 显示要素基本信息
-       content += `<div class="feature-header">要素详细信息</div>`;
-       content += `<div class="field-row"><span class="field-label">要素ID:</span><span class="field-value">${feature.getId() || '无'}</span></div>`;
-       content += `<div class="field-row"><span class="field-label">几何类型:</span><span class="field-value">${feature.getGeometry()?.getType() || '未知'}</span></div>`;
-       
-       // 显示所有属性字段，包括空值
-       content += `<div class="feature-header">属性字段 (共${Object.keys(properties).filter(k => k !== 'geometry').length}个)</div>`;
-       Object.keys(properties).forEach(key => {
-         if (key !== 'geometry') {
-           const value = properties[key];
-           const displayValue = value !== undefined && value !== null ? value : '(空值)';
-           content += `<div class="field-row"><span class="field-label">${key}:</span><span class="field-value">${displayValue}</span></div>`;
-         }
-       });
-       
-       content += '</div>';
+      // 生成详细的要素属性信息 - 显示所有从数据服务中读取的数据
+      const properties = feature.getProperties();
+      let content = '<div class="feature-info">';
+      
+      // 显示要素基本信息
+      content += `<div class="feature-header">要素详细信息</div>`;
+      content += `<div class="field-row"><span class="field-label">要素ID:</span><span class="field-value">${feature.getId() || '无'}</span></div>`;
+      content += `<div class="field-row"><span class="field-label">几何类型:</span><span class="field-value">${feature.getGeometry()?.getType() || '未知'}</span></div>`;
+      
+      // 显示所有属性字段，包括空值
+      content += `<div class="feature-header">属性字段 (共${Object.keys(properties).filter(k => k !== 'geometry').length}个)</div>`;
+      Object.keys(properties).forEach(key => {
+        if (key !== 'geometry') {
+          const value = properties[key];
+          const displayValue = value !== undefined && value !== null ? value : '(空值)';
+          content += `<div class="field-row"><span class="field-label">${key}:</span><span class="field-value">${displayValue}</span></div>`;
+        }
+      });
+      
+      content += '</div>';
 
       mapStore.showPopup(
         { x: evt.pixel[0], y: evt.pixel[1] },

@@ -9,7 +9,12 @@
     <!-- 地图图层管理 -->
     <div class="analysis-section">
       <div class="section-title">地图图层管理</div>
-      <div class="layer-list">
+      <div class="layer-list" :class="{ empty: groupedLayers.length === 0 }">
+        <div v-if="groupedLayers.length === 0" class="empty-state">
+          <div class="empty-icon">🗺️</div>
+          <div class="empty-text">暂无图层加载</div>
+          <div class="empty-desc">地图图层正在加载中，请稍候...</div>
+        </div>
         <div class="layer-group" v-for="group in groupedLayers" :key="group.name">
           <div class="group-title">{{ group.name }}</div>
           <div class="group-items">
@@ -69,17 +74,20 @@ const groupedLayers = computed(() => {
     { name: '公共服务', layers: ['医院', '学校'] }
   ]
 
-  return groups.map(group => {
-    const items = mapStore.vectorLayers
-      .filter(vl => group.layers.includes(vl.name))
-      .map(vl => ({
-        key: vl.id,
-        displayName: `${group.name} - ${vl.name}`,
-        desc: inferDesc(vl.name, vl.type),
-        visible: vl.layer.getVisible()
-      }))
-    return { name: group.name, items }
-  })
+  return groups
+    .map(group => {
+      const items = mapStore.vectorLayers
+        .filter(vl => group.layers.includes(vl.name))
+        .map(vl => ({
+          key: vl.id,
+          name: vl.name,
+          displayName: `${group.name} - ${vl.name}`,
+          desc: inferDesc(vl.name, vl.type),
+          visible: vl.layer.getVisible()
+        }))
+      return { name: group.name, items }
+    })
+    .filter(group => group.items.length > 0) // 只显示有图层的分类组
 })
 
 function inferDesc(name: string, type: string): string {
@@ -146,11 +154,39 @@ const handleRemove = (item: MapLayerItem) => {
 .layer-list { display: flex; flex-direction: column; gap: 8px; }
 .layer-list.empty { color: var(--sub); font-size: 12px; padding: 12px; background: rgba(255,255,255,0.04); border-radius: 12px; }
 
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--sub);
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.empty-text {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+.empty-desc {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
 .layer-container { display: flex; flex-direction: column; }
 
 .layer-item {
   display: flex; align-items: center; justify-content: space-between;
-  background: var(--surface, rgba(255,255,255,0.06));
+  background: var(--btn-secondary-bg);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 10px 14px;

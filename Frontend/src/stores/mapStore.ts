@@ -20,6 +20,10 @@ const useMapStore = defineStore('map', () => {
   const hoveredFeature = ref<any>(null) // ol.Feature
   const selectedFeature = ref<any>(null) // ol.Feature
   
+  // 持久化的批量选择状态
+  const persistentSelectedFeatures = ref<any[]>([]) // 保持选择状态的要素数组
+  const selectedFeatureIndex = ref<number>(-1) // 当前选中要素的索引
+  
   // 鼠标坐标
   const currentCoordinate = ref<Coordinate>({ lon: null, lat: null })
   
@@ -42,7 +46,8 @@ const useMapStore = defineStore('map', () => {
   const hasMapDiff = computed(() => {
     const hasCustomLayers = customLayers.value.length > 0
     const hasSelections = selectLayer.value && selectLayer.value.getSource() && selectLayer.value.getSource().getFeatures().length > 0
-    return hasCustomLayers || !!hasSelections
+    const hasPersistentSelections = persistentSelectedFeatures.value.length > 0
+    return hasCustomLayers || !!hasSelections || hasPersistentSelections
   })
   
   const createMapConfig = (): MapConfig => {
@@ -172,10 +177,43 @@ const useMapStore = defineStore('map', () => {
   
   function clearSelection() {
     selectedFeature.value = null
+    // 只清除单次点击选择的要素，保留几何选择的要素
     if (selectLayer.value && selectLayer.value.getSource()) {
-      selectLayer.value.getSource().clear()
+      const source = selectLayer.value.getSource()
+      const currentFeatures = source.getFeatures()
+      const persistentFeatures = persistentSelectedFeatures.value
+      
+      // 移除不在持久化列表中的要素（即单次点击选择的要素）
+      const featuresToRemove = currentFeatures.filter((f: any) => {
+        return !persistentFeatures.some((pf: any) => 
+          pf.id === f.getId() || 
+          (pf.geometry && f.getGeometry && 
+           JSON.stringify(pf.geometry.coordinates) === JSON.stringify(f.getGeometry().getCoordinates()))
+        );
+      });
+      
+      featuresToRemove.forEach((f: any) => source.removeFeature(f));
     }
     hidePopup()
+  }
+
+  // 管理持久化选择状态的函数
+  function setPersistentSelectedFeatures(features: any[]) {
+    persistentSelectedFeatures.value = features
+  }
+
+  function getPersistentSelectedFeatures(): any[] {
+    return persistentSelectedFeatures.value
+  }
+
+  function clearPersistentSelection() {
+    persistentSelectedFeatures.value = []
+    selectedFeatureIndex.value = -1
+    clearSelection()
+  }
+
+  function setSelectedFeatureIndex(index: number) {
+    selectedFeatureIndex.value = index
   }
 
   function getSelectedFeatures(): any[] { // ol.Feature[]
@@ -228,6 +266,9 @@ const useMapStore = defineStore('map', () => {
     mapConfig,
     formattedCoordinate,
     hasMapDiff,
+    // 持久化选择状态
+    persistentSelectedFeatures,
+    selectedFeatureIndex,
     setMap,
     setLayers,
     updateCoordinate,
@@ -239,7 +280,12 @@ const useMapStore = defineStore('map', () => {
     clearSelection,
     getSelectedFeatures,
     clearAllLayers,
-    reloadConfig
+    reloadConfig,
+    // 持久化选择状态管理
+    setPersistentSelectedFeatures,
+    getPersistentSelectedFeatures,
+    clearPersistentSelection,
+    setSelectedFeatureIndex
   }
 })
 

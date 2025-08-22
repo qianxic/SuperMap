@@ -15,8 +15,8 @@
         <div class="buttons-grid">
           <div class="button-row">
             <PrimaryButton text="图层管理" @click="toggleLayerManager" />
-            <PrimaryButton text="图层创建" @click="toggleDraw" />
-            <PrimaryButton text="要素编辑" @click="togglebianji" />
+            <PrimaryButton text="按属性选择要素" @click="toggleQuery" />
+            <PrimaryButton text="按区域选择要素" @click="togglebianji" />
           </div>
           <div class="button-row">
             <PrimaryButton text="缓冲区分析" @click="toggleBuffer" />
@@ -30,12 +30,13 @@
       
       <!-- 内容区域 -->
       <div class="content-section">
-        <DrawTools v-if="analysisStore.toolPanel.activeTool === 'draw'" />
+        <FeatureQueryPanel v-if="analysisStore.toolPanel.activeTool === 'query'" />
         <EditTools v-if="analysisStore.toolPanel.activeTool === 'bianji'" />
         <BufferAnalysisPanel v-if="analysisStore.toolPanel.activeTool === 'buffer'" />
         <DistanceAnalysisPanel v-if="analysisStore.toolPanel.activeTool === 'distance'" />
         <AccessibilityAnalysisPanel v-if="analysisStore.toolPanel.activeTool === 'gotowhere'" />
         <LayerManager v-if="analysisStore.toolPanel.activeTool === 'layer'" />
+        <FeatureQueryPanel v-if="analysisStore.toolPanel.activeTool === 'query'" />
         <div v-if="!analysisStore.toolPanel.visible" class="default-content">
           <div class="welcome-message">
             <p>请从上方工具栏选择功能开始使用</p>
@@ -56,7 +57,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAnalysisStore } from '@/stores/analysisStore'
-import DrawTools from '@/components/Map/DrawTools.vue'
+import FeatureQueryPanel from '@/components/Map/FeatureQueryPanel.vue'
 import EditTools from '@/components/Map/EditTools.vue'
 import BufferAnalysisPanel from '@/components/Map/BufferAnalysisPanel.vue'
 import DistanceAnalysisPanel from '@/components/Map/DistanceAnalysisPanel.vue'
@@ -109,7 +110,7 @@ onUnmounted(() => {
 const analysisStore = useAnalysisStore()
 const mapStore = useMapStore()
 
-const isDrawOpen = computed(() => analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'draw')
+
 const isBufferOpen = computed(() => analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'buffer')
 const isLayerOpen = computed(() => analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'layer')
 const isbianji = computed(() => analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'bianji')
@@ -120,13 +121,7 @@ const layersStatus = computed(() => {
   return mapStore.vectorLayers.map(l => ({ name: l.name, visible: l.visible }))
 })
 
-const toggleDraw = () => {
-  if (isDrawOpen.value) {
-    analysisStore.closeTool()
-  } else {
-    analysisStore.openTool('draw', '图层创建')
-  }
-}
+
 
 const togglebianji = () => {
   if (isbianji.value) {
@@ -165,6 +160,14 @@ const toggleGotowhere = () => {
     analysisStore.closeTool()
   } else {
     analysisStore.openTool('gotowhere', '可达性分析')
+  }
+}
+
+const toggleQuery = () => {
+  if (analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'query') {
+    analysisStore.closeTool()
+  } else {
+    analysisStore.openTool('query', '要素查询')
   }
 }
 </script>

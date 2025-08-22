@@ -85,10 +85,23 @@ const handleClick = (event: MouseEvent) => {
   border-color: #ff4757;
 }
 
+.btn.danger:hover:not(:disabled) {
+  background: #ff3742;
+  color: white;
+  border-color: #ff3742;
+}
+
 .btn.active {
   background: var(--btn-secondary-bg);
   color: var(--btn-secondary-color);
   border-color: var(--border);
+  box-shadow: none;
+}
+
+.btn.danger.active {
+  background: #ff4757;
+  color: white;
+  border-color: #ff4757;
   box-shadow: none;
 }
 </style>
