@@ -296,15 +296,19 @@ const getFeatureGeometryInfo = (feature: any): string => {
 
 // 清除选择
 const clearSelection = () => {
+  // 清除常亮效果
+  if (highlightedFeature.value) {
+    removeHighlightFeature()
+    highlightedFeature.value = null
+  }
+  
   mapStore.clearPersistentSelection() // 使用mapStore的方法清除持久化状态
   clearMapSelection() // 清除地图上的高亮显示
   analysisStore.setAnalysisStatus('已清除所有选择')
 }
 
-// 闪烁状态管理
-const flashingFeatureIndex = ref<number>(-1)
-const flashingTimer = ref<number | null>(null)
-const flashingFeature = ref<any>(null)
+// 常亮状态管理
+const highlightedFeature = ref<any>(null)
 
 // 选择要素（在列表中点击）
 const selectFeature = (index: number) => {
@@ -314,41 +318,28 @@ const selectFeature = (index: number) => {
     highlightFeatureOnMap(feature)
     analysisStore.setAnalysisStatus(`已选择要素 ${index + 1}`)
     
-    // 触发地图中的要素闪烁效果
-    triggerMapFeatureFlash(feature)
+    // 触发地图中的要素常亮效果
+    triggerMapFeatureHighlight(feature)
   }
 }
 
-// 触发地图中要素闪烁效果
-const triggerMapFeatureFlash = (feature: any) => {
-  // 清除之前的闪烁
-  if (flashingTimer.value) {
-    clearTimeout(flashingTimer.value)
-    flashingTimer.value = null
+// 触发地图中要素常亮效果
+const triggerMapFeatureHighlight = (feature: any) => {
+  // 清除之前的常亮要素
+  if (highlightedFeature.value) {
+    removeHighlightFeature()
   }
   
-  // 清除之前的闪烁要素
-  if (flashingFeature.value) {
-    removeFlashingFeature()
-  }
+  // 设置常亮要素
+  highlightedFeature.value = feature
   
-  // 设置闪烁要素
-  flashingFeature.value = feature
-  
-  // 开始闪烁动画
-  startFlashingAnimation()
-  
-  // 3秒后自动清除闪烁效果
-  flashingTimer.value = window.setTimeout(() => {
-    removeFlashingFeature()
-    flashingFeature.value = null
-    flashingTimer.value = null
-  }, 3000)
+  // 开始常亮效果
+  startHighlightAnimation()
 }
 
-// 开始闪烁动画
-const startFlashingAnimation = () => {
-  if (!flashingFeature.value || !mapStore.selectLayer) return
+// 开始常亮效果
+const startHighlightAnimation = () => {
+  if (!highlightedFeature.value || !mapStore.selectLayer) return
   
   const source = mapStore.selectLayer.getSource()
   if (!source) return
@@ -356,30 +347,30 @@ const startFlashingAnimation = () => {
   // 保存原始样式
   const originalStyle = mapStore.selectLayer.getStyle()
   
-  // 创建闪烁样式 - 只对特定要素应用闪烁效果
+  // 创建常亮样式 - 只对特定要素应用常亮效果
   const createFlashingStyle = () => {
     const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#007bff'
     const grayFillColor = getComputedStyle(document.documentElement).getPropertyValue('--map-select-fill').trim() || 'rgba(128, 128, 128, 0.3)'
-    const flashColor = '#ff6b35' // 橙色闪烁
+    const highlightColor = '#ff6b35' // 橙色常亮
     
     return (feature: any) => {
-      // 检查是否是闪烁要素
-      const isFlashingFeature = isSameFeature(feature, flashingFeature.value)
+      // 检查是否是常亮要素
+      const isHighlightFeature = isSameFeature(feature, highlightedFeature.value)
       
       const geometry = feature.getGeometry()
       if (!geometry) return null
       
       const geometryType = geometry.getType()
       
-      if (isFlashingFeature) {
-        // 闪烁样式
+      if (isHighlightFeature) {
+        // 常亮样式
         switch (geometryType) {
           case 'Point':
           case 'MultiPoint':
             return new ol.style.Style({
               image: new ol.style.Circle({ 
                 radius: 12, 
-                stroke: new ol.style.Stroke({color: flashColor, width: 4}), 
+                stroke: new ol.style.Stroke({color: highlightColor, width: 4}), 
                 fill: new ol.style.Fill({color: 'rgba(255, 107, 53, 0.4)'})
               })
             })
@@ -388,7 +379,7 @@ const startFlashingAnimation = () => {
           case 'MultiLineString':
             return new ol.style.Style({
               stroke: new ol.style.Stroke({
-                color: flashColor, 
+                color: highlightColor, 
                 width: 6,
                 lineCap: 'round',
                 lineJoin: 'round'
@@ -398,7 +389,7 @@ const startFlashingAnimation = () => {
           case 'Polygon':
           case 'MultiPolygon':
             return new ol.style.Style({
-              stroke: new ol.style.Stroke({color: flashColor, width: 4}),
+              stroke: new ol.style.Stroke({color: highlightColor, width: 4}),
               fill: new ol.style.Fill({color: 'rgba(255, 107, 53, 0.3)'})
             })
             
@@ -406,10 +397,10 @@ const startFlashingAnimation = () => {
             return new ol.style.Style({
               image: new ol.style.Circle({ 
                 radius: 12, 
-                stroke: new ol.style.Stroke({color: flashColor, width: 4}), 
+                stroke: new ol.style.Stroke({color: highlightColor, width: 4}), 
                 fill: new ol.style.Fill({color: 'rgba(255, 107, 53, 0.4)'})
               }),
-              stroke: new ol.style.Stroke({color: flashColor, width: 4}),
+              stroke: new ol.style.Stroke({color: highlightColor, width: 4}),
               fill: new ol.style.Fill({color: 'rgba(255, 107, 53, 0.3)'})
             })
         }
@@ -459,26 +450,9 @@ const startFlashingAnimation = () => {
     }
   }
   
-  // 设置闪烁样式
+  // 设置常亮样式
   mapStore.selectLayer.setStyle(createFlashingStyle())
-  
-  // 闪烁动画：5次闪烁，每次0.6秒
-  let flashCount = 0
-  const maxFlashes = 5
-  
-  const flashInterval = setInterval(() => {
-    flashCount++
-    
-    if (flashCount >= maxFlashes) {
-      clearInterval(flashInterval)
-      // 恢复原始样式
-      mapStore.selectLayer.setStyle(originalStyle)
-      mapStore.selectLayer.changed()
-    } else {
-      // 切换闪烁效果
-      mapStore.selectLayer.changed()
-    }
-  }, 600)
+  mapStore.selectLayer.changed()
 }
 
 // 检查两个要素是否相同
@@ -506,8 +480,8 @@ const isSameFeature = (feature1: any, feature2: any): boolean => {
   return false
 }
 
-// 移除闪烁要素
-const removeFlashingFeature = () => {
+// 移除常亮要素
+const removeHighlightFeature = () => {
   if (!mapStore.selectLayer) return
   
   // 恢复原始样式
@@ -801,10 +775,10 @@ onMounted(() => {
 // 组件卸载时清理 - 只清除交互，保持要素选择
 onUnmounted(() => {
   clearSelectionInteractions()
-  // 清理闪烁定时器
-  if (flashingTimer.value) {
-    clearTimeout(flashingTimer.value)
-    flashingTimer.value = null
+  // 清理常亮效果
+  if (highlightedFeature.value) {
+    removeHighlightFeature()
+    highlightedFeature.value = null
   }
   // 不清除已选择的要素，保持用户的选择状态
 })
