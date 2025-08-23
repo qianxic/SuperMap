@@ -70,12 +70,6 @@ export function useLayerManager() {
 
     // 旧的禁用功能
     managedDrawLayers: computed(() => []),
-    acceptDrawLayer,
-    toggleDrawLayerVisibility,
-    removeDrawLayer,
-    updateLayerProperties,
-    findFeatureAtCoordinate,
-    toggleFeatureVisibility,
-    removeFeature
+
   }
 }

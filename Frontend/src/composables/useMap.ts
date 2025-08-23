@@ -564,13 +564,15 @@ export function useMap() {
 
 
     // 预读服务器features.json，提取 startIndex 与分页长度，作为 fromIndex/toIndex 的默认值
+    // 端点: http://localhost:8090/iserver/services/data-WuHan/rest/data/datasources/wuhan/datasets/武汉_县级/features.json
+    // 目的: 获取数据集元数据信息，为后续要素数据加载提供分页参数
     const metaUrlBounds = `${mapStore.mapConfig.dataUrl}/datasources/${datasource}/datasets/${dataset}/features.json`;
     const metaJsonBounds = await (await fetch(metaUrlBounds)).json();
     const startIndexDefaultBounds: number = (metaJsonBounds && typeof metaJsonBounds.startIndex === 'number') ? metaJsonBounds.startIndex : 0;
     const featureCountBounds: number = (metaJsonBounds && typeof metaJsonBounds.featureCount === 'number') ? metaJsonBounds.featureCount : 20;
     const computedFromIndexBounds: number = startIndexDefaultBounds;
     const computedToIndexBounds: number = startIndexDefaultBounds + featureCountBounds - 1;
-    console.log('Bounds预读(严格按JSON): startIndex=', startIndexDefaultBounds, ' featureCount=', featureCountBounds, ' => fromIndex=', computedFromIndexBounds, ' toIndex=', computedToIndexBounds);
+    console.log('Bounds预读: startIndex=', startIndexDefaultBounds, ' featureCount=', featureCountBounds, ' => fromIndex=', computedFromIndexBounds, ' toIndex=', computedToIndexBounds);
 
     // 创建武汉市的完整边界范围
     const wuhanBounds = new ol.geom.Polygon([[
@@ -600,73 +602,36 @@ export function useMap() {
     console.log(`=== 图层 ${layerName} 查询参数信息 ===`);
     console.log('查询边界范围:', ol.extent.boundingExtent(wuhanBounds.getCoordinates()[0]));
     console.log('数据集路径:', `${datasource}:${dataset}`);
-    console.log('完整查询参数:', getFeaturesByBoundsParams);
-    console.log('分页参数(范围查询): fromIndex=', getFeaturesByBoundsParams.fromIndex, ' toIndex=', getFeaturesByBoundsParams.toIndex, ' totalToIndex=', computedToIndexBounds, ' pageSize=', pageSize);
+    console.log('分页参数: fromIndex=', getFeaturesByBoundsParams.fromIndex, ' toIndex=', getFeaturesByBoundsParams.toIndex, ' totalToIndex=', computedToIndexBounds, ' pageSize=', pageSize);
     
-    // 检查数据集总要素数量
-    try {
-      const countParams = new ol.supermap.GetFeaturesByBoundsParameters({
-        datasetNames: [`${datasource}:${dataset}`],
-        bounds: ol.extent.boundingExtent(wuhanBounds.getCoordinates()[0]),
-        returnContent: false, // 不返回要素内容，只获取数量
-        returnFeaturesOnly: true
-      });
-      
-      featureService.getFeaturesByBounds(countParams, (countResult: any) => {
-        console.log(`=== 图层 ${layerName} 数据集统计信息 ===`);
-        console.log('数据集总要素数量:', countResult.result?.totalCount || '未知');
-        console.log('当前查询返回数量:', countResult.result?.features?.length || 0);
-      });
-    } catch (error) {
-      console.log('无法获取数据集统计信息:', error);
-    }
+          // 检查数据集总要素数量
+      try {
+        const countParams = new ol.supermap.GetFeaturesByBoundsParameters({
+          datasetNames: [`${datasource}:${dataset}`],
+          bounds: ol.extent.boundingExtent(wuhanBounds.getCoordinates()[0]),
+          returnContent: false, // 不返回要素内容，只获取数量
+          returnFeaturesOnly: true
+        });
+        
+        featureService.getFeaturesByBounds(countParams, (countResult: any) => {
+          console.log(`=== 图层 ${layerName} 数据集统计信息 ===`);
+          console.log('数据集总要素数量:', countResult.result?.totalCount || '未知');
+        });
+      } catch (error) {
+        console.log('无法获取数据集统计信息:', error);
+      }
 
     featureService.getFeaturesByBounds(getFeaturesByBoundsParams, (serviceResult: any) => {
       if (serviceResult.result && serviceResult.result.features) {
-        // 输出原始要素数据
-        console.log('==============serviceResult=======================', serviceResult);
-        console.log(`=== 图层 ${layerName} 原始要素数据 ===`);
-        console.log('原始要素数组:', serviceResult.result.features);
+        // 要素数据加载 - 从SuperMap iServer FeatureService获取完整要素数据
+        // 端点: http://localhost:8090/iserver/services/data-WuHan/rest/data/datasources/wuhan/datasets/武汉_县级/features.json
+        // 目的: 获取指定范围内的所有要素数据，用于地图显示
+        console.log(`=== 图层 ${layerName} 要素数据加载 ===`);
         console.log('要素数量:', serviceResult.result.features.length);
-        console.log('原始数据来源:', 'SuperMap iServer FeatureService API');
-        console.log('API响应完整结构:', serviceResult);
+        console.log('数据来源: SuperMap iServer FeatureService API');
         console.log('API响应状态:', serviceResult.succeed ? '成功' : '失败');
-        console.log('API响应错误信息:', serviceResult.error || '无');
-        console.log('原始数据格式:', 'GeoJSON (由SuperMap iServer自动生成)');
-        console.log('数据获取方式:', 'HTTP POST请求到FeatureService');
-        const fullApiUrlBounds = `${mapStore.mapConfig.dataUrl}/datasources/${datasource}/datasets/${dataset}/features.json`;
-        console.log('完整请求URL:', fullApiUrlBounds);
-        // 直接GET请求该JSON资源，打印其完整返回内容（仅用于调试）
-        fetch(fullApiUrlBounds)
-          .then(r => r.json())
-          .then(json => {
-            console.log('完整API响应JSON(范围查询):', json);
-            const printPairs = (node: any, path: string) => {
-              if (node !== null && typeof node === 'object') {
-                if (Array.isArray(node)) {
-                  for (let i = 0; i < node.length; i += 1) {
-                    printPairs(node[i], `${path}[${i}]`);
-                  }
-                } else {
-                  for (const key in node) {
-                    if (Object.prototype.hasOwnProperty.call(node, key)) {
-                      const nextPath = path ? `${path}.${key}` : key;
-                      printPairs(node[key], nextPath);
-                    }
-                  }
-                }
-              } else {
-                console.log('KV(范围查询):', path, '=', node);
-              }
-            };
-            printPairs(json, '');
-          });
-        console.log('请求参数:', getFeaturesByBoundsParams);
-        // 显式打印 startIndex 与 featureCount（范围查询）
-        console.log('startIndex:', serviceResult.result.startIndex);
-        console.log('featureCount:', serviceResult.result.featureCount);
-        // 重点显示 featureCount（范围查询）
-        console.log('==============featureCount=======================', serviceResult.result.featureCount ?? serviceResult.result.totalCount ?? serviceResult.result.currentCount ?? serviceResult.result.features?.length ?? 0);
+        console.log('数据格式: GeoJSON (由SuperMap iServer自动转换)');
+        console.log('featureCount:', serviceResult.result.featureCount ?? serviceResult.result.totalCount ?? serviceResult.result.currentCount ?? serviceResult.result.features?.length ?? 0);
         
         // 关联 childUriList 与当前加载要素的关系
         const startIndexBounds = serviceResult.result.startIndex;
@@ -687,31 +652,22 @@ export function useMap() {
           if (Array.isArray(childUriListBounds)) derivedFeatureCountBounds = childUriListBounds.length;
           if (derivedFeatureCountBounds === null && Array.isArray(serviceResult.result.features)) derivedFeatureCountBounds = serviceResult.result.features.length;
         }
-        console.log('StartIndex(范围查询):', startIndexBounds, '=> 推导:', derivedStartIndexBounds);
-        console.log('Server端统计的featureCount(范围查询):', serverReportedFeatureCountBounds, '=> 推导:', derivedFeatureCountBounds);
-        console.log('childUriList是否存在(范围查询):', Array.isArray(childUriListBounds));
-        console.log('childUriList长度(范围查询):', Array.isArray(childUriListBounds) ? childUriListBounds.length : 0);
-        if (Array.isArray(childUriListBounds) && childUriListBounds.length > 0) {
-          console.log('childUriList示例(前3条，范围查询):', childUriListBounds.slice(0, 3));
-          console.log('childUriList示例(后3条，范围查询):', childUriListBounds.slice(-3));
-        }
+        console.log('StartIndex:', startIndexBounds, '=> 推导:', derivedStartIndexBounds);
+        console.log('Server端统计的featureCount:', serverReportedFeatureCountBounds, '=> 推导:', derivedFeatureCountBounds);
+        console.log('childUriList长度:', Array.isArray(childUriListBounds) ? childUriListBounds.length : 0);
         
         // 输出第一个要素的详细信息
         if (serviceResult.result.features.length > 0) {
           console.log('第一个要素详情:', JSON.stringify(serviceResult.result.features[0], null, 2));
-          console.log('第一个要素数据来源:', 'SuperMap iServer数据库');
-          console.log('第一个要素原始格式:', 'SuperMap内部格式 -> GeoJSON转换');
         }
         
-        // 打印转换方式信息
-        console.log(`=== 图层 ${layerName} 转换方式信息 ===`);
-        console.log('转换要素使用的方式是:', 'new ol.format.GeoJSON().readFeatures()');
-        console.log('转换的原始数据:', serviceResult.result.features);
+        // 数据转换 - 将GeoJSON转换为OpenLayers要素对象
+        console.log(`=== 图层 ${layerName} 数据转换 ===`);
+        console.log('转换方式: new ol.format.GeoJSON().readFeatures()');
         
         const features = (new ol.format.GeoJSON()).readFeatures(serviceResult.result.features);
         
         // 输出转换后的OpenLayers要素信息
-        console.log(`=== 图层 ${layerName} OpenLayers要素信息 ===`);
         console.log('转换后要素数量:', features.length);
         if (features.length > 0) {
           const firstFeature = features[0];
@@ -725,26 +681,13 @@ export function useMap() {
           });
         }
         
-        // 打印显示方法信息
-        console.log(`=== 图层 ${layerName} 显示方法信息 ===`);
-        console.log('把OpenLayers要素显示到地图的方法是:', 'vectorLayer.getSource().addFeatures()');
-        console.log('使用的图层类型:', 'ol.layer.Vector');
-        console.log('使用的数据源类型:', 'ol.source.Vector');
-        
-        // 进一步打印本次加载与服务器返回之间的对齐关系
-        console.log('本次添加到地图的要素数量(范围查询):', features.length);
-        console.log('服务器返回要素数组长度(范围查询):', serviceResult.result.features.length);
-        console.log('childUriList与features数量是否一致(范围查询):', Array.isArray(childUriListBounds) ? childUriListBounds.length === serviceResult.result.features.length : 'childUriList缺失');
-        if (Array.isArray(childUriListBounds)) {
-          for (let i = 0; i < Math.min(3, features.length, childUriListBounds.length); i += 1) {
-            const f = features[i];
-            console.log(`示例映射[范围查询] i=${i}: childUri=${childUriListBounds[i]}`, {
-              featureId: f.getId?.() || null,
-              geometryType: f.getGeometry?.()?.getType?.() || null
-            });
-          }
-        }
-        
+        // 数据存储 - 将要素添加到OpenLayers Vector Source中
+        console.log(`=== 图层 ${layerName} 数据存储 ===`);
+        console.log('存储方式: vectorLayer.getSource().addFeatures()');
+        console.log('图层类型: ol.layer.Vector');
+        console.log('数据源类型: ol.source.Vector');
+        console.log('本次添加到地图的要素数量:', features.length);
+        // 临时存储到 OpenLayers 的 Vector Source 中
         vectorLayer.getSource().addFeatures(features);
 
         // 后续分页：从 initialToIndex+1 到 computedToIndexBounds，按 pageSize 继续加载
@@ -790,18 +733,16 @@ export function useMap() {
         // 在界面上显示图层加载信息
         notificationManager.info(
           `图层 ${layerName} 加载完成`,
-          `共 ${features.length} 个要素\n总要素数: ${serviceResult.result.totalCount || '未知'}\n当前返回: ${serviceResult.result.currentCount || features.length}\n最大要素数: ${serviceResult.result.maxFeatures || '无限制'}\n==============featureCount======================= ${(serviceResult.result.featureCount ?? serviceResult.result.totalCount ?? serviceResult.result.currentCount ?? features.length) || 0}\n数据来源: SuperMap iServer\n服务器地址: ${mapStore.mapConfig.dataUrl}`
+          `共 ${features.length} 个要素\n总要素数: ${serviceResult.result.totalCount || '未知'}\n当前返回: ${serviceResult.result.currentCount || features.length}\n最大要素数: ${serviceResult.result.maxFeatures || '无限制'}\nfeatureCount: ${(serviceResult.result.featureCount ?? serviceResult.result.totalCount ?? serviceResult.result.currentCount ?? features.length) || 0}\n数据来源: SuperMap iServer\n服务器地址: ${mapStore.mapConfig.dataUrl}`
         );
         
         // 输出详细信息到控制台
         console.log(`=== 图层 ${layerName} 加载完成详细信息 ===`);
         console.log('图层名称:', layerName);
         console.log('要素数量:', features.length);
-        console.log('服务返回完整信息:', serviceResult.result);
         console.log('总要素数:', serviceResult.result.totalCount);
         console.log('当前返回数:', serviceResult.result.currentCount);
         console.log('最大要素数:', serviceResult.result.maxFeatures);
-        console.log('原始要素数据:', serviceResult.result.features);
         console.log('数据来源服务器:', mapStore.mapConfig.dataUrl);
         console.log('数据获取API:', 'SuperMap FeatureService GetFeaturesByBounds');
         console.log('数据原始格式:', 'SuperMap内部格式');
@@ -810,11 +751,6 @@ export function useMap() {
         console.log('完整API请求地址:', `${mapStore.mapConfig.dataUrl}/datasources/${datasource}/datasets/${dataset}/features.json`);
         console.log('数据存储位置:', 'SuperMap iServer数据库');
         console.log('数据服务类型:', 'RESTful FeatureService');
-        
-        // 显示第一个要素的详细信息
-        if (serviceResult.result.features && serviceResult.result.features.length > 0) {
-          console.log('第一个要素完整信息:', JSON.stringify(serviceResult.result.features[0], null, 2));
-        }
       } else {
         console.warn(`图层 ${layerName} 未获取到数据`);
         notificationManager.warning(
@@ -872,13 +808,15 @@ export function useMap() {
       console.log('查询容差:', 0.001);
       
       // 预读服务器features.json，提取 startIndex 与分页长度，作为 fromIndex/toIndex 的默认值（几何查询）
+      // 端点: http://localhost:8090/iserver/services/data-WuHan/rest/data/datasources/wuhan/datasets/武汉_县级/features.json
+      // 目的: 获取数据集元数据信息，为要素信息查询提供分页参数
       const metaUrlGeometry = `${mapStore.mapConfig.dataUrl}/datasources/${datasource}/datasets/${dataset}/features.json`;
       const metaJsonGeometry = await (await fetch(metaUrlGeometry)).json();
       const startIndexDefaultGeometry: number = (metaJsonGeometry && typeof metaJsonGeometry.startIndex === 'number') ? metaJsonGeometry.startIndex : 0;
       const featureCountGeometry: number = (metaJsonGeometry && typeof metaJsonGeometry.featureCount === 'number') ? metaJsonGeometry.featureCount : 20;
       const computedFromIndexGeometry: number = startIndexDefaultGeometry;
       const computedToIndexGeometry: number = startIndexDefaultGeometry + featureCountGeometry - 1;
-      console.log('Geometry预读(严格按JSON): startIndex=', startIndexDefaultGeometry, ' featureCount=', featureCountGeometry, ' => fromIndex=', computedFromIndexGeometry, ' toIndex=', computedToIndexGeometry);
+      console.log('Geometry预读: startIndex=', startIndexDefaultGeometry, ' featureCount=', featureCountGeometry, ' => fromIndex=', computedFromIndexGeometry, ' toIndex=', computedToIndexGeometry);
 
       // 创建几何查询参数 - 点击位置的缓冲区查询
       const tolerance = 0.001; // 容差值，可根据需要调整
@@ -898,52 +836,25 @@ export function useMap() {
       });
       
       console.log('查询参数:', getFeaturesByGeometryParams);
-      console.log('分页参数(几何查询): fromIndex=', getFeaturesByGeometryParams.fromIndex, ' toIndex=', getFeaturesByGeometryParams.toIndex);
+      console.log('分页参数: fromIndex=', getFeaturesByGeometryParams.fromIndex, ' toIndex=', getFeaturesByGeometryParams.toIndex);
       console.log('查询几何体:', buffer);
       console.log('空间查询模式:', ol.supermap.SpatialQueryMode.INTERSECT);
 
       return new Promise((resolve, reject) => {
         featureService.getFeaturesByGeometry(getFeaturesByGeometryParams, (serviceResult: any) => {
-                // 详细分析服务返回的完整结构
-      console.log(`=== 图层 ${layerName} 服务返回完整结构分析 ===`);
-      console.log('完整serviceResult:', serviceResult);
-      console.log('serviceResult.result:', serviceResult.result);
-      console.log('serviceResult.result.features:', serviceResult.result?.features);
+                // 要素信息查询 - 从SuperMap iServer FeatureService获取要素详细信息
+      // 端点: http://localhost:8090/iserver/services/data-WuHan/rest/data/datasources/wuhan/datasets/武汉_县级/features.json
+      // 目的: 根据几何条件查询要素，获取要素的详细属性信息
+      console.log(`=== 图层 ${layerName} 要素信息查询 ===`);
       console.log('serviceResult.result.features.length:', serviceResult.result?.features?.length);
       console.log('serviceResult.result.totalCount:', serviceResult.result?.totalCount);
       console.log('serviceResult.result.currentCount:', serviceResult.result?.currentCount);
       console.log('serviceResult.result.maxFeatures:', serviceResult.result?.maxFeatures);
       console.log('原始数据来源:', 'SuperMap iServer FeatureService API');
       console.log('API响应状态:', serviceResult.succeed ? '成功' : '失败');
-      console.log('API响应错误信息:', serviceResult.error || '无');
       console.log('数据获取方式:', 'HTTP POST请求到FeatureService');
       const fullApiUrlGeometry = `${mapStore.mapConfig.dataUrl}/datasources/${datasource}/datasets/${dataset}/features.json`;
       console.log('完整请求URL:', fullApiUrlGeometry);
-      // 直接GET请求该JSON资源，打印其完整返回内容（仅用于调试）
-      fetch(fullApiUrlGeometry)
-        .then(r => r.json())
-        .then(json => {
-          console.log('完整API响应JSON(几何查询):', json);
-          const printPairs = (node: any, path: string) => {
-            if (node !== null && typeof node === 'object') {
-              if (Array.isArray(node)) {
-                for (let i = 0; i < node.length; i += 1) {
-                  printPairs(node[i], `${path}[${i}]`);
-                }
-              } else {
-                for (const key in node) {
-                  if (Object.prototype.hasOwnProperty.call(node, key)) {
-                    const nextPath = path ? `${path}.${key}` : key;
-                    printPairs(node[key], nextPath);
-                  }
-                }
-              }
-            } else {
-              console.log('KV(几何查询):', path, '=', node);
-            }
-          };
-          printPairs(json, '');
-        });
       console.log('数据原始格式:', 'SuperMap内部格式');
       console.log('数据转换格式:', 'GeoJSON (由SuperMap iServer自动转换)');
       
@@ -966,37 +877,23 @@ export function useMap() {
         if (Array.isArray(childUriListGeometry)) derivedFeatureCountGeometry = childUriListGeometry.length;
         if (derivedFeatureCountGeometry === null && Array.isArray(serviceResult.result?.features)) derivedFeatureCountGeometry = serviceResult.result.features.length;
       }
-      console.log('StartIndex(几何查询):', startIndexGeometry, '=> 推导:', derivedStartIndexGeometry);
-      console.log('Server端统计的featureCount(几何查询):', serverReportedFeatureCountGeometry, '=> 推导:', derivedFeatureCountGeometry);
-      console.log('childUriList是否存在(几何查询):', Array.isArray(childUriListGeometry));
-      console.log('childUriList长度(几何查询):', Array.isArray(childUriListGeometry) ? childUriListGeometry.length : 0);
-      if (Array.isArray(childUriListGeometry) && childUriListGeometry.length > 0) {
-        console.log('childUriList示例(前3条，几何查询):', childUriListGeometry.slice(0, 3));
-        console.log('childUriList示例(后3条，几何查询):', childUriListGeometry.slice(-3));
-      }
+      console.log('StartIndex:', startIndexGeometry, '=> 推导:', derivedStartIndexGeometry);
+      console.log('Server端统计的featureCount:', serverReportedFeatureCountGeometry, '=> 推导:', derivedFeatureCountGeometry);
+      console.log('childUriList长度:', Array.isArray(childUriListGeometry) ? childUriListGeometry.length : 0);
       
       // 显示服务返回的完整信息
       if (serviceResult.result) {
         notificationManager.info(
           `要素查询结果 - ${layerName}`,
-          `找到要素数: ${serviceResult.result.features?.length || 0}\n总要素数: ${serviceResult.result.totalCount || '未知'}\n当前返回: ${serviceResult.result.currentCount || serviceResult.result.features?.length || 0}\n最大要素数: ${serviceResult.result.maxFeatures || '无限制'}\n==============featureCount======================= ${(serviceResult.result.featureCount ?? serviceResult.result.totalCount ?? serviceResult.result.currentCount ?? (serviceResult.result.features?.length || 0)) || 0}\n数据来源: SuperMap iServer\n服务器地址: ${mapStore.mapConfig.dataUrl}`
+          `找到要素数: ${serviceResult.result.features?.length || 0}\n总要素数: ${serviceResult.result.totalCount || '未知'}\n当前返回: ${serviceResult.result.currentCount || serviceResult.result.features?.length || 0}\n最大要素数: ${serviceResult.result.maxFeatures || '无限制'}\nfeatureCount: ${(serviceResult.result.featureCount ?? serviceResult.result.totalCount ?? serviceResult.result.currentCount ?? (serviceResult.result.features?.length || 0)) || 0}\n数据来源: SuperMap iServer\n服务器地址: ${mapStore.mapConfig.dataUrl}`
         );
       }
           if (serviceResult.result && serviceResult.result.features) {
             // 将服务返回与features进行简单对齐校验
             const tmpFeatures = (new ol.format.GeoJSON()).readFeatures(serviceResult.result.features);
-            console.log('本次解析到的要素数量(几何查询):', tmpFeatures.length);
-            console.log('服务器返回要素数组长度(几何查询):', serviceResult.result.features.length);
-            console.log('childUriList与features数量是否一致(几何查询):', Array.isArray(childUriListGeometry) ? childUriListGeometry.length === serviceResult.result.features.length : 'childUriList缺失');
-            if (Array.isArray(childUriListGeometry)) {
-              for (let i = 0; i < Math.min(3, tmpFeatures.length, childUriListGeometry.length); i += 1) {
-                const f = tmpFeatures[i];
-                console.log(`示例映射[几何查询] i=${i}: childUri=${childUriListGeometry[i]}`, {
-                  featureId: f.getId?.() || null,
-                  geometryType: f.getGeometry?.()?.getType?.() || null
-                });
-              }
-            }
+            console.log('本次解析到的要素数量:', tmpFeatures.length);
+            console.log('服务器返回要素数组长度:', serviceResult.result.features.length);
+            console.log('childUriList与features数量是否一致:', Array.isArray(childUriListGeometry) ? childUriListGeometry.length === serviceResult.result.features.length : 'childUriList缺失');
             resolve({
               success: true,
               features: serviceResult.result.features,

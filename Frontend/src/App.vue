@@ -1,20 +1,35 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
-import DashboardLayout from '@/components/Layout/DashboardLayout.vue'
+import { onMounted, ref } from 'vue'
 import { useThemeStore } from '@/stores/themeStore'
+import NotificationManager from '@/components/UI/NotificationManager.vue'
 import '@/styles/theme.css'
 
 // 确保主题在应用启动时正确初始化
 const themeStore = useThemeStore()
 
+// 通知管理器引用
+const notificationManager = ref()
+
 onMounted(() => {
   themeStore.applySystemTheme()
   themeStore.setupSystemThemeListener()
+  
+  // 监听全局通知事件
+  window.addEventListener('showNotification', (event: any) => {
+    const { title, message, type, duration } = event.detail
+    notificationManager.value?.addNotification({
+      title,
+      message,
+      type,
+      duration
+    })
+  })
 })
 </script>
 
 <template>
-  <DashboardLayout />
+  <router-view />
+  <NotificationManager ref="notificationManager" />
 </template>
 
 <style>

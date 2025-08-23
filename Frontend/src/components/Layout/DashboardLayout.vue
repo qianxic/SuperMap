@@ -1,7 +1,7 @@
 <template>
   <div class="dashboard-layout">
     <DashboardHeader />
-    
+    <!-- 主内容区域 -->
     <div class="screen-main">
       <splitpanes class="default-theme">
         <pane size="70" min-size="50">

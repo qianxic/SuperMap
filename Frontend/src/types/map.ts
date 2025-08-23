@@ -19,6 +19,7 @@ export interface APIConfig {
   datasetName: string
   wuhanLayers: WuhanLayer[]
   baseMaps: BaseMapConfig // 新增底图配置
+  fallbackBaseMaps: BaseMapConfig // 备用底图配置
   timeout: number
   retryCount: number
   devMode: boolean

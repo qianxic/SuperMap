@@ -1,0 +1,432 @@
+<template>
+  <div class="login-container">
+    <div class="login-box">
+      <div class="login-header">
+        <h2>系统登录</h2>
+        <p>请输入您的账户信息</p>
+      </div>
+      
+      <form @submit.prevent="handleLogin" class="login-form">
+        <div class="form-group">
+          <label for="account">用户名/邮箱/手机号</label>
+          <input 
+            id="account"
+            v-model="account" 
+            type="text" 
+            required 
+            placeholder="请输入用户名/邮箱/手机号"
+            :disabled="loading"
+            autocomplete="off"
+          />
+        </div>
+        
+        <div class="form-group">
+          <label for="password">密码</label>
+          <input 
+            id="password"
+            v-model="password" 
+            type="password" 
+            required 
+            placeholder="请输入密码"
+            :disabled="loading"
+            autocomplete="off"
+          />
+        </div>
+        
+        <div class="form-group checkbox-group">
+          <label class="checkbox-label">
+            <input 
+              v-model="rememberPassword" 
+              type="checkbox"
+              :disabled="loading"
+            />
+            <span>记住密码</span>
+          </label>
+        </div>
+        
+        <button type="submit" :disabled="loading" class="login-btn">
+          <span v-if="loading">登录中...</span>
+          <span v-else>登录</span>
+        </button>
+      </form>
+      
+      <div class="login-footer">
+        <p>默认账户：admin / admin@example.com / 13800138000 / 123456</p>
+        <p>还没有账户？ <router-link to="/register" class="register-link">立即注册</router-link></p>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useUserStore } from '@/stores/userStore'
+
+const router = useRouter()
+const userStore = useUserStore()
+
+const account = ref('')
+const password = ref('')
+const rememberPassword = ref(false)
+const loading = ref(false)
+
+// 验证是否为邮箱格式
+const isValidEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(email)
+}
+
+// 验证是否为手机号格式
+const isValidPhone = (phone: string): boolean => {
+  const phoneRegex = /^1[3-9]\d{9}$/
+  return phoneRegex.test(phone)
+}
+
+// 获取账号类型
+const getAccountType = (account: string): 'username' | 'email' | 'phone' => {
+  if (isValidEmail(account)) {
+    return 'email'
+  } else if (isValidPhone(account)) {
+    return 'phone'
+  } else {
+    return 'username'
+  }
+}
+
+onMounted(() => {
+  // 如果之前记住了密码，自动填充
+  const rememberedUser = localStorage.getItem('rememberedUser')
+  if (rememberedUser) {
+    account.value = rememberedUser
+    rememberPassword.value = true
+  }
+})
+
+const handleLogin = async () => {
+  loading.value = true
+  
+  try {
+    // 表单验证 - 检查必填字段
+    if (!account.value || !password.value) {
+      window.dispatchEvent(new CustomEvent('showNotification', {
+        detail: {
+          title: '登录失败',
+          message: '请填写完整的登录信息',
+          type: 'error',
+          duration: 3000
+        }
+      }))
+      return
+    }
+    
+    // 模拟登录验证 - 支持多种登录方式
+    const accountType = getAccountType(account.value)
+    let isValidLogin = false
+    let userEmail = ''
+    
+    // 验证登录信息
+    if (account.value === 'admin' && password.value === '123456') {
+      isValidLogin = true
+      userEmail = 'admin@example.com' // 默认邮箱
+    } else if (account.value === 'admin@example.com' && password.value === '123456') {
+      isValidLogin = true
+      userEmail = account.value
+    } else if (account.value === '13800138000' && password.value === '123456') {
+      isValidLogin = true
+      userEmail = 'admin@example.com' // 手机号登录时使用默认邮箱
+    }
+    
+    if (isValidLogin) {
+      // 登录成功
+      const token = `token_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      
+      // 根据登录方式设置用户数据
+      let userPhone = ''
+      if (accountType === 'phone') {
+        userPhone = account.value
+      } else {
+        // 用户名或邮箱登录时，使用默认手机号
+        userPhone = '13800138000'
+      }
+      
+      const userData = {
+        username: accountType === 'username' ? account.value : 'admin',
+        email: userEmail,
+        phone: userPhone,
+        accountType: accountType,
+        role: 'admin',
+        loginTime: new Date().toISOString()
+      }
+      
+      // 使用store管理登录状态
+      userStore.login(userData, token)
+      
+      // 记住密码
+      if (rememberPassword.value) {
+        localStorage.setItem('rememberedUser', account.value)
+      } else {
+        localStorage.removeItem('rememberedUser')
+      }
+      
+      // 异步显示登录成功通知（不阻挡页面切换）
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('showNotification', {
+          detail: {
+            title: '登录成功',
+            message: `欢迎回来，${userData.username}！`,
+            type: 'success',
+            duration: 3000
+          }
+        }))
+      }, 100)
+      
+      // 跳转到地图系统
+      router.push('/dashboard')
+    } else {
+      // 使用全局通知显示错误
+      window.dispatchEvent(new CustomEvent('showNotification', {
+        detail: {
+          title: '登录失败',
+          message: '账号或密码错误',
+          type: 'error',
+          duration: 3000
+        }
+      }))
+    }
+  } catch (err) {
+    // 使用全局通知显示错误
+    window.dispatchEvent(new CustomEvent('showNotification', {
+      detail: {
+        title: '登录失败',
+        message: '登录失败，请重试',
+        type: 'error',
+        duration: 3000
+      }
+    }))
+    console.error('登录错误:', err)
+  } finally {
+    loading.value = false
+  }
+}
+</script>
+
+<style scoped>
+.login-container {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  font-family: "Segoe UI", PingFang SC, Microsoft YaHei, Arial, sans-serif;
+}
+
+/* 深色主题背景 */
+[data-theme="dark"] .login-container {
+  background: linear-gradient(135deg, #2d2d30 0%, #1e1e1e 100%);
+}
+
+.login-box {
+  background: var(--panel);
+  padding: 40px;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+  width: 400px;
+  max-width: 90vw;
+  border: 1px solid var(--border);
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.login-header h2 {
+  margin: 0 0 8px 0;
+  color: var(--text);
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.login-header p {
+  margin: 0;
+  color: var(--sub);
+  font-size: 14px;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+
+
+.form-group input[type="text"],
+.form-group input[type="password"],
+.form-group input[type="email"] {
+  padding: 12px 16px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  font-size: 16px;
+  transition: border-color 0.3s ease;
+  background: var(--panel);
+  color: var(--text);
+}
+
+.form-group input[type="text"]::placeholder,
+.form-group input[type="password"]::placeholder,
+.form-group input[type="email"]::placeholder {
+  color: var(--sub);
+  opacity: 0.7;
+}
+
+/* 自动填充样式 */
+.form-group input[type="text"]:-webkit-autofill,
+.form-group input[type="password"]:-webkit-autofill,
+.form-group input[type="email"]:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px var(--panel) inset;
+  -webkit-text-fill-color: var(--text);
+}
+
+.form-group input[type="text"]:-webkit-autofill:focus,
+.form-group input[type="password"]:-webkit-autofill:focus,
+.form-group input[type="email"]:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px var(--panel) inset;
+  -webkit-text-fill-color: var(--text);
+}
+
+.form-group input[type="text"]:focus,
+.form-group input[type="password"]:focus,
+.form-group input[type="email"]:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.form-group input:disabled {
+  background: var(--surface);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.checkbox-group {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--sub);
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--accent);
+  background: var(--panel);
+  border: 2px solid var(--border);
+  border-radius: 4px;
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.checkbox-label input[type="checkbox"]:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.checkbox-label input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.checkbox-label input[type="checkbox"]:hover {
+  border-color: var(--accent);
+}
+
+.login-btn {
+  padding: 14px;
+  background: linear-gradient(135deg, var(--accent) 0%, rgba(var(--accent-rgb), 0.9) 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease;
+}
+
+.login-btn:hover:not(:disabled) {
+  box-shadow: 0 4px 15px rgba(var(--accent-rgb), 0.3);
+}
+
+.login-btn:disabled {
+  background: var(--sub);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.login-footer {
+  margin-top: 20px;
+  text-align: center;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.login-footer p {
+  margin: 0 0 8px 0;
+  color: var(--sub);
+  font-size: 12px;
+}
+
+.login-footer p:last-child {
+  margin-bottom: 0;
+}
+
+.register-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.register-link:hover {
+  color: rgba(var(--accent-rgb), 0.8);
+  text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+  .login-box {
+    padding: 30px 20px;
+    width: 100%;
+    margin: 20px;
+  }
+}
+</style>

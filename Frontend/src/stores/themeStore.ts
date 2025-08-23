@@ -14,7 +14,18 @@ export const useThemeStore = defineStore('theme', () => {
   
   // 切换主题
   const toggleTheme = () => {
-    theme.value = theme.value === 'light' ? 'dark' : 'light'
+    const newTheme = theme.value === 'light' ? 'dark' : 'light'
+    theme.value = newTheme
+    
+    // 触发主题切换通知
+    window.dispatchEvent(new CustomEvent('showNotification', {
+      detail: {
+        title: '主题已切换',
+        message: `已切换到${newTheme === 'light' ? '浅色' : '深色'}主题`,
+        type: 'info',
+        duration: 2000
+      }
+    }))
   }
   
   // 设置指定主题
