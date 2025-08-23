@@ -54,7 +54,7 @@ const router = createRouter({
         {
           path: 'llm',
           name: 'llm-mode',
-          component: () => import('@/components/Layout/LLMPanel.vue'),
+          component: () => import('@/components/Modes/LLMMode.vue'),
           meta: {
             title: 'AI助手',
             mode: 'llm',
@@ -65,7 +65,7 @@ const router = createRouter({
         {
           path: 'traditional',
           name: 'traditional-mode',
-          component: () => import('@/components/Layout/TraditionalPanel.vue'),
+          component: () => import('@/components/Modes/TraditionalMode.vue'),
           meta: {
             title: '传统模式',
             mode: 'traditional',

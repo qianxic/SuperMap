@@ -107,7 +107,10 @@ src/
 │   ├── Layout/               # 布局组件
 │   │   ├── DashboardLayout.vue    # 主布局容器 (2.5KB, 134行)
 │   │   ├── DashboardHeader.vue    # 顶部导航栏 (9.3KB, 420行)
-│   │   └── RightPanel.vue         # 右侧面板 (8.3KB, 299行)
+│   │   └── RightPanel.vue         # 右侧面板容器 (593B, 30行)
+│   ├── Modes/                # 模式组件
+│   │   ├── LLMMode.vue           # LLM模式内容 (833B, 37行)
+│   │   └── TraditionalMode.vue   # 传统模式内容 (5.4KB, 172行)
 │   ├── Map/                  # 地图功能组件
 │   │   ├── SuperMapViewer.vue     # 核心地图视图 (1.2KB, 58行)
 │   │   ├── LayerManager.vue       # 图层管理器 (6.6KB, 283行)
@@ -178,9 +181,18 @@ src/
 
 ### 3. **路由管理层 (Router Layer)**
 - **index.ts**: 路由配置，包含路由守卫、权限控制、页面重定向
+- **路由结构**:
+  - `/dashboard/llm` - LLM模式（AI助手）
+  - `/dashboard/traditional` - 传统模式（功能按钮）
 
 ### 4. **组件层 (Components Layer)**
 - **Layout组件组**: 布局相关组件，负责整体页面结构
+  - **DashboardLayout.vue**: 主布局容器，包含标题栏、地图区域、右侧面板
+  - **DashboardHeader.vue**: 顶部导航栏，包含模式切换、主题切换、用户管理
+  - **RightPanel.vue**: 右侧面板容器，使用router-view渲染模式组件
+- **Modes组件组**: 模式相关组件，负责不同操作模式的内容
+  - **LLMMode.vue**: LLM模式内容，集成ChatAssistant组件
+  - **TraditionalMode.vue**: 传统模式内容，包含功能按钮和工具面板
 - **Map组件组**: 地图功能组件，负责地图交互和分析功能
 - **UI组件组**: 可复用UI组件库，提供统一的界面元素
 
@@ -259,10 +271,56 @@ src/
 
 ## 🔧 技术实现
 
+### 路由化架构
+```typescript
+// 路由配置 - 嵌套路由结构
+{
+  path: '/dashboard',
+  component: Dashboard,
+  children: [
+    { path: '', redirect: '/dashboard/llm' },
+    { path: 'llm', component: LLMMode },
+    { path: 'traditional', component: TraditionalMode }
+  ]
+}
+
+// 模式切换 - 路由导航
+const setMode = (modeId: 'traditional' | 'llm') => {
+  router.push(`/dashboard/${modeId}`);
+};
+
+// 模式状态 - 基于路由计算
+const activeMode = computed(() => {
+  const currentRoute = router.currentRoute.value
+  return currentRoute.path.includes('/traditional') ? 'traditional' : 'llm'
+})
+```
+
+### 组件组织架构
+```
+components/
+├── Layout/              # 布局组件
+│   ├── DashboardLayout.vue    # 主布局容器
+│   ├── DashboardHeader.vue    # 顶部导航栏
+│   └── RightPanel.vue         # 右侧面板容器
+├── Modes/               # 模式组件
+│   ├── LLMMode.vue      # LLM模式内容
+│   └── TraditionalMode.vue # 传统模式内容
+├── Map/                 # 地图组件
+└── UI/                  # UI组件
+```
+
 ### 双模式架构
 ```typescript
-// 模式管理 - 全局状态
-const activeMode = ref<'traditional' | 'llm'>('llm')
+// 模式管理 - 路由驱动
+const activeMode = computed(() => {
+  // 根据当前路由判断模式
+  const currentRoute = router.currentRoute.value
+  if (currentRoute.path.includes('/traditional')) {
+    return 'traditional'
+  }
+  return 'llm'
+})
 
 // 模式切换事件
 window.dispatchEvent(new CustomEvent('modeChanged', { detail: modeId }))
