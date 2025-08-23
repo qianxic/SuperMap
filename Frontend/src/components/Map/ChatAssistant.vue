@@ -123,8 +123,8 @@ const demoMessage = (): string => {
     '请输入您的需求，我将为您执行。',
     '您可以这样说：',
     '- 打开 道路 图层',
-    '- 查询 距您最近的学校',
-    '- 统计 距您最近的医院数量',
+    '- 查询 距我最近的学校',
+    '- 统计 距我最近的医院数量',
     '- 进行 缓冲区分析',
     '- 进行 最优路径分析',
     '- 进行 可达性分析'
@@ -199,7 +199,7 @@ const sendMessage = () => {
   flex: 1;
   width: 100%;
   overflow-y: auto;
-  padding: 12px;
+  padding: 8px 6px;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -259,7 +259,7 @@ const sendMessage = () => {
 .message-wrapper {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: 6px;
   margin: 0;
   animation: fadeIn 0.3s ease-out;
   user-select: text;
@@ -269,7 +269,10 @@ const sendMessage = () => {
 }
 
 .message-wrapper.user {
-  flex-direction: row-reverse;
+  flex-direction: row;
+  gap: 4px;
+  justify-content: flex-end;
+  align-items: flex-end;
 }
 
 .message-bubble {
@@ -277,7 +280,7 @@ const sendMessage = () => {
   padding: 6px 10px;
   margin: 0;
   word-wrap: break-word;
-  max-width: 85%;
+  max-width: 95%;
 }
 
 .message-header {
@@ -333,7 +336,7 @@ const sendMessage = () => {
   line-height: 1.3;
   margin: 0;
   color: inherit;
-  font-family: "Segoe UI", PingFang SC, Microsoft YaHei, Arial, sans-serif;
+  font-family: "Times New Roman", "SimSun", serif;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

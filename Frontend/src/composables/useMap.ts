@@ -7,7 +7,6 @@ import { useLayerManager } from '@/composables/useLayerManager'
 import { superMapClient } from '@/api/supermap'
 import { handleError, notificationManager } from '@/utils/notification'
 import { createAPIConfig, testLayerConfig, getCurrentBaseMapUrl } from '@/utils/config'
-import { useFeatureInfo } from '@/composables/useFeatureInfo'
 
 const ol = window.ol;
 
@@ -17,11 +16,9 @@ export function useMap() {
   const loadingStore = useLoadingStore()
   const themeStore = useThemeStore()
   const layerManager = useLayerManager()
-  const featureInfo = useFeatureInfo()
   const mapContainer = ref<HTMLElement | null>(null)
   const hoverTimer = ref<number | null>(null)
   const selectSourceRef = ref<any>(null) // ol.source.Vector
-  const apiConfig = createAPIConfig()
 
   const initMap = async (): Promise<void> => {
     mapStore = useMapStore()
@@ -1159,6 +1156,9 @@ export function useMap() {
     const map = evt.map;
     const coordinate = evt.coordinate;
     
+    // 检查是否处于编辑工具状态（按区域选择要素工具）
+    const isEditToolActive = analysisStore.toolPanel?.activeTool === 'bianji';
+    
     // 首先检查是否点击到了已加载的要素
     const feature = map.forEachFeatureAtPixel(
       evt.pixel,
@@ -1205,36 +1205,48 @@ export function useMap() {
         mapStore.selectLayer.changed();
       }
 
-      // 生成详细的要素属性信息 - 显示所有从数据服务中读取的数据
-      const properties = feature.getProperties();
-      let content = '<div class="feature-info">';
-      
-      // 显示要素基本信息
-      content += `<div class="feature-header">要素详细信息</div>`;
-      content += `<div class="field-row"><span class="field-label">要素ID:</span><span class="field-value">${feature.getId() || '无'}</span></div>`;
-      content += `<div class="field-row"><span class="field-label">几何类型:</span><span class="field-value">${feature.getGeometry()?.getType() || '未知'}</span></div>`;
-      
-      // 显示所有属性字段，包括空值
-      content += `<div class="feature-header">属性字段 (共${Object.keys(properties).filter(k => k !== 'geometry').length}个)</div>`;
-      Object.keys(properties).forEach(key => {
-        if (key !== 'geometry') {
-          const value = properties[key];
-          const displayValue = value !== undefined && value !== null ? value : '(空值)';
-          content += `<div class="field-row"><span class="field-label">${key}:</span><span class="field-value">${displayValue}</span></div>`;
-        }
-      });
-      
-      content += '</div>';
+      // 只有在非编辑工具状态下才显示要素信息弹窗
+      if (!isEditToolActive) {
+        // 生成详细的要素属性信息 - 显示所有从数据服务中读取的数据
+        const properties = feature.getProperties();
+        let content = '<div class="feature-info">';
+        
+        // 显示要素基本信息
+        content += `<div class="feature-header">要素详细信息</div>`;
+        content += `<div class="field-row"><span class="field-label">要素ID:</span><span class="field-value">${feature.getId() || '无'}</span></div>`;
+        content += `<div class="field-row"><span class="field-label">几何类型:</span><span class="field-value">${feature.getGeometry()?.getType() || '未知'}</span></div>`;
+        
+        // 显示所有属性字段，包括空值
+        content += `<div class="feature-header">属性字段 (共${Object.keys(properties).filter(k => k !== 'geometry').length}个)</div>`;
+        Object.keys(properties).forEach(key => {
+          if (key !== 'geometry') {
+            const value = properties[key];
+            const displayValue = value !== undefined && value !== null ? value : '(空值)';
+            content += `<div class="field-row"><span class="field-label">${key}:</span><span class="field-value">${displayValue}</span></div>`;
+          }
+        });
+        
+        content += '</div>';
 
-      mapStore.showPopup(
-        { x: evt.pixel[0], y: evt.pixel[1] },
-        content,
-        feature,
-        evt.coordinate
-      );
+        mapStore.showPopup(
+          { x: evt.pixel[0], y: evt.pixel[1] },
+          content,
+          feature,
+          evt.coordinate
+        );
+      } else {
+        // 编辑工具状态下，隐藏任何现有的弹窗
+        mapStore.hidePopup();
+      }
     } else {
-      // 如果没有点击到要素，查询所有图层的要素信息
-      await queryFeaturesAtPoint(coordinate, evt.pixel);
+      // 只有在非编辑工具状态下才查询和显示要素信息
+      if (!isEditToolActive) {
+        // 如果没有点击到要素，查询所有图层的要素信息
+        await queryFeaturesAtPoint(coordinate, evt.pixel);
+      } else {
+        // 编辑工具状态下，隐藏任何现有的弹窗
+        mapStore.hidePopup();
+      }
     }
   }
 
@@ -1331,6 +1343,14 @@ export function useMap() {
       targetElement.style.cursor = 'crosshair';
     } else {
       targetElement.style.cursor = 'default';
+    }
+  });
+
+  // 监听编辑工具状态变化，当编辑工具激活时隐藏要素信息弹窗
+  watch(() => analysisStore.toolPanel?.activeTool, (newTool) => {
+    if (newTool === 'bianji') {
+      // 当编辑工具激活时，隐藏要素信息弹窗
+      mapStore.hidePopup();
     }
   });
 

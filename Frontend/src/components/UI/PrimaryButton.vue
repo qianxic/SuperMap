@@ -35,7 +35,9 @@ const props = defineProps({
 
 const emit = defineEmits(['click'])
 
-const isActive = props.active
+import { computed } from 'vue'
+
+const isActive = computed(() => props.active)
 
 const handleClick = (event: MouseEvent) => {
   if (!props.disabled) {
@@ -55,11 +57,7 @@ const handleClick = (event: MouseEvent) => {
   cursor: pointer;
 }
 
-.btn:hover:not(:disabled) {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: white;
-}
+
 
 .btn:disabled { 
   opacity: 0.4; 
@@ -89,22 +87,11 @@ const handleClick = (event: MouseEvent) => {
 }
 
 .btn.active {
-  background: var(--surface, var(--btn-secondary-bg));
-  color: var(--btn-secondary-color);
-  border-color: var(--border);
-  box-shadow: none;
-}
-
-.primary-btn.primary:hover:not(:disabled) {
-  background: var(--surface-hover, #1976d2);
-  border-color: var(--surface-hover, #1976d2);
+  background: var(--accent);
+  border-color: var(--accent);
   color: white;
   box-shadow: none;
 }
 
-.primary-btn.secondary:hover:not(:disabled) {
-  background: var(--btn-secondary-bg);
-  border-color: var(--border);
-  color: var(--btn-secondary-color);
-}
+
 </style>

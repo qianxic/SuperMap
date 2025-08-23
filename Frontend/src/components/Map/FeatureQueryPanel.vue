@@ -26,17 +26,41 @@
       />
     </div>
 
+    <!-- 查询结果 -->
+    <div class="analysis-section" v-if="queryResults.length > 0">
+      <div class="section-title">查询结果 ({{ queryResults.length }}个要素)</div>
+      <div class="query-results">
+        <div 
+          v-for="(feature, index) in queryResults" 
+          :key="feature.getId?.() || index"
+          class="result-item"
+          @click="selectFeature(feature)"
+        >
+          <div class="result-info">
+            <div class="result-name">要素 {{ index + 1 }}</div>
+            <div class="result-desc">{{ getFeatureDescription(feature) }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- 查询操作 -->
     <div class="analysis-section">
       <div class="section-title">查询操作</div>
       <div class="button-column">
         <SecondaryButton 
-          text="清空当前选中图层"
-          @click="clearSelectedLayer"
+          text="执行查询"
+          variant="secondary"
+          @click="executeQuery"
         />
         <SecondaryButton 
           text="反选当前图层"
           @click="invertSelectedLayer"
+        />
+        <SecondaryButton 
+          text="清空查询结果"
+          variant="danger"
+          @click="clearQueryResults"
         />
       </div>
     </div>
@@ -57,12 +81,12 @@ import PanelWindow from '@/components/UI/PanelWindow.vue'
 import TipWindow from '@/components/UI/TipWindow.vue'
 
 const analysisStore = useAnalysisStore()
-const mapStore = useMapStore()
 const featureQuery = useFeatureQuery()
 
 // 状态管理
 const selectedLayerId = ref('')
 const queryKeyword = ref('')
+const queryResults = ref<any[]>([])
 
 // 图层选项
 const layerOptions = computed(() => featureQuery.getLayerOptions())
@@ -72,20 +96,52 @@ const getSelectedLayerName = () => {
   return featureQuery.getSelectedLayerName(selectedLayerId.value)
 }
 
-// 清空当前选中图层
-const clearSelectedLayer = () => {
-  if (!selectedLayerId.value) {
-    analysisStore.setAnalysisStatus('请先选择要操作的图层')
+// 执行查询
+const executeQuery = () => {
+  if (!selectedLayerId.value || !queryKeyword.value.trim()) {
+    analysisStore.setAnalysisStatus('请选择图层并输入查询关键字')
     return
   }
   
   try {
-    featureQuery.clearSelectedLayer(selectedLayerId.value)
-    analysisStore.setAnalysisStatus(`已清空图层 "${getSelectedLayerName()}" 的选中状态`)
+    const results = featureQuery.queryFeatures(selectedLayerId.value, queryKeyword.value)
+    queryResults.value = results
+    analysisStore.setAnalysisStatus(`查询完成，找到 ${results.length} 个要素`)
   } catch (error) {
-    console.error('清空选中图层时出错:', error)
-    analysisStore.setAnalysisStatus('清空选中图层时出错，请重试')
+    console.error('执行查询时出错:', error)
+    analysisStore.setAnalysisStatus('查询执行失败，请重试')
   }
+}
+
+// 选择要素
+const selectFeature = (feature: any) => {
+  try {
+    featureQuery.selectFeature(feature)
+    analysisStore.setAnalysisStatus('已选择要素并在地图上高亮显示')
+  } catch (error) {
+    console.error('选择要素时出错:', error)
+    analysisStore.setAnalysisStatus('选择要素失败，请重试')
+  }
+}
+
+// 获取要素描述
+const getFeatureDescription = (feature: any) => {
+  const properties = feature.getProperties?.() || feature.properties || {}
+  const geometry = feature.getGeometry?.() || feature.geometry
+  
+  let desc = ''
+  if (geometry) {
+    const geometryType = geometry.getType?.() || geometry.type
+    desc += `${geometryType} | `
+  }
+  
+  // 显示前几个属性值
+  const propertyValues = Object.values(properties).filter(v => v !== undefined && v !== null)
+  if (propertyValues.length > 0) {
+    desc += propertyValues.slice(0, 2).join(', ')
+  }
+  
+  return desc || '无属性信息'
 }
 
 // 反选当前图层
@@ -102,6 +158,12 @@ const invertSelectedLayer = () => {
     console.error('反选图层时出错:', error)
     analysisStore.setAnalysisStatus('反选图层时出错，请重试')
   }
+}
+
+// 清空查询结果
+const clearQueryResults = () => {
+  queryResults.value = []
+  analysisStore.setAnalysisStatus('已清空查询结果')
 }
 </script>
 
@@ -150,5 +212,46 @@ const invertSelectedLayer = () => {
   gap: 8px;
 }
 
+.query-results {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
 
+.result-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--btn-secondary-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.result-item:hover {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+}
+
+.result-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.result-name {
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.result-desc {
+  font-size: 11px;
+  color: var(--sub);
+  margin-top: 2px;
+}
 </style>

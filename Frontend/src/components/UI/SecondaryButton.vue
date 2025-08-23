@@ -5,7 +5,6 @@
       variant,
       { active: isActive }
     ]"
-    :disabled="disabled"
     @click="handleClick"
   >
     <slot>{{ text }}</slot>
@@ -23,10 +22,6 @@ const props = defineProps({
     default: 'secondary',
     validator: (value: string) => ['primary', 'secondary', 'danger'].includes(value)
   },
-  disabled: {
-    type: Boolean,
-    default: false
-  },
   active: {
     type: Boolean,
     default: false
@@ -38,9 +33,7 @@ const emit = defineEmits(['click'])
 const isActive = props.active
 
 const handleClick = (event: MouseEvent) => {
-  if (!props.disabled) {
-    emit('click', event)
-  }
+  emit('click', event)
 }
 </script>
 
@@ -55,7 +48,7 @@ const handleClick = (event: MouseEvent) => {
   cursor: pointer;
 }
 
-.btn:hover:not(:disabled) {
+.btn:hover {
   background: var(--btn-secondary-bg);
   border-color: var(--border);
   color: var(--btn-secondary-color);
@@ -63,15 +56,18 @@ const handleClick = (event: MouseEvent) => {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.btn:disabled { 
-  opacity: 0.4; 
-  cursor: not-allowed; 
-}
-
 .btn.primary { 
   background: var(--accent); 
   color: white; 
   border-color: var(--accent);
+}
+
+.btn.primary:hover {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .btn.secondary {
@@ -85,10 +81,12 @@ const handleClick = (event: MouseEvent) => {
   border-color: #ff4757;
 }
 
-.btn.danger:hover:not(:disabled) {
+.btn.danger:hover {
   background: #ff3742;
   color: white;
   border-color: #ff3742;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .btn.active {

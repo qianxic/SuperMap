@@ -56,7 +56,7 @@
       </div>
     </div>
 
-    <!-- 提示信息移至底部 -->
+    <!-- 提示信息 -->
     <div class="analysis-section">
       <TipWindow text="在地图上按住左键拖拽鼠标进行框选要素，框选完成后松开左键" />
     </div>
@@ -65,7 +65,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
+import { ref, watch, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useAnalysisStore } from '@/stores/analysisStore.ts'
 import { useMapStore } from '@/stores/mapStore.ts'
 import SecondaryButton from '@/components/UI/SecondaryButton.vue'
@@ -320,7 +320,51 @@ const selectFeature = (index: number) => {
     
     // 触发地图中的要素常亮效果
     triggerMapFeatureHighlight(feature)
+    
+    // 自动滚动到选中的要素位置
+    scrollToSelectedFeature(index)
   }
+}
+
+// 自动滚动到选中的要素位置
+const scrollToSelectedFeature = (index: number) => {
+  // 使用 nextTick 确保 DOM 已更新
+  nextTick(() => {
+    try {
+      const layerList = document.querySelector('.layer-list')
+      if (!layerList) {
+        console.warn('未找到图层列表容器')
+        return
+      }
+      
+      const selectedElement = layerList.children[index] as HTMLElement
+      if (!selectedElement) {
+        console.warn(`未找到索引为 ${index} 的要素元素`)
+        return
+      }
+      
+      // 计算滚动位置
+      const containerHeight = layerList.clientHeight
+      const elementTop = selectedElement.offsetTop
+      const elementHeight = selectedElement.offsetHeight
+      
+      // 计算目标滚动位置，让选中元素居中显示
+      const targetScrollTop = elementTop - (containerHeight / 2) + (elementHeight / 2)
+      
+      // 确保滚动位置在有效范围内
+      const maxScrollTop = layerList.scrollHeight - containerHeight
+      const finalScrollTop = Math.max(0, Math.min(targetScrollTop, maxScrollTop))
+      
+      // 平滑滚动到目标位置
+      layerList.scrollTo({
+        top: finalScrollTop,
+        behavior: 'smooth'
+      })
+      
+    } catch (error) {
+      console.error('自动滚动失败:', error)
+    }
+  })
 }
 
 // 触发地图中要素常亮效果
@@ -344,9 +388,6 @@ const startHighlightAnimation = () => {
   const source = mapStore.selectLayer.getSource()
   if (!source) return
   
-  // 保存原始样式
-  const originalStyle = mapStore.selectLayer.getStyle()
-  
   // 创建常亮样式 - 只对特定要素应用常亮效果
   const createFlashingStyle = () => {
     const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#007bff'
@@ -363,7 +404,7 @@ const startHighlightAnimation = () => {
       const geometryType = geometry.getType()
       
       if (isHighlightFeature) {
-        // 常亮样式
+        // 常亮样式 - 橙色高亮
         switch (geometryType) {
           case 'Point':
           case 'MultiPoint':
@@ -405,7 +446,7 @@ const startHighlightAnimation = () => {
             })
         }
       } else {
-        // 正常样式
+        // 正常样式 - 蓝色高亮
         switch (geometryType) {
           case 'Point':
           case 'MultiPoint':
@@ -455,7 +496,7 @@ const startHighlightAnimation = () => {
   mapStore.selectLayer.changed()
 }
 
-// 检查两个要素是否相同
+// 检查两个要素是否相同 - 改进比较逻辑
 const isSameFeature = (feature1: any, feature2: any): boolean => {
   if (!feature1 || !feature2) return false
   
@@ -464,7 +505,7 @@ const isSameFeature = (feature1: any, feature2: any): boolean => {
   const id2 = feature2.getId?.() || feature2.id
   if (id1 && id2 && id1 === id2) return true
   
-  // 比较几何坐标
+  // 比较几何坐标 - 更精确的比较
   const geom1 = feature1.getGeometry?.() || feature1.geometry
   const geom2 = feature2.getGeometry?.() || feature2.geometry
   
@@ -473,8 +514,16 @@ const isSameFeature = (feature1: any, feature2: any): boolean => {
     const coords2 = geom2.getCoordinates?.() || geom2.coordinates
     
     if (coords1 && coords2) {
-      return JSON.stringify(coords1) === JSON.stringify(coords2)
+      // 使用更精确的坐标比较
+      const coordStr1 = JSON.stringify(coords1)
+      const coordStr2 = JSON.stringify(coords2)
+      return coordStr1 === coordStr2
     }
+  }
+  
+  // 比较原始要素引用
+  if (feature1._originalFeature && feature2._originalFeature) {
+    return feature1._originalFeature === feature2._originalFeature
   }
   
   return false
@@ -484,12 +533,60 @@ const isSameFeature = (feature1: any, feature2: any): boolean => {
 const removeHighlightFeature = () => {
   if (!mapStore.selectLayer) return
   
-  // 恢复原始样式
-  const originalStyle = mapStore.selectLayer.getStyle()
-  if (originalStyle) {
-    mapStore.selectLayer.setStyle(originalStyle)
-    mapStore.selectLayer.changed()
+  // 恢复原始样式 - 使用useMap.ts中的样式
+  const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#007bff'
+  const grayFillColor = getComputedStyle(document.documentElement).getPropertyValue('--map-select-fill').trim() || 'rgba(128, 128, 128, 0.3)'
+  
+  const restoreOriginalStyle = (feature: any) => {
+    const geometry = feature.getGeometry()
+    if (!geometry) return null
+    
+    const geometryType = geometry.getType()
+    
+    switch (geometryType) {
+      case 'Point':
+      case 'MultiPoint':
+        return new ol.style.Style({
+          image: new ol.style.Circle({ 
+            radius: 8, 
+            stroke: new ol.style.Stroke({color: accentColor, width: 3}), 
+            fill: new ol.style.Fill({color: grayFillColor})
+          })
+        })
+        
+      case 'LineString':
+      case 'MultiLineString':
+        return new ol.style.Style({
+          stroke: new ol.style.Stroke({
+            color: accentColor, 
+            width: 5,
+            lineCap: 'round',
+            lineJoin: 'round'
+          })
+        })
+        
+      case 'Polygon':
+      case 'MultiPolygon':
+        return new ol.style.Style({
+          stroke: new ol.style.Stroke({color: accentColor, width: 3}),
+          fill: new ol.style.Fill({color: grayFillColor})
+        })
+        
+      default:
+        return new ol.style.Style({
+          image: new ol.style.Circle({ 
+            radius: 8, 
+            stroke: new ol.style.Stroke({color: accentColor, width: 3}), 
+            fill: new ol.style.Fill({color: grayFillColor})
+          }),
+          stroke: new ol.style.Stroke({color: accentColor, width: 3}),
+          fill: new ol.style.Fill({color: grayFillColor})
+        })
+    }
   }
+  
+  mapStore.selectLayer.setStyle(restoreOriginalStyle)
+  mapStore.selectLayer.changed()
 }
 
 // 设置选择交互 - 只保留框选
@@ -515,6 +612,70 @@ const setupSelectionInteractions = () => {
   })
   
   mapStore.map.addInteraction(boxSelectInteraction.value)
+  
+  // 添加点击已选择要素的处理
+  setupClickOnSelectedFeatures()
+}
+
+// 设置点击已选择要素的处理
+const setupClickOnSelectedFeatures = () => {
+  if (!mapStore.map) return
+  
+  // 监听地图点击事件，检查是否点击了已选择的要素
+  const clickHandler = (evt: any) => {
+    const pixel = evt.pixel
+    const coordinate = evt.coordinate
+    
+    // 检查是否点击到了已选择的要素
+    const clickedFeature = mapStore.map.forEachFeatureAtPixel(
+      pixel,
+      (feature: any, layer: any) => {
+        // 只检查选择图层中的要素
+        if (layer === mapStore.selectLayer) {
+          return feature
+        }
+        return undefined
+      },
+      { hitTolerance: 5 }
+    )
+    
+    if (clickedFeature) {
+      // 阻止默认的要素信息窗口弹出
+      evt.preventDefault()
+      evt.stopPropagation()
+      
+      // 在已选择的要素列表中查找对应的要素
+      const selectedFeatureIndex = findSelectedFeatureIndex(clickedFeature)
+      
+      if (selectedFeatureIndex !== -1) {
+        // 高亮对应的列表项
+        selectFeature(selectedFeatureIndex)
+        
+        // 显示橙色常亮效果
+        triggerMapFeatureHighlight(selectedFeatures.value[selectedFeatureIndex])
+        
+        analysisStore.setAnalysisStatus(`已选择要素 ${selectedFeatureIndex + 1}`)
+        
+        // 自动滚动到选中的要素位置
+        scrollToSelectedFeature(selectedFeatureIndex)
+      }
+      
+      return false // 阻止事件继续传播
+    }
+  }
+  
+  // 添加点击事件监听
+  mapStore.map.on('click', clickHandler)
+  
+  // 保存事件处理器引用，以便后续移除
+  mapStore.map._editToolsClickHandler = clickHandler
+}
+
+// 在已选择的要素中查找对应的索引
+const findSelectedFeatureIndex = (clickedFeature: any): number => {
+  return selectedFeatures.value.findIndex(feature => {
+    return isSameFeature(feature, clickedFeature)
+  })
 }
 
 // 清除选择交互
@@ -524,6 +685,12 @@ const clearSelectionInteractions = () => {
   if (boxSelectInteraction.value) {
     mapStore.map.removeInteraction(boxSelectInteraction.value)
     boxSelectInteraction.value = null
+  }
+  
+  // 移除点击事件监听
+  if (mapStore.map._editToolsClickHandler) {
+    mapStore.map.un('click', mapStore.map._editToolsClickHandler)
+    delete mapStore.map._editToolsClickHandler
   }
 }
 
@@ -753,6 +920,11 @@ watch(() => analysisStore.toolPanel?.activeTool, (tool) => {
   if (tool !== 'bianji') {
     // 只清除交互，不清除已选择的要素
     clearSelectionInteractions()
+    // 清理常亮效果
+    if (highlightedFeature.value) {
+      removeHighlightFeature()
+      highlightedFeature.value = null
+    }
     // 保持已选择的要素和高亮显示
     // selectedFeatures.value = [] // 移除这行，保持要素选择
     // selectedFeatureIndex.value = -1 // 移除这行，保持要素选择

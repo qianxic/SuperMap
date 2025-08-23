@@ -14,14 +14,14 @@
       <div class="function-buttons-container">
         <div class="buttons-grid">
           <div class="button-row">
-            <PrimaryButton text="图层管理" @click="toggleLayerManager" />
-            <PrimaryButton text="按属性选择要素" @click="toggleQuery" />
-            <PrimaryButton text="按区域选择要素" @click="togglebianji" />
+            <PrimaryButton text="图层管理" :active="isLayerOpen" @click="toggleLayerManager" />
+            <PrimaryButton text="按属性选择要素" :active="isQueryOpen" @click="toggleQuery" />
+            <PrimaryButton text="按区域选择要素" :active="isbianji" @click="togglebianji" />
           </div>
           <div class="button-row">
-            <PrimaryButton text="缓冲区分析" @click="toggleBuffer" />
-            <PrimaryButton text="最优路径分析" @click="toggleDistance" />
-            <PrimaryButton text="可达性分析" @click="toggleGotowhere" />
+            <PrimaryButton text="缓冲区分析" :active="isBufferOpen" @click="toggleBuffer" />
+            <PrimaryButton text="最优路径分析" :active="isDistanceOpen" @click="toggleDistance" />
+            <PrimaryButton text="可达性分析" :active="isGotowhereOpen" @click="toggleGotowhere" />
           </div>
         </div>
       </div>
@@ -36,7 +36,6 @@
         <DistanceAnalysisPanel v-if="analysisStore.toolPanel.activeTool === 'distance'" />
         <AccessibilityAnalysisPanel v-if="analysisStore.toolPanel.activeTool === 'gotowhere'" />
         <LayerManager v-if="analysisStore.toolPanel.activeTool === 'layer'" />
-        <FeatureQueryPanel v-if="analysisStore.toolPanel.activeTool === 'query'" />
         <div v-if="!analysisStore.toolPanel.visible" class="default-content">
           <div class="welcome-message">
             <p>请从上方工具栏选择功能开始使用</p>
@@ -110,66 +109,47 @@ onUnmounted(() => {
 const analysisStore = useAnalysisStore()
 const mapStore = useMapStore()
 
+// 工具配置对象
+const toolConfigs = {
+  bianji: { id: 'bianji', title: '图层编辑' },
+  buffer: { id: 'buffer', title: '缓冲区分析' },
+  layer: { id: 'layer', title: '图层管理' },
+  distance: { id: 'distance', title: '最优路径分析' },
+  gotowhere: { id: 'gotowhere', title: '可达性分析' },
+  query: { id: 'query', title: '要素查询' }
+} as const
 
+// 状态检查变量
 const isBufferOpen = computed(() => analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'buffer')
 const isLayerOpen = computed(() => analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'layer')
 const isbianji = computed(() => analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'bianji')
 const isDistanceOpen = computed(() => analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'distance')
 const isGotowhereOpen = computed(() => analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'gotowhere')
+const isQueryOpen = computed(() => analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'query')
 
 const layersStatus = computed(() => {
   return mapStore.vectorLayers.map(l => ({ name: l.name, visible: l.visible }))
 })
 
-
-
-const togglebianji = () => {
-  if (isbianji.value) {
+// 通用切换函数
+const toggleTool = (toolKey: keyof typeof toolConfigs) => {
+  const config = toolConfigs[toolKey]
+  const isCurrentlyActive = analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === config.id
+  
+  if (isCurrentlyActive) {
     analysisStore.closeTool()
   } else {
-    analysisStore.openTool('bianji', '图层编辑')
+    analysisStore.openTool(config.id, config.title)
   }
 }
 
-const toggleBuffer = () => {
-  if (isBufferOpen.value) {
-    analysisStore.closeTool()
-  } else {
-    analysisStore.openTool('buffer', '缓冲区分析')
-  }
-}
-
-const toggleLayerManager = () => {
-  if (isLayerOpen.value) {
-    analysisStore.closeTool()
-  } else {
-    analysisStore.openTool('layer', '图层管理')
-  }
-}
-
-const toggleDistance = () => {
-  if (isDistanceOpen.value) {
-    analysisStore.closeTool()
-  } else {
-    analysisStore.openTool('distance', '最优路径分析')
-  }
-}
-
-const toggleGotowhere = () => {
-  if (isGotowhereOpen.value) {
-    analysisStore.closeTool()
-  } else {
-    analysisStore.openTool('gotowhere', '可达性分析')
-  }
-}
-
-const toggleQuery = () => {
-  if (analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'query') {
-    analysisStore.closeTool()
-  } else {
-    analysisStore.openTool('query', '要素查询')
-  }
-}
+// 简化的切换函数
+const togglebianji = () => toggleTool('bianji')
+const toggleBuffer = () => toggleTool('buffer')
+const toggleLayerManager = () => toggleTool('layer')
+const toggleDistance = () => toggleTool('distance')
+const toggleGotowhere = () => toggleTool('gotowhere')
+const toggleQuery = () => toggleTool('query')
 </script>
 
 <style scoped>
@@ -225,7 +205,7 @@ const toggleQuery = () => {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 16px;
-  padding: 20px;
+  padding: 16px;
   animation: fadeIn 0.3s ease-out;
 }
 
@@ -234,33 +214,33 @@ const toggleQuery = () => {
 .buttons-grid {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .button-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  gap: 8px;
 }
 
 .button-row:last-child {
   grid-template-columns: repeat(3, 1fr);
 }
 
-.button-row:last-child :deep(.primary-button) {
-  grid-column: 1;
-}
-
 /* 按钮样式优化 */
-.button-row :deep(.primary-button) {
+.button-row :deep(.btn) {
   width: 100%;
-  min-height: 40px;
-  font-size: 13px;
+  min-height: 32px;
+  font-size: 12px;
   font-weight: 500;
+  padding: 4px 8px;
 }
 
-.button-row :deep(.primary-button):hover {
-  /* 保留悬停状态，但不显示颜色变化 */
+/* 确保active状态显示蓝色 */
+.button-row :deep(.btn.active) {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: white !important;
 }
 
 /* 响应式设计 */
