@@ -173,21 +173,28 @@ onMounted(() => {
   })
 })
 
-// 模式管理 - 使用 provide/inject 或全局状态
-const activeMode = ref<'traditional' | 'llm'>('llm');
+// 模式管理 - 改为路由导航
+const activeMode = computed(() => {
+  // 根据当前路由判断模式
+  const currentRoute = router.currentRoute.value
+  if (currentRoute.path.includes('/traditional')) {
+    return 'traditional'
+  }
+  return 'llm'
+})
+
 const modeButtons = [
   { id: 'llm', text: 'LLM 模式' },
   { id: 'traditional', text: '传统模式' },
 ];
 
 const setMode = (modeId: 'traditional' | 'llm') => {
-  activeMode.value = modeId;
-  // 触发全局事件，通知其他组件模式变化
-  window.dispatchEvent(new CustomEvent('modeChanged', { detail: modeId }));
+  // 使用路由导航而不是状态管理
+  router.push(`/dashboard/${modeId}`);
 };
 
-// 提供模式状态给其他组件使用
-provide('activeMode', activeMode);
+// 移除provide，因为不再需要状态共享
+// provide('activeMode', activeMode);
 
 // 初始化主题
 onMounted(() => {
