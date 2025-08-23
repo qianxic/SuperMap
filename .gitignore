@@ -1,3 +1,7 @@
 dist/
 examples/
 libs/
+node_modules/
+Frontend/node_modules/
+Frontend/dist/
+Frontend/public/
