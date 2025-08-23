@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(rm:*)",
-      "WebFetch(domain:www.supermapol.com)"
-    ],
-    "deny": []
-  }
-}
