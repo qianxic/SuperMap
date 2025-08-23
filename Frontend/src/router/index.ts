@@ -35,7 +35,7 @@ const router = createRouter({
         title: '用户注册'
       }
     },
-    // 仪表板页面 - 需要认证
+    // 仪表板页面 - 需要认证，包含子路由
     {
       path: '/dashboard',
       name: 'dashboard',
@@ -43,7 +43,91 @@ const router = createRouter({
       meta: { 
         requiresAuth: true,   // 需要登录才能访问
         title: '地图系统'
-      }
+      },
+      children: [
+        // 默认子路由 - 重定向到图层管理
+        {
+          path: '',
+          redirect: '/dashboard/layer'
+        },
+        // 图层管理
+        {
+          path: 'layer',
+          name: 'layer-management',
+          component: () => import('@/components/Map/LayerManager.vue'),
+          meta: {
+            title: '图层管理',
+            icon: 'layers',
+            requiresAuth: true
+          }
+        },
+        // 要素查询
+        {
+          path: 'query',
+          name: 'feature-query',
+          component: () => import('@/components/Map/FeatureQueryPanel.vue'),
+          meta: {
+            title: '按属性选择要素',
+            icon: 'search',
+            requiresAuth: true
+          }
+        },
+        // 图层编辑
+        {
+          path: 'edit',
+          name: 'layer-edit',
+          component: () => import('@/components/Map/EditTools.vue'),
+          meta: {
+            title: '按区域选择要素',
+            icon: 'edit',
+            requiresAuth: true
+          }
+        },
+        // 缓冲区分析
+        {
+          path: 'buffer',
+          name: 'buffer-analysis',
+          component: () => import('@/components/Map/BufferAnalysisPanel.vue'),
+          meta: {
+            title: '缓冲区分析',
+            icon: 'buffer',
+            requiresAuth: true
+          }
+        },
+        // 最优路径分析
+        {
+          path: 'distance',
+          name: 'distance-analysis',
+          component: () => import('@/components/Map/DistanceAnalysisPanel.vue'),
+          meta: {
+            title: '最优路径分析',
+            icon: 'route',
+            requiresAuth: true
+          }
+        },
+        // 可达性分析
+        {
+          path: 'accessibility',
+          name: 'accessibility-analysis',
+          component: () => import('@/components/Map/AccessibilityAnalysisPanel.vue'),
+          meta: {
+            title: '可达性分析',
+            icon: 'accessibility',
+            requiresAuth: true
+          }
+        },
+        // LLM助手
+        {
+          path: 'assistant',
+          name: 'llm-assistant',
+          component: () => import('@/components/Map/ChatAssistant.vue'),
+          meta: {
+            title: 'AI助手',
+            icon: 'chat',
+            requiresAuth: true
+          }
+        }
+      ]
     }
   ]
 })
