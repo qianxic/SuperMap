@@ -7,6 +7,7 @@
 ### 核心技术栈
 - **前端框架**: Vue 3 + Composition API + TypeScript
 - **状态管理**: Pinia stores (响应式状态管理)
+- **路由管理**: Vue Router 4 (嵌套路由 + 路由守卫)
 - **样式方案**: CSS自定义属性 + 明暗主题自动切换
 - **UI组件**: Ant Design Vue + 自定义组件库
 - **地图引擎**: OpenLayers + SuperMap iServer集成
@@ -17,6 +18,7 @@
 
 ### 架构特点
 - 🎯 **双模式设计**: 传统GIS操作模式 + LLM智能助手模式
+- 🛣️ **路由化架构**: 基于Vue Router的嵌套路由管理
 - 🔒 **类型安全**: 完整的TypeScript类型系统
 - 🌐 **环境隔离**: 开发/生产环境自动配置切换
 - 🚨 **健壮通信**: 重试机制、超时处理、错误恢复
@@ -102,7 +104,7 @@ src/
 │   ├── Login.vue             # 登录页面 (10KB, 433行)
 │   └── Register.vue          # 注册页面 (11KB, 458行)
 ├── router/                    # 路由管理层
-│   └── index.ts              # 路由配置 (1.8KB, 74行)
+│   └── index.ts              # 路由配置 (1.8KB, 103行)
 ├── components/                # 组件层
 │   ├── Layout/               # 布局组件
 │   │   ├── DashboardLayout.vue    # 主布局容器 (2.5KB, 134行)
@@ -235,6 +237,7 @@ src/
 - **LLM模式**: 智能聊天助手，支持自然语言交互
 - **传统模式**: 经典GIS操作界面，功能按钮化操作
 - **模式切换**: 顶部导航栏一键切换，状态保持
+- **路由管理**: 基于Vue Router的嵌套路由，支持URL直接访问
 
 ### 地图功能
 - **响应式布局**: 70%地图视图 + 30%右侧面板的可拖拽分割布局
@@ -257,6 +260,7 @@ src/
 - **模块化设计**: 按功能领域组织的组件架构
 - **类型安全**: 完整的TypeScript类型系统覆盖
 - **状态管理**: 基于Pinia的响应式状态管理
+- **路由管理**: Vue Router 4的嵌套路由和路由守卫
 - **配置管理**: 环境变量驱动的多环境配置
 - **错误处理**: 统一的错误捕获、重试和用户反馈机制
 - **主题系统**: CSS变量驱动的明暗主题自动切换
@@ -344,142 +348,178 @@ const result = await superMapClient.getFeaturesBySQL({
 ### 主题系统
 ```css
 /* CSS变量驱动的主题切换 */
-:root {
-  --bg: #f8f9fa;
-  --panel: #ffffff;
-  --text: #212529;
+:root[data-theme="light"] {
+  --bg: #ffffff;
+  --text: #333333;
   --accent: #007bff;
 }
 
-[data-theme="dark"] {
-  --bg: #1e1e1e;
-  --panel: #2d2d30;
+:root[data-theme="dark"] {
+  --bg: #1a1a1a;
   --text: #ffffff;
-  --accent: #0078d4;
+  --accent: #4dabf7;
 }
 ```
 
-### 配置管理系统
+### 状态管理
 ```typescript
-// 动态配置加载
-const config = createAPIConfig()
-const mapUrl = getFullUrl('map')  // 自动拼接完整URL
-
-// 武汉图层配置
-wuhanLayers: [
-  { name: '武汉_县级@wuhan@@武汉', type: 'polygon', group: '县级行政区' },
-  { name: '公路@wuhan@@武汉', type: 'line', group: '城市基本信息' },
-  { name: '学校@wuhan@@武汉', type: 'point', group: '基础设施' }
-]
-```
-
-### 状态管理模式
-```typescript
-// 响应式状态管理
-const mapStore = useMapStore()
-const loadingStore = useLoadingStore()
-
-// 统一的加载状态控制
-loadingStore.startLoading('operation', '正在处理...')
-```
-
-### 错误处理机制
-```typescript
-// 统一的错误处理
-export const handleError = (error: any, context: string = '操作'): void => {
-  console.error(`${context}失败:`, error)
+// Pinia Store - 响应式状态管理
+export const useMapStore = defineStore('map', () => {
+  const map = ref<any>(null)
+  const vectorLayers = ref<MapLayer[]>([])
   
-  let message = '未知错误'
-  if (error instanceof Error) {
-    message = error.message
+  const isMapReady = computed(() => !!map.value)
+  
+  return { map, vectorLayers, isMapReady }
+})
+```
+
+### 组合函数 (Composables)
+```typescript
+// Vue 3 Composables - 业务逻辑封装
+export function useMap() {
+  const mapStore = useMapStore()
+  
+  const initMap = async () => {
+    // 地图初始化逻辑
   }
   
-  notificationManager.error(`${context}失败`, message)
+  const loadVectorLayers = async () => {
+    // 图层加载逻辑
+  }
+  
+  return { initMap, loadVectorLayers }
 }
 ```
 
-## 📋 功能模块
+## 🛣️ 路由配置
 
-### 已实现功能
-- ✅ **双模式操作**: LLM智能助手模式 + 传统GIS操作模式
-- ✅ **地图展示**: 基于OpenLayers + SuperMap的地图渲染
-- ✅ **图层管理**: 动态图层加载、显示/隐藏、分组管理
-- ✅ **绘制工具**: 点、线、面要素绘制和区域选择
-- ✅ **空间分析**: 缓冲区分析、距离分析(最优路径)、可达性分析
-- ✅ **要素查询**: 属性查询、空间查询、SQL查询
-- ✅ **要素交互**: 点击查询、悬停高亮、弹窗显示
-- ✅ **主题切换**: 明暗主题自动切换，支持系统主题跟随
-- ✅ **响应式布局**: 可拖拽分割面板、移动端适配
-- ✅ **配置管理**: 环境变量配置、多环境支持
-- ✅ **错误处理**: 统一错误捕获和用户反馈
-- ✅ **加载状态**: 操作进度显示和状态管理
-- ✅ **AI聊天助手**: LLM集成和智能对话界面
-- ✅ **性能优化**: 分页加载、缓存策略、异步处理
-- ✅ **用户认证**: 登录注册功能、路由守卫
-- ✅ **通知系统**: 全局通知管理、错误提示
+### 路由列表
+| 路由路径 | 路由名称 | 组件 | 认证要求 | 标题 | 说明 |
+|----------|----------|------|----------|------|------|
+| `/` | - | - | - | - | 根路径重定向 |
+| `/login` | `login` | `Login.vue` | ❌ 不需要 | 系统登录 | 登录页面 |
+| `/register` | `register` | `Register.vue` | ❌ 不需要 | 用户注册 | 注册页面 |
+| `/dashboard` | `dashboard` | `Dashboard.vue` | ✅ 需要 | 地图系统 | 主应用页面 |
+| `/dashboard/llm` | `llm-mode` | `LLMMode.vue` | ✅ 需要 | AI助手 | LLM模式 |
+| `/dashboard/traditional` | `traditional-mode` | `TraditionalMode.vue` | ✅ 需要 | 传统模式 | 传统模式 |
 
-### 武汉地图数据
-- **县级行政区**: 武汉_县级 (面要素)
-- **交通设施**: 公路、铁路 (线要素)
-- **水系信息**: 水系线、水系面 (线/面要素)
-- **建筑信息**: 建筑物面 (面要素)
-- **基础设施**: 居民地地名点、学校、医院 (点要素)
-
-### 开发中功能
-- 🚧 **图层编辑**: 要素编辑和属性修改
-- 🚧 **数据导入**: 文件上传和数据格式支持
-- 🚧 **高级分析**: 网络分析、3D可视化
-
-### 计划功能
-- 📋 **用户权限**: 登录认证和权限控制
-- 📋 **数据可视化**: 图表集成和数据展示
-- 📋 **地图服务**: 更多地图底图和服务支持
-- 📋 **移动端优化**: 触摸交互和手势支持
-- 📋 **实时数据**: 实时数据流和动态更新
-
-## 🚀 部署指南
-
-### 开发环境部署
-```bash
-npm run dev  # 启动开发服务器，支持热重载
+### 路由守卫
+```typescript
+// 全局前置守卫
+router.beforeEach((to, from, next) => {
+  const isLoggedIn = localStorage.getItem('authToken')
+  
+  if (to.meta.requiresAuth && !isLoggedIn) {
+    next('/login')  // 未登录重定向到登录页
+  } else if ((to.path === '/login' || to.path === '/register') && isLoggedIn) {
+    next('/dashboard')  // 已登录用户重定向到仪表板
+  } else {
+    next()  // 正常跳转
+  }
+})
 ```
 
-### 生产环境构建
-```bash
-npm run build  # 构建生产版本到 dist/ 目录
-npm run preview  # 预览生产构建结果
+## 🎨 主题系统
+
+### 支持的主题
+- **浅色主题**: 明亮界面，适合白天使用
+- **深色主题**: 暗色界面，适合夜间使用
+- **系统主题**: 自动跟随系统主题偏好
+
+### 主题切换
+- 顶部导航栏主题切换按钮
+- 自动检测系统主题偏好
+- 主题设置持久化存储
+
+### CSS变量系统
+```css
+/* 主题变量定义 */
+:root {
+  --bg: #ffffff;
+  --text: #333333;
+  --accent: #007bff;
+  --border: #e0e0e0;
+  --panel: #f8f9fa;
+  --radius: 8px;
+  --glow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
 ```
 
-### 环境配置
-- **开发环境**: 使用 `.env` 文件配置
-- **生产环境**: 使用 `.env.production` 或CI/CD传入环境变量
-- **服务部署**: 需要同步部署SuperMap iServer服务
-- **性能监控**: 集成错误追踪和性能监控
+## 🔒 权限控制
 
-### 部署检查清单
-- [ ] SuperMap iServer服务正常运行
-- [ ] 环境变量配置正确
-- [ ] 静态资源CDN配置
-- [ ] 错误监控和日志收集
-- [ ] 性能优化和缓存策略
+### 认证机制
+- 基于localStorage的token认证
+- 路由级别的权限控制
+- 自动重定向和状态保持
 
-## 📚 相关文档
+### 权限级别
+- **公开访问**: 登录页、注册页
+- **认证访问**: 主应用页面、所有功能模块
 
-- [Vite配置文档](https://vite.dev/config/)
-- [Vue 3官方文档](https://vuejs.org/)
-- [Pinia状态管理](https://pinia.vuejs.org/)
-- [OpenLayers文档](https://openlayers.org/)
-- [SuperMap iClient](https://iclient.supermap.io/)
-- [API优化方案](./docs/api-optimization.md)
+## 📱 响应式设计
 
-## 🤝 贡献指南
+### 布局适配
+- 桌面端: 70%地图 + 30%面板的拖拽分割布局
+- 移动端: 垂直堆叠布局，自适应屏幕尺寸
+- 平板端: 混合布局，支持横竖屏切换
 
-1. Fork 项目仓库
-2. 创建功能分支: `git checkout -b feature/amazing-feature`
-3. 提交更改: `git commit -m 'Add amazing feature'`
-4. 推送分支: `git push origin feature/amazing-feature`
-5. 创建 Pull Request
+### 交互优化
+- 触摸友好的操作界面
+- 手势支持（缩放、平移）
+- 自适应字体大小
+
+## 🚀 性能优化
+
+### 加载优化
+- 路由懒加载
+- 组件按需加载
+- 图片懒加载和压缩
+
+### 渲染优化
+- Vue 3响应式系统
+- 虚拟滚动
+- 防抖和节流
+
+### 缓存策略
+- 浏览器缓存
+- 状态持久化
+- API响应缓存
+
+## 🧪 开发调试
+
+### 开发工具
+- Vue DevTools支持
+- TypeScript类型检查
+- ESLint代码规范
+
+### 调试功能
+- 控制台日志
+- 错误边界处理
+- 性能监控
 
 ## 📄 许可证
 
-本项目采用 [MIT许可证](LICENSE)
+本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情
+
+## 🤝 贡献指南
+
+欢迎提交 Issue 和 Pull Request！
+
+### 开发流程
+1. Fork 项目
+2. 创建功能分支
+3. 提交更改
+4. 推送到分支
+5. 创建 Pull Request
+
+## 📞 联系方式
+
+如有问题或建议，请通过以下方式联系：
+- 提交 Issue
+- 发送邮件
+- 项目讨论区
+
+---
+
+**基于LLM的智能化城市管理平台** - 让城市管理更智能、更高效！ 🚀
