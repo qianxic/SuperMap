@@ -1,7 +1,7 @@
 <template>
   <div class="screen-header">
     <div class="header-left">
-      <div class="screen-title">RAG驱动的A2A智慧城市分析系统</div>
+      <div class="screen-title">基于GIS-A2A的智能化城市管理分析平台</div>
     </div>
     
           <div class="header-right">
