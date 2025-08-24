@@ -7,18 +7,71 @@
 ![LangChain](https://img.shields.io/badge/LangChain-0.1-orange)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue)
 ![Python](https://img.shields.io/badge/Python-3.11-yellow)
+![Progress](https://img.shields.io/badge/Progress-15%25-orange)
 
 *基于多智能体协作的 GIS 智能分析平台后端服务*
 
+**当前状态**: 🚧 Phase 1 开发中 | **完成度**: 15% | **总文件**: 94个
+
 </div>
 
-## 🌟 项目亮点
+## 🎯 项目概述
 
-- **🤖 多智能体协作**: 3层智能体架构 (Coordinator → Executor → Aggregator)
-- **🗺️ GIS 分析能力**: 集成 PostGIS + SuperMap，支持复杂空间分析
-- **🧠 RAG 增强**: 知识库检索增强生成，智能调度后端服务
-- **⚡ 高性能**: 异步处理 + 并行执行 + 多层缓存
-- **🏗️ 清洁架构**: DDD 领域驱动 + 依赖倒置 + 松耦合设计
+本项目为**基于GIS-A2A的智能化城市管理分析平台**的后端服务，采用现代化微服务架构，为前端Vue.js应用提供完整的API支持。
+
+### 🎨 与前端功能对应
+
+| 前端功能模块 | 后端服务支持 | 实现状态 |
+|-------------|-------------|----------|
+| **🤖 LLM智能模式** | `app/infrastructure/ai/` + `app/api/v1/agent/` | ⏳ Phase 3 |
+| **🗺️ 传统GIS模式** | `app/api/v1/gis/` + `app/domains/gis/` | 🔥 Phase 1 |
+| **👥 用户认证系统** | `app/api/v1/user/` + `app/core/security.py` | 🔥 进行中 |
+| **📊 空间分析功能** | `app/application/use_cases/gis/` | ⏳ 待开始 |
+| **💬 智能对话助手** | `app/infrastructure/ai/agent_hub.py` | ⏳ Phase 3 |
+| **🗃️ 数据持久化** | `app/infrastructure/database/` | ⏳ Phase 2 |
+
+## 📋 开发进度跟踪
+
+### 🔥 当前阶段: Phase 1 - 传统模式API实现
+**目标**: 实现前端传统模式下所有GIS功能的后端API支持
+
+#### 📈 进度概览
+- **总体进度**: 15% (15/100)
+- **Phase 1 进度**: 13% (2/15)
+- **预计完成时间**: 1周内
+
+#### ✅ 已完成 (2项)
+- [x] **项目架构设计** - 完整的DDD+清洁架构设计 ✅
+- [x] **目录结构搭建** - 94个文件的完整项目结构 ✅
+
+#### 🔥 进行中 (3项)
+- [ ] **用户认证系统** - JWT认证机制实现 🔄 30%
+- [ ] **基础API框架** - FastAPI应用入口和中间件 ⏳
+- [ ] **SuperMap客户端** - SuperMap服务集成封装 ⏳
+
+#### ⏳ 本周计划 (5项)
+- [ ] **图层管理API** - 图层CRUD、显示控制
+- [ ] **空间分析API** - 缓冲区、距离、可达性分析
+- [ ] **要素查询API** - 属性查询、空间查询
+- [ ] **配置管理系统** - 环境变量、配置文件
+- [ ] **异常处理机制** - 统一错误处理
+
+### 📊 详细进度跟踪
+
+| 阶段 | 任务 | 状态 | 进度 | 负责人 | 截止时间 |
+|------|------|------|------|--------|----------|
+| **Phase 1.1** | 用户认证系统 | 🔄 进行中 | 30% | Dev Team | 本周三 |
+| **Phase 1.2** | GIS核心功能API | ⏳ 待开始 | 0% | Dev Team | 下周二 |
+| **Phase 1.3** | SuperMap服务代理 | ⏳ 待开始 | 0% | Dev Team | 下周五 |
+| **Phase 2.1** | 数据库架构设计 | ⏳ 待开始 | 0% | DB Team | 2周内 |
+| **Phase 3.1** | 多智能体系统 | ⏳ 待开始 | 0% | AI Team | 4周内 |
+
+### 🎯 本周重点目标
+1. **完成用户认证系统** - 支持前端登录注册功能
+2. **搭建基础API框架** - FastAPI应用基础结构
+3. **开始GIS功能开发** - 图层管理API实现
+
+**📋 查看完整开发路线图**: [PROJECT_PROGRESS.md](./PROJECT_PROGRESS.md)
 
 ## 🏗️ 系统架构
 

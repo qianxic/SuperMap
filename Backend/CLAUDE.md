@@ -3,6 +3,8 @@
 ## 🎯 项目概述
 基于 FastAPI + LangChain 的多智能体 GIS 系统，采用领域驱动设计(DDD)和清洁架构，集成 SuperMap、知识库和多智能体协作能力。
 
+**当前状态**: 已完成完整目录架构搭建 (94个文件)，准备开始分阶段实现。
+
 ## 🏗️ 核心架构设计
 
 ### 架构层次 (自内向外)
@@ -244,8 +246,11 @@ docker build -t supermap-backend .
 - Redis 内存使用率 < 70%
 - API 错误率 < 1%
 
+## 🗂️ 完整目录架构 (已构建)
 
-  Backend/
+### 实际目录结构 (总计94个文件)
+
+Backend/
   ├── app/
   │   ├── __init__.py
   │   ├── main.py                           # FastAPI应用入口
@@ -420,3 +425,176 @@ docker build -t supermap-backend .
   ├── Dockerfile
   ├── docker-compose.yml
   └── README.md
+
+## 📋 项目开发路线图
+
+### 🔥 Phase 1: 传统模式API实现 (当前阶段)
+**目标**: 实现前端传统模式下所有GIS功能的后端API支持
+
+#### 1.1 用户认证系统
+- [ ] 用户注册/登录API (`app/api/v1/user/auth.py`)
+- [ ] JWT token 认证机制 (`app/core/security.py`)
+- [ ] 用户权限管理 (`app/domains/user/`)
+
+#### 1.2 GIS核心功能API
+- [ ] 图层管理接口 (`app/api/v1/gis/query.py`)
+  - 图层列表查询
+  - 图层显示/隐藏控制
+  - 图层属性查询
+- [ ] 空间分析接口 (`app/api/v1/gis/analysis.py`)
+  - 缓冲区分析 (BufferAnalysisPanel)
+  - 距离分析 (DistanceAnalysisPanel) 
+  - 可达性分析 (AccessibilityAnalysisPanel)
+- [ ] 要素查询接口
+  - 属性查询
+  - 空间查询
+  - SQL查询
+
+#### 1.3 SuperMap服务代理
+- [ ] SuperMap客户端封装 (`app/infrastructure/external/supermap/`)
+- [ ] 地图服务代理
+- [ ] 数据服务代理
+- [ ] 图层服务代理
+
+### 🗄️ Phase 2: 数据库搭建与数据迁移
+**目标**: 将前端localStorage数据迁移到后端数据库
+
+#### 2.1 数据库架构设计
+- [ ] PostgreSQL + PostGIS 环境搭建
+- [ ] 数据模型设计 (`app/infrastructure/database/postgres/models.py`)
+  - 用户表 (users)
+  - GIS数据表 (gis_features)
+  - 会话表 (chat_sessions)
+  - 图层配置表 (layer_configs)
+
+#### 2.2 数据迁移策略
+- [ ] 前端数据导出API
+- [ ] 数据格式转换工具
+- [ ] 批量数据导入脚本
+- [ ] 数据一致性验证
+
+#### 2.3 缓存层实现
+- [ ] Redis 集群配置
+- [ ] 缓存策略实现 (`app/core/cache.py`)
+- [ ] 会话管理
+- [ ] 查询结果缓存
+
+### 🤖 Phase 3: LangChain多智能体系统
+**目标**: 集成LangChain框架，实现知识库和多智能体功能
+
+#### 3.1 知识库构建
+- [ ] 向量数据库搭建 (Qdrant)
+- [ ] 文档处理管道 (`app/infrastructure/database/vector/`)
+- [ ] 文本切片和向量化
+- [ ] 检索服务实现 (`app/domains/knowledge/`)
+
+#### 3.2 多智能体架构实现
+- [ ] Agent Hub 中心 (`app/infrastructure/ai/agent_hub.py`)
+- [ ] Coordinator 协调智能体 (`app/infrastructure/ai/coordinator.py`)
+- [ ] Executor 执行智能体 (`app/infrastructure/ai/executor.py`)
+- [ ] Aggregator 聚合智能体 (`app/infrastructure/ai/aggregator.py`)
+
+#### 3.3 Function Calling工具集
+- [ ] GIS工具集 (`app/infrastructure/ai/tools/gis_tools.py`)
+  - gis_buffer_analysis()
+  - gis_distance_analysis()
+  - gis_accessibility_query()
+  - gis_spatial_query()
+- [ ] 知识库工具集 (`app/infrastructure/ai/tools/knowledge_tools.py`)
+  - knowledge_search()
+  - knowledge_document_qa()
+  - knowledge_summarize()
+- [ ] SuperMap工具集 (`app/infrastructure/ai/tools/analysis_tools.py`)
+  - supermap_layer_query()
+  - supermap_map_service()
+  - supermap_data_analysis()
+
+#### 3.4 RAG架构实现
+- [ ] RAG流程设计
+- [ ] 上下文增强机制
+- [ ] 智能服务调度
+- [ ] 结果聚合优化
+
+#### 3.5 对话系统集成
+- [ ] 流式对话接口 (`app/api/v1/agent/chat.py`)
+- [ ] 上下文管理
+- [ ] 多轮对话支持
+- [ ] WebSocket实时通信
+
+### 🧪 Phase 4: 测试与优化
+**目标**: 全面测试系统功能，性能优化
+
+#### 4.1 单元测试
+- [ ] 领域服务测试 (`app/tests/unit/`)
+- [ ] API接口测试
+- [ ] 数据库操作测试
+- [ ] 智能体功能测试
+
+#### 4.2 集成测试
+- [ ] 端到端API测试 (`app/tests/integration/`)
+- [ ] 前后端集成测试
+- [ ] 数据库集成测试
+- [ ] 外部服务集成测试
+
+#### 4.3 性能测试
+- [ ] API响应时间测试
+- [ ] 智能体处理性能测试
+- [ ] 数据库查询性能测试
+- [ ] 并发访问测试
+
+#### 4.4 部署与监控
+- [ ] Docker容器化部署
+- [ ] Kubernetes集群部署
+- [ ] 监控系统搭建 (`app/infrastructure/monitoring/`)
+- [ ] 日志系统完善
+- [ ] 健康检查机制
+
+## 🎯 当前开发重点
+
+### 立即开始: Phase 1.1 - 用户认证系统
+1. **创建用户实体和DTO** (`app/domains/user/entities.py`)
+2. **实现JWT认证** (`app/core/security.py`)
+3. **用户注册/登录API** (`app/api/v1/user/auth.py`)
+4. **权限中间件** (`app/api/middleware.py`)
+
+### 接下来: Phase 1.2 - GIS核心功能
+1. **图层管理API实现**
+2. **空间分析服务开发**
+3. **SuperMap服务集成**
+4. **前端API对接测试**
+
+## 🏃‍♂️ 快速开发命令
+
+```bash
+# 1. 启动开发环境
+docker-compose up -d postgres redis
+
+# 2. 安装依赖
+pip install -r requirements.txt
+
+# 3. 数据库迁移
+alembic upgrade head
+
+# 4. 启动开发服务器
+uvicorn app.main:app --reload --port 8000
+
+# 5. 运行测试
+pytest app/tests/ -v
+```
+
+## 🔥 开发优先级排序
+
+### 高优先级 (本周完成)
+1. ✅ **目录架构搭建** - 已完成
+2. 🔥 **用户认证系统** - 进行中
+3. 🔥 **基础API框架** - 待开始
+
+### 中优先级 (下周完成)
+1. **GIS功能API实现**
+2. **SuperMap服务集成**
+3. **数据库模型设计**
+
+### 低优先级 (后续迭代)
+1. **LangChain集成**
+2. **多智能体系统**
+3. **性能优化**
