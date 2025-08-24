@@ -55,6 +55,10 @@ const handleClick = (event: MouseEvent) => {
   color: var(--btn-secondary-color); 
   font-size: 12px; 
   cursor: pointer;
+  min-width: 100px;
+  flex: 1;
+  text-align: center;
+  white-space: nowrap;
 }
 
 
