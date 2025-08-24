@@ -69,7 +69,7 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
                 </svg>
-                <span>AI管理</span>
+                <span>Agent管理</span>
               </button>
 
               <button @click="handleLogout" class="menu-item logout-item">
@@ -95,6 +95,7 @@ import ButtonGroup from '@/components/UI/ButtonGroup.vue'
 import IconButton from '@/components/UI/IconButton.vue'
 import { useThemeStore } from '@/stores/themeStore'
 import { useUserStore } from '@/stores/userStore'
+import { useModeStateStore } from '@/stores/modeStateStore'
 
 // 主题管理
 const themeStore = useThemeStore()
@@ -104,6 +105,9 @@ const { toggleTheme, applySystemTheme, setupSystemThemeListener } = themeStore
 // 用户管理
 const router = useRouter()
 const userStore = useUserStore()
+
+// 模式状态管理
+const modeStateStore = useModeStateStore()
 
 // 用户信息计算属性
 const userInfo = computed(() => {
@@ -177,7 +181,7 @@ const goToAIManagement = () => {
   // 关闭用户菜单
   showUserMenu.value = false
   
-  // 跳转到AI管理
+  // 跳转到Agent管理
   router.push('/Agent-management')
 }
 
@@ -204,14 +208,9 @@ onMounted(() => {
   })
 })
 
-// 模式管理 - 改为路由导航
+// 模式管理 - 集成状态管理
 const activeMode = computed(() => {
-  // 根据当前路由判断模式
-  const currentRoute = router.currentRoute.value
-  if (currentRoute.path.includes('/traditional')) {
-    return 'traditional'
-  }
-  return 'llm'
+  return modeStateStore.currentMode
 })
 
 const modeButtons = [
@@ -220,8 +219,26 @@ const modeButtons = [
 ];
 
 const setMode = (modeId: 'traditional' | 'llm') => {
-  // 使用路由导航而不是状态管理
-  router.push(`/dashboard/${modeId}`);
+  // 使用状态管理进行模式切换
+  modeStateStore.switchMode(modeId)
+  
+  // 路由导航到对应模式
+  if (modeId === 'traditional') {
+    // 获取传统模式的当前工具状态
+    const traditionalState = modeStateStore.getTraditionalState()
+    const toolPathMap: { [key: string]: string } = {
+      'layer': 'layer',
+      'query': 'query',
+      'bianji': 'edit',
+      'buffer': 'buffer',
+      'distance': 'distance',
+      'gotowhere': 'accessibility'
+    }
+    const path = toolPathMap[traditionalState.activeTool] || 'layer'
+    router.push(`/dashboard/traditional/${path}`)
+  } else {
+    router.push('/dashboard/llm')
+  }
 };
 
 // 初始化主题

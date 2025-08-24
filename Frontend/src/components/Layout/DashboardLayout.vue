@@ -4,12 +4,12 @@
     <!-- 主内容区域 -->
     <div class="screen-main">
       <splitpanes class="default-theme">
-        <pane size="70" min-size="50">
+        <pane size="60" min-size="50">
           <div class="map-container">
             <SuperMapViewer />
           </div>
         </pane>
-        <pane size="30" min-size="30">
+        <pane size="40" min-size="30">
           <div class="right-panel-container">
             <RightPanel />
           </div>

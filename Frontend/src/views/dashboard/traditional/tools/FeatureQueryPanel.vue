@@ -70,10 +70,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useAnalysisStore } from '@/stores/analysisStore.ts'
 import { useMapStore } from '@/stores/mapStore.ts'
 import { useFeatureQuery } from '@/composables/useFeatureQuery.ts'
+import { useModeStateStore } from '@/stores/modeStateStore.ts'
 import DropdownSelect from '@/components/UI/DropdownSelect.vue'
 import TraditionalInputGroup from '@/components/UI/TraditionalInputGroup.vue'
 import SecondaryButton from '@/components/UI/SecondaryButton.vue'
@@ -82,11 +83,52 @@ import TipWindow from '@/components/UI/TipWindow.vue'
 
 const analysisStore = useAnalysisStore()
 const featureQuery = useFeatureQuery()
+const modeStateStore = useModeStateStore()
 
 // 状态管理
 const selectedLayerId = ref('')
 const queryKeyword = ref('')
 const queryResults = ref<any[]>([])
+
+// 工具状态管理
+const toolId = 'query'
+
+// 保存工具状态
+const saveToolState = () => {
+  modeStateStore.saveToolState(toolId, {
+    selectedLayerId: selectedLayerId.value,
+    queryKeyword: queryKeyword.value,
+    queryResults: queryResults.value
+  })
+}
+
+// 恢复工具状态
+const restoreToolState = () => {
+  const state = modeStateStore.getToolState(toolId)
+  if (state.selectedLayerId) {
+    selectedLayerId.value = state.selectedLayerId
+  }
+  if (state.queryKeyword) {
+    queryKeyword.value = state.queryKeyword
+  }
+  if (state.queryResults) {
+    queryResults.value = state.queryResults
+  }
+}
+
+// 组件生命周期管理
+onMounted(() => {
+  restoreToolState()
+})
+
+onUnmounted(() => {
+  saveToolState()
+})
+
+// 监听状态变化，自动保存
+watch([selectedLayerId, queryKeyword, queryResults], () => {
+  saveToolState()
+}, { deep: true })
 
 // 图层选项
 const layerOptions = computed(() => featureQuery.getLayerOptions())
@@ -116,7 +158,9 @@ const executeQuery = () => {
 // 选择要素
 const selectFeature = (feature: any) => {
   try {
-    featureQuery.selectFeature(feature)
+    // 这里可以添加选择要素的逻辑
+    // 例如在地图上高亮显示选中的要素
+    console.log('选择要素:', feature)
     analysisStore.setAnalysisStatus('已选择要素并在地图上高亮显示')
   } catch (error) {
     console.error('选择要素时出错:', error)

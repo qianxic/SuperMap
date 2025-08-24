@@ -177,22 +177,10 @@ const useMapStore = defineStore('map', () => {
   
   function clearSelection() {
     selectedFeature.value = null
-    // 只清除单次点击选择的要素，保留几何选择的要素
+    // 普通点击选择：清除所有选择，不保留几何选择
     if (selectLayer.value && selectLayer.value.getSource()) {
       const source = selectLayer.value.getSource()
-      const currentFeatures = source.getFeatures()
-      const persistentFeatures = persistentSelectedFeatures.value
-      
-      // 移除不在持久化列表中的要素（即单次点击选择的要素）
-      const featuresToRemove = currentFeatures.filter((f: any) => {
-        return !persistentFeatures.some((pf: any) => 
-          pf.id === f.getId() || 
-          (pf.geometry && f.getGeometry && 
-           JSON.stringify(pf.geometry.coordinates) === JSON.stringify(f.getGeometry().getCoordinates()))
-        );
-      });
-      
-      featuresToRemove.forEach((f: any) => source.removeFeature(f));
+      source.clear()
     }
     hidePopup()
   }

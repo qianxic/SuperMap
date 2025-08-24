@@ -42,18 +42,20 @@
 import { computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAnalysisStore } from '@/stores/analysisStore'
-import FeatureQueryPanel from '@/views/FeatureQueryPanel.vue'
-import EditTools from '@/views/EditTools.vue'
-import BufferAnalysisPanel from '@/views/BufferAnalysisPanel.vue'
-import DistanceAnalysisPanel from '@/views/DistanceAnalysisPanel.vue'
-import AccessibilityAnalysisPanel from '@/views/AccessibilityAnalysisPanel.vue'
-import LayerManager from '@/views/LayerManager.vue'
+import { useModeStateStore } from '@/stores/modeStateStore'
+import FeatureQueryPanel from '@/views/dashboard/traditional/tools/FeatureQueryPanel.vue'
+import EditTools from '@/views/dashboard/traditional/tools/EditTools.vue'
+import BufferAnalysisPanel from '@/views/dashboard/traditional/tools/BufferAnalysisPanel.vue'
+import DistanceAnalysisPanel from '@/views/dashboard/traditional/tools/DistanceAnalysisPanel.vue'
+import AccessibilityAnalysisPanel from '@/views/dashboard/traditional/tools/AccessibilityAnalysisPanel.vue'
+import LayerManager from '@/views/dashboard/traditional/tools/LayerManager.vue'
 import PrimaryButton from '@/components/UI/PrimaryButton.vue'
 import PanelContainer from '@/components/UI/PanelContainer.vue'
 
 const router = useRouter()
 const route = useRoute()
 const analysisStore = useAnalysisStore()
+const modeStateStore = useModeStateStore()
 
 // 工具配置对象
 const toolConfigs = {
@@ -121,7 +123,13 @@ watch(() => route.path, (newPath) => {
     // 根据路径找到对应的工具key
     const toolKey = Object.entries(toolConfigs).find(([key, config]) => config.path === pathSegment)?.[0] as keyof typeof toolConfigs
     if (toolKey) {
-      analysisStore.openTool(toolConfigs[toolKey].id, toolConfigs[toolKey].title)
+      const config = toolConfigs[toolKey]
+      analysisStore.openTool(config.id, config.title)
+      
+      // 同步到模式状态管理
+      modeStateStore.saveTraditionalState({
+        activeTool: config.id
+      })
     }
   }
 }, { immediate: true })
@@ -132,16 +140,35 @@ watch(() => analysisStore.toolPanel.activeTool, (newTool) => {
     const toolKey = Object.entries(toolConfigs).find(([key, config]) => config.id === newTool)?.[0] as keyof typeof toolConfigs
     if (toolKey) {
       router.push(`/dashboard/traditional/${toolConfigs[toolKey].path}`)
+      
+      // 同步到模式状态管理
+      modeStateStore.saveTraditionalState({
+        activeTool: newTool
+      })
     }
   }
 })
 
-// 当进入传统模式时，自动打开图层管理界面
+// 当进入传统模式时，恢复状态
 onMounted(() => {
+  // 恢复传统模式状态
+  modeStateStore.restoreModeState('traditional')
+  
   // 延迟执行，确保组件已完全渲染
   setTimeout(() => {
     if (!analysisStore.toolPanel.visible && route.path === '/dashboard/traditional') {
-      analysisStore.openTool('layer', '图层管理')
+      // 从状态管理中获取上次激活的工具
+      const traditionalState = modeStateStore.getTraditionalState()
+      const activeTool = traditionalState.activeTool || 'layer'
+      const toolTitleMap: { [key: string]: string } = {
+        'layer': '图层管理',
+        'query': '要素查询',
+        'bianji': '图层编辑',
+        'buffer': '缓冲区分析',
+        'distance': '距离分析',
+        'gotowhere': '可达性分析'
+      }
+      analysisStore.openTool(activeTool as any, toolTitleMap[activeTool] || '图层管理')
     }
   }, 100)
 })

@@ -1,9 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Login from '@/views/Login.vue'
-import Register from '@/views/Register.vue'
+import Login from '@/views/auth/Login.vue'
+import Register from '@/views/auth/Register.vue'
 import Dashboard from '@/views/Dashboard.vue'
-import UserProfile from '@/views/UserProfile.vue'
-import AIManagement from '@/views/AIManagement.vue'
+import UserProfile from '@/views/profile/UserProfile.vue'
+import AIManagement from '@/views/management/AIManagement.vue'
 
 /**
  * Vue Router 配置
@@ -47,14 +47,14 @@ const router = createRouter({
         title: '个人中心'
       }
     },
-    // AI管理页面 - 需要认证
+    // Agent管理页面 - 需要认证
     {
       path: '/Agent-management',
       name: 'Agent-management',
       component: AIManagement,
       meta: { 
         requiresAuth: true,   // 需要登录才能访问
-        title: 'AI管理'
+        title: 'Agent管理'
       }
     },
     // 仪表板页面 - 需要认证，包含模式子路由
@@ -67,16 +67,23 @@ const router = createRouter({
         title: '地图系统'
       },
       children: [
-        // 默认子路由 - 重定向到LLM模式
+        // 默认子路由 - 根据状态管理决定重定向
         {
           path: '',
-          redirect: '/dashboard/llm'
+          redirect: (to) => {
+            // 从localStorage获取上次的模式状态
+            const savedMode = localStorage.getItem('currentMode')
+            if (savedMode === 'traditional') {
+              return '/dashboard/traditional'
+            }
+            return '/dashboard/llm'
+          }
         },
         // LLM模式
         {
           path: 'llm',
           name: 'llm-mode',
-          component: () => import('@/views/LLMMode.vue'),
+          component: () => import('@/views/dashboard/LLM/LLMMode.vue'),
           meta: {
             title: 'AI助手',
             mode: 'llm',
@@ -87,23 +94,49 @@ const router = createRouter({
         {
           path: 'traditional',
           name: 'traditional-mode',
-          component: () => import('@/views/TraditionalMode.vue'),
+          component: () => import('@/views/dashboard/traditional/TraditionalMode.vue'),
           meta: {
             title: '传统模式',
             mode: 'traditional',
             requiresAuth: true
           },
-          children: [
-            // 传统模式默认子路由 - 重定向到图层管理
-            {
-              path: '',
-              redirect: '/dashboard/traditional/layer'
-            },
+                      children: [
+              // 传统模式默认子路由 - 根据状态管理决定重定向
+              {
+                path: '',
+                redirect: (to) => {
+                  // 从localStorage获取上次的工具状态
+                  const savedState = localStorage.getItem('traditionalModeState')
+                  if (savedState) {
+                    try {
+                      const state = JSON.parse(savedState)
+                      if (state.activeTool) {
+                        // 根据activeTool找到对应的路径
+                        const toolPathMap: { [key: string]: string } = {
+                          'layer': 'layer',
+                          'query': 'query',
+                          'bianji': 'edit',
+                          'buffer': 'buffer',
+                          'distance': 'distance',
+                          'gotowhere': 'accessibility'
+                        }
+                        const path = toolPathMap[state.activeTool]
+                        if (path) {
+                          return `/dashboard/traditional/${path}`
+                        }
+                      }
+                    } catch (error) {
+                      console.warn('解析传统模式状态失败:', error)
+                    }
+                  }
+                  return '/dashboard/traditional/layer'
+                }
+              },
             // 图层管理
             {
               path: 'layer',
               name: 'layer-management',
-              component: () => import('@/views/LayerManager.vue'),
+              component: () => import('@/views/dashboard/traditional/tools/LayerManager.vue'),
               meta: {
                 title: '图层管理',
                 tool: 'layer',
@@ -114,7 +147,7 @@ const router = createRouter({
             {
               path: 'query',
               name: 'feature-query',
-              component: () => import('@/views/FeatureQueryPanel.vue'),
+              component: () => import('@/views/dashboard/traditional/tools/FeatureQueryPanel.vue'),
               meta: {
                 title: '要素查询',
                 tool: 'query',
@@ -125,7 +158,7 @@ const router = createRouter({
             {
               path: 'edit',
               name: 'edit-tools',
-              component: () => import('@/views/EditTools.vue'),
+              component: () => import('@/views/dashboard/traditional/tools/EditTools.vue'),
               meta: {
                 title: '图层编辑',
                 tool: 'bianji',
@@ -136,7 +169,7 @@ const router = createRouter({
             {
               path: 'buffer',
               name: 'buffer-analysis',
-              component: () => import('@/views/BufferAnalysisPanel.vue'),
+              component: () => import('@/views/dashboard/traditional/tools/BufferAnalysisPanel.vue'),
               meta: {
                 title: '缓冲区分析',
                 tool: 'buffer',
@@ -147,7 +180,7 @@ const router = createRouter({
             {
               path: 'distance',
               name: 'distance-analysis',
-              component: () => import('@/views/DistanceAnalysisPanel.vue'),
+              component: () => import('@/views/dashboard/traditional/tools/DistanceAnalysisPanel.vue'),
               meta: {
                 title: '距离分析',
                 tool: 'distance',
@@ -158,7 +191,7 @@ const router = createRouter({
             {
               path: 'accessibility',
               name: 'accessibility-analysis',
-              component: () => import('@/views/AccessibilityAnalysisPanel.vue'),
+              component: () => import('@/views/dashboard/traditional/tools/AccessibilityAnalysisPanel.vue'),
               meta: {
                 title: '可达性分析',
                 tool: 'gotowhere',

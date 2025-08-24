@@ -37,6 +37,11 @@ export const useAnalysisStore = defineStore('analysis', () => {
     toolPanel.activeTool.value = ''
     drawMode.value = ''
   }
+
+  // 设置当前工具（用于状态同步）
+  function setActiveTool(toolId: ToolId) {
+    toolPanel.activeTool.value = toolId
+  }
   
   // 绘制工具控制
   function setDrawMode(mode: string) {
@@ -63,6 +68,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     setAnalysisStatus,
     openTool,
     closeTool,
+    setActiveTool,
     setDrawMode,
     setSelectionMode,
     setCurrentLayer

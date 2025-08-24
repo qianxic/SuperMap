@@ -1061,7 +1061,8 @@ export function useMap() {
       evt.pixel,
       (f: any, l: any) => {
         const isInteractiveLayer = l && l !== mapStore.baseLayer && l !== mapStore.hoverLayer && l !== mapStore.selectLayer;
-        if (isInteractiveLayer) {
+        // 检查图层是否可见
+        if (isInteractiveLayer && l.getVisible()) {
           return f;
         }
         return undefined;
@@ -1071,20 +1072,8 @@ export function useMap() {
       }
     );
 
-    // 清除单次点击选择的要素，但保留几何选择的要素
-    const currentFeatures = selectSource.getFeatures();
-    const persistentFeatures = mapStore.getPersistentSelectedFeatures();
-    
-    // 移除不在持久化列表中的要素（即单次点击选择的要素）
-    const featuresToRemove = currentFeatures.filter((f: any) => {
-      return !persistentFeatures.some((pf: any) => 
-        pf.id === f.getId() || 
-        (pf.geometry && f.getGeometry && 
-         JSON.stringify(pf.geometry.coordinates) === JSON.stringify(f.getGeometry().getCoordinates()))
-      );
-    });
-    
-    featuresToRemove.forEach((f: any) => selectSource.removeFeature(f));
+    // 普通点击选择：清除所有选择，不保留几何选择
+    selectSource.clear();
     mapStore.setSelectedFeature(null);
 
     if (feature) {
@@ -1094,8 +1083,26 @@ export function useMap() {
       console.log('选择图层源:', selectSource);
       console.log('选择图层:', mapStore.selectLayer);
       
+      // 确定要素所属的图层名称
+      let layerName = '未知图层';
+      for (const layerInfo of mapStore.vectorLayers) {
+        if (layerInfo.layer && layerInfo.layer.getSource()) {
+          const source = layerInfo.layer.getSource();
+          const features = source.getFeatures();
+          if (features.includes(feature)) {
+            layerName = layerInfo.name;
+            break;
+          }
+        }
+      }
+      
+      // 设置要素的图层信息
+      feature.set('layerName', layerName);
+      
       selectSource.addFeature(feature);
       mapStore.setSelectedFeature(feature);
+      
+      // 普通点击选择：不更新持久化选中要素列表，只进行单次选择
       
       // 强制刷新选择图层
       if (mapStore.selectLayer) {
@@ -1138,7 +1145,8 @@ export function useMap() {
     } else {
       // 只有在非编辑工具状态下才查询和显示要素信息
       if (!isEditToolActive) {
-        // 如果没有点击到要素，查询所有图层的要素信息
+        // 如果没有点击到要素，清除选择状态并查询要素信息
+        mapStore.clearSelection();
         await queryFeaturesAtPoint(coordinate, evt.pixel);
       } else {
         // 编辑工具状态下，隐藏任何现有的弹窗

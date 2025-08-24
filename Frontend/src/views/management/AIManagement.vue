@@ -1,8 +1,8 @@
 <template>
   <PanelContainer class="Agent-management">
     <div class="management-header">
-      <h1 class="management-title">AI管理</h1>
-      <p class="management-subtitle">管理AI助手的配置和个性化设置</p>
+      <h1 class="management-title">Agent管理</h1>
+      <p class="management-subtitle">管理Agent助手的配置和个性化设置</p>
     </div>
 
     <div class="management-content">
@@ -380,7 +380,7 @@ const uploadedFiles = ref([
   }
 ])
 
-// AI管理数据
+// Agent管理数据
 const agents = ref([
   {
     id: 1,
@@ -664,7 +664,7 @@ const deleteFile = (id: number) => {
   uploadedFiles.value = uploadedFiles.value.filter(f => f.id !== id)
 }
 
-// AI管理方法
+// Agent管理方法
 const getAgentTypeLabel = (type: string) => {
   return agentTypeLabels[type as keyof typeof agentTypeLabels] || type
 }
