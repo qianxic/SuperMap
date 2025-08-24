@@ -54,7 +54,7 @@ const router = createRouter({
         {
           path: 'llm',
           name: 'llm-mode',
-          component: () => import('@/components/Modes/LLMMode.vue'),
+          component: () => import('@/views/LLMMode.vue'),
           meta: {
             title: 'AI助手',
             mode: 'llm',
@@ -65,12 +65,85 @@ const router = createRouter({
         {
           path: 'traditional',
           name: 'traditional-mode',
-          component: () => import('@/components/Modes/TraditionalMode.vue'),
+          component: () => import('@/views/TraditionalMode.vue'),
           meta: {
             title: '传统模式',
             mode: 'traditional',
             requiresAuth: true
-          }
+          },
+          children: [
+            // 传统模式默认子路由 - 重定向到图层管理
+            {
+              path: '',
+              redirect: '/dashboard/traditional/layer'
+            },
+            // 图层管理
+            {
+              path: 'layer',
+              name: 'layer-management',
+              component: () => import('@/views/LayerManager.vue'),
+              meta: {
+                title: '图层管理',
+                tool: 'layer',
+                requiresAuth: true
+              }
+            },
+            // 要素查询
+            {
+              path: 'query',
+              name: 'feature-query',
+              component: () => import('@/views/FeatureQueryPanel.vue'),
+              meta: {
+                title: '要素查询',
+                tool: 'query',
+                requiresAuth: true
+              }
+            },
+            // 图层编辑
+            {
+              path: 'edit',
+              name: 'edit-tools',
+              component: () => import('@/views/EditTools.vue'),
+              meta: {
+                title: '图层编辑',
+                tool: 'bianji',
+                requiresAuth: true
+              }
+            },
+            // 缓冲区分析
+            {
+              path: 'buffer',
+              name: 'buffer-analysis',
+              component: () => import('@/views/BufferAnalysisPanel.vue'),
+              meta: {
+                title: '缓冲区分析',
+                tool: 'buffer',
+                requiresAuth: true
+              }
+            },
+            // 距离分析
+            {
+              path: 'distance',
+              name: 'distance-analysis',
+              component: () => import('@/views/DistanceAnalysisPanel.vue'),
+              meta: {
+                title: '距离分析',
+                tool: 'distance',
+                requiresAuth: true
+              }
+            },
+            // 可达性分析
+            {
+              path: 'accessibility',
+              name: 'accessibility-analysis',
+              component: () => import('@/views/AccessibilityAnalysisPanel.vue'),
+              meta: {
+                title: '可达性分析',
+                tool: 'gotowhere',
+                requiresAuth: true
+              }
+            }
+          ]
         }
       ]
     }

@@ -20,12 +20,17 @@
     
     <!-- 内容区域 -->
     <div class="content-section">
+      <!-- 保持现有条件渲染逻辑 -->
       <FeatureQueryPanel v-if="analysisStore.toolPanel.activeTool === 'query'" />
       <EditTools v-if="analysisStore.toolPanel.activeTool === 'bianji'" />
       <BufferAnalysisPanel v-if="analysisStore.toolPanel.activeTool === 'buffer'" />
       <DistanceAnalysisPanel v-if="analysisStore.toolPanel.activeTool === 'distance'" />
       <AccessibilityAnalysisPanel v-if="analysisStore.toolPanel.activeTool === 'gotowhere'" />
       <LayerManager v-if="analysisStore.toolPanel.activeTool === 'layer'" />
+      
+      <!-- 新增：路由视图（不影响现有逻辑） -->
+      <router-view v-if="isRouteMode" />
+      
       <div v-if="!analysisStore.toolPanel.visible" class="default-content">
         <div class="welcome-message">
           <p>请从上方工具栏选择功能开始使用</p>
@@ -36,28 +41,36 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAnalysisStore } from '@/stores/analysisStore'
-import FeatureQueryPanel from '@/components/Map/FeatureQueryPanel.vue'
-import EditTools from '@/components/Map/EditTools.vue'
-import BufferAnalysisPanel from '@/components/Map/BufferAnalysisPanel.vue'
-import DistanceAnalysisPanel from '@/components/Map/DistanceAnalysisPanel.vue'
-import AccessibilityAnalysisPanel from '@/components/Map/AccessibilityAnalysisPanel.vue'
-import LayerManager from '@/components/Map/LayerManager.vue'
+import FeatureQueryPanel from '@/views/FeatureQueryPanel.vue'
+import EditTools from '@/views/EditTools.vue'
+import BufferAnalysisPanel from '@/views/BufferAnalysisPanel.vue'
+import DistanceAnalysisPanel from '@/views/DistanceAnalysisPanel.vue'
+import AccessibilityAnalysisPanel from '@/views/AccessibilityAnalysisPanel.vue'
+import LayerManager from '@/views/LayerManager.vue'
 import PrimaryButton from '@/components/UI/PrimaryButton.vue'
 import PanelContainer from '@/components/UI/PanelContainer.vue'
 
+const router = useRouter()
+const route = useRoute()
 const analysisStore = useAnalysisStore()
 
 // 工具配置对象
 const toolConfigs = {
-  bianji: { id: 'bianji', title: '图层编辑' },
-  buffer: { id: 'buffer', title: '缓冲区分析' },
-  layer: { id: 'layer', title: '图层管理' },
-  distance: { id: 'distance', title: '最优路径分析' },
-  gotowhere: { id: 'gotowhere', title: '可达性分析' },
-  query: { id: 'query', title: '要素查询' }
+  bianji: { id: 'bianji', title: '图层编辑', path: 'edit' },
+  buffer: { id: 'buffer', title: '缓冲区分析', path: 'buffer' },
+  layer: { id: 'layer', title: '图层管理', path: 'layer' },
+  distance: { id: 'distance', title: '最优路径分析', path: 'distance' },
+  gotowhere: { id: 'gotowhere', title: '可达性分析', path: 'accessibility' },
+  query: { id: 'query', title: '要素查询', path: 'query' }
 } as const
+
+// 判断是否为路由模式
+const isRouteMode = computed(() => {
+  return route.path.includes('/traditional/') && route.path !== '/dashboard/traditional'
+})
 
 // 状态检查变量
 const isBufferOpen = computed(() => analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'buffer')
@@ -67,15 +80,30 @@ const isDistanceOpen = computed(() => analysisStore.toolPanel.visible && analysi
 const isGotowhereOpen = computed(() => analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'gotowhere')
 const isQueryOpen = computed(() => analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'query')
 
-// 通用切换函数
+// 路由导航函数
+const navigateToTool = (toolKey: keyof typeof toolConfigs) => {
+  const config = toolConfigs[toolKey]
+  const targetPath = `/dashboard/traditional/${config.path}`
+  
+  // 路由跳转
+  router.push(targetPath)
+  
+  // 保持状态同步（向后兼容）
+  analysisStore.openTool(config.id, config.title)
+}
+
+// 通用切换函数 - 改造为路由导航
 const toggleTool = (toolKey: keyof typeof toolConfigs) => {
   const config = toolConfigs[toolKey]
   const isCurrentlyActive = analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === config.id
   
   if (isCurrentlyActive) {
+    // 如果当前激活，关闭工具
     analysisStore.closeTool()
+    router.push('/dashboard/traditional')
   } else {
-    analysisStore.openTool(config.id, config.title)
+    // 否则导航到对应工具
+    navigateToTool(toolKey)
   }
 }
 
@@ -87,11 +115,34 @@ const toggleDistance = () => toggleTool('distance')
 const toggleGotowhere = () => toggleTool('gotowhere')
 const toggleQuery = () => toggleTool('query')
 
+// 监听路由变化，同步到状态管理
+watch(() => route.path, (newPath) => {
+  const toolMatch = newPath.match(/\/traditional\/(\w+)/)
+  if (toolMatch) {
+    const pathSegment = toolMatch[1]
+    // 根据路径找到对应的工具key
+    const toolKey = Object.entries(toolConfigs).find(([key, config]) => config.path === pathSegment)?.[0] as keyof typeof toolConfigs
+    if (toolKey) {
+      analysisStore.openTool(toolConfigs[toolKey].id, toolConfigs[toolKey].title)
+    }
+  }
+}, { immediate: true })
+
+// 监听状态变化，同步到路由
+watch(() => analysisStore.toolPanel.activeTool, (newTool) => {
+  if (newTool && !isRouteMode.value) {
+    const toolKey = Object.entries(toolConfigs).find(([key, config]) => config.id === newTool)?.[0] as keyof typeof toolConfigs
+    if (toolKey) {
+      router.push(`/dashboard/traditional/${toolConfigs[toolKey].path}`)
+    }
+  }
+})
+
 // 当进入传统模式时，自动打开图层管理界面
 onMounted(() => {
   // 延迟执行，确保组件已完全渲染
   setTimeout(() => {
-    if (!analysisStore.toolPanel.visible) {
+    if (!analysisStore.toolPanel.visible && route.path === '/dashboard/traditional') {
       analysisStore.openTool('layer', '图层管理')
     }
   }, 100)
