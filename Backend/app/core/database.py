@@ -49,5 +49,12 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """FastAPI 依赖注入用的数据库会话"""
-    async with get_db_session() as session:
-        yield session
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()

@@ -2,12 +2,17 @@
   <div class="chat-assistant">
     <!-- 新对话按钮固定在聊天容器外部 -->
     <div class="fixed-new-chat">
-      <button class="new-chat-button" @click="startNewConversation" title="开启新对话">
+      <IconButton 
+        class="new-chat-button" 
+        size="medium"
+        :title="'开启新对话'"
+        @click="startNewConversation"
+      >
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 5v14M5 12h14"/>
         </svg>
-        新对话
-      </button>
+        <span class="button-text">新对话</span>
+      </IconButton>
     </div>
     
     <!-- 聊天记录显示区域 -->
@@ -45,6 +50,7 @@ import { ref, watch, onMounted, nextTick, onUnmounted } from 'vue';
 import { useThemeStore } from '@/stores/themeStore';
 import { useModeStateStore } from '@/stores/modeStateStore';
 import LLMInputGroup from '@/components/UI/LLMInputGroup.vue';
+import IconButton from '@/components/UI/IconButton.vue';
 
 interface LayerStatus {
   name: string;
@@ -568,40 +574,32 @@ const startNewConversation = () => {
 
 
 .new-chat-button {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text);
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  animation: fadeIn 0.3s ease-out;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 6px 12px !important;
+  width: auto !important;
+  height: auto !important;
   /* 浮动按钮效果 - 确保完全浮动 */
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  backdrop-filter: blur(8px);
-  background: rgba(var(--panel-rgb), 0.9);
-  /* 确保按钮不占用任何空间 */
-  position: relative;
-  z-index: 30;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+  backdrop-filter: blur(8px) !important;
+  background: rgba(var(--panel-rgb), 0.9) !important;
 }
 
 .new-chat-button:hover {
-  background: var(--surface-hover);
-  border-color: var(--accent);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.3);
+  transform: none !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
 }
 
-.new-chat-button:active {
-  transform: translateY(0);
+.new-chat-button .button-text {
+  font-size: 12px;
+  margin-left: 2px;
 }
 
 .new-chat-button svg {
   flex-shrink: 0;
+  width: 14px !important;
+  height: 14px !important;
 }
 
 

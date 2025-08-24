@@ -9,7 +9,7 @@
             <SuperMapViewer />
           </div>
         </pane>
-        <pane size="40" min-size="30">
+        <pane size="30" min-size="30">
           <div class="right-panel-container">
             <RightPanel />
           </div>
