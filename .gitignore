@@ -1,4 +1,12 @@
 dist/
 examples/
 libs/
+
+# Python
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+*.so
 *.pyc
