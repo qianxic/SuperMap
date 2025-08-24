@@ -16,8 +16,6 @@
       </div>
     </div>
     
-    <div class="divider"></div>
-    
     <!-- 内容区域 -->
     <div class="content-section">
       <!-- 保持现有条件渲染逻辑 -->
@@ -160,7 +158,6 @@ onMounted(() => {
 .function-buttons-container {
   padding: 15px;
   background: var(--panel);
-  border-bottom: 1px solid var(--border);
 }
 
 .buttons-grid {
@@ -175,11 +172,7 @@ onMounted(() => {
   justify-content: space-around;
 }
 
-.divider {
-  height: 1px;
-  background: var(--border);
-  margin: 0;
-}
+
 
 .content-section {
   flex: 1;

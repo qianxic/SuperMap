@@ -1,0 +1,1152 @@
+<template>
+  <PanelContainer class="Agent-management">
+    <div class="management-header">
+      <h1 class="management-title">AI管理</h1>
+      <p class="management-subtitle">管理AI助手的配置和个性化设置</p>
+    </div>
+
+    <div class="management-content">
+      <!-- Agent管理 -->
+      <div class="management-card">
+        <div class="card-header">
+          <h2 class="card-title">Agent管理</h2>
+          <button class="add-btn" @click="openAgentModal()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            创建Agent
+          </button>
+        </div>
+
+        <div class="agents-list">
+          <div v-for="agent in agents" :key="agent.id" class="agent-item">
+            <div class="agent-info">
+              <div class="agent-avatar">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+              </div>
+              <div class="agent-details">
+                <div class="agent-name">{{ agent.name }}</div>
+                <div class="agent-description">{{ agent.description }}</div>
+                <div class="agent-type">{{ getAgentTypeLabel(agent.type) }}</div>
+                <div class="agent-api-key">API: {{ getApiKeyName(agent.apiKeyId) }}</div>
+                <div class="agent-status" :class="agent.status">
+                  {{ agent.status === 'active' ? '运行中' : '已停止' }}
+                </div>
+              </div>
+            </div>
+            <div class="agent-actions">
+              <button class="action-btn" @click="openAgentModal(agent)" title="编辑">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+              </button>
+              <button class="action-btn" @click="toggleAgentStatus(agent.id)" :title="agent.status === 'active' ? '停止' : '启动'">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path v-if="agent.status === 'active'" d="M6 4h4v16H6zM14 4h4v16h-4z"></path>
+                  <path v-else d="M8 5v14l11-7z"></path>
+                </svg>
+              </button>
+              <button class="action-btn" @click="chatWithAgent(agent)" title="对话">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+              </button>
+              <button class="action-btn delete" @click="deleteAgent(agent.id)" title="删除">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3,6 5,6 21,6"></polyline>
+                  <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+          
+          <div v-if="agents.length === 0" class="empty-state">
+            <p>暂无Agent</p>
+            <button class="add-first-btn" @click="openAgentModal()">创建第一个Agent</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 知识库管理 -->
+      <div class="management-card">
+        <div class="card-header">
+          <h2 class="card-title">知识库管理</h2>
+          <button class="add-btn" @click="openFileUpload">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            上传文件
+          </button>
+        </div>
+
+        <div class="knowledge-base-content">
+          <!-- 文件上传区域 -->
+          <div 
+            class="file-upload-area"
+            :class="{ 'drag-over': isDragOver }"
+            @drop="handleFileDrop"
+            @dragover="handleDragOver"
+            @dragleave="handleDragLeave"
+            @click="triggerFileInput"
+          >
+            <div class="upload-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7,10 12,15 17,10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+            </div>
+            <div class="upload-text">
+              <p class="upload-title">拖拽文件到此处或点击上传</p>
+              <p class="upload-subtitle">支持 docs、pdf、txt、md 等格式</p>
+            </div>
+            <input 
+              ref="fileInput"
+              type="file" 
+              multiple 
+              accept=".doc,.docx,.pdf,.txt,.md"
+              @change="handleFileSelect"
+              style="display: none;"
+            />
+          </div>
+
+          <!-- 已上传文件列表 -->
+          <div class="uploaded-files" v-if="uploadedFiles.length > 0">
+            <div class="files-header">
+              <h3>已上传文件</h3>
+              <span class="file-count">{{ uploadedFiles.length }} 个文件</span>
+            </div>
+            <div class="files-list">
+              <div v-for="file in uploadedFiles" :key="file.id" class="file-item">
+                <div class="file-info">
+                  <div class="file-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14,2 14,8 20,8"></polyline>
+                      <line x1="16" y1="13" x2="8" y2="13"></line>
+                      <line x1="16" y1="17" x2="8" y2="17"></line>
+                      <polyline points="10,9 9,9 8,9"></polyline>
+                    </svg>
+                  </div>
+                  <div class="file-details">
+                    <div class="file-name">{{ file.name }}</div>
+                    <div class="file-size">{{ formatFileSize(file.size) }}</div>
+                    <div class="file-status" :class="file.status">
+                      {{ getStatusText(file.status) }}
+                    </div>
+                  </div>
+                </div>
+                <div class="file-actions">
+                  <button class="action-btn" @click="previewFile(file)" title="预览">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                  </button>
+                  <button class="action-btn delete" @click="deleteFile(file.id)" title="删除">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3,6 5,6 21,6"></polyline>
+                      <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- API密钥管理 -->
+      <div class="management-card">
+        <div class="card-header">
+          <h2 class="card-title">API密钥管理</h2>
+          <button class="add-btn" @click="openKeyModal()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            添加密钥
+          </button>
+        </div>
+
+        <div class="api-keys-list">
+          <div v-for="key in apiKeys" :key="key.id" class="api-key-item">
+            <div class="key-info">
+              <div class="key-name">{{ key.name }}</div>
+              <div class="key-provider">{{ key.provider }}</div>
+              <div class="key-url" v-if="key.url">{{ key.url }}</div>
+              <div class="key-status" :class="key.status">
+                {{ key.status === 'active' ? '已启用' : '已禁用' }}
+              </div>
+            </div>
+            <div class="key-actions">
+              <button class="action-btn" @click="openKeyModal(key)" title="编辑">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+              </button>
+              <button class="action-btn" @click="toggleKeyStatus(key.id)" :title="key.status === 'active' ? '禁用' : '启用'">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path v-if="key.status === 'active'" d="M18 6L6 18M6 6l12 12"></path>
+                  <path v-else d="M9 12l2 2 4-4"></path>
+                </svg>
+              </button>
+              <button class="action-btn delete" @click="deleteKey(key.id)" title="删除">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3,6 5,6 21,6"></polyline>
+                  <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+          
+          <div v-if="apiKeys.length === 0" class="empty-state">
+            <p>暂无API密钥</p>
+            <button class="add-first-btn" @click="openKeyModal()">添加第一个密钥</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 用户偏好记忆 -->
+      <div class="management-card">
+        <div class="card-header">
+          <h2 class="card-title">用户偏好记忆</h2>
+          <button class="add-btn" @click="openPreferenceModal()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            添加偏好
+          </button>
+        </div>
+
+        <div class="preferences-list">
+          <div v-for="pref in userPreferences" :key="pref.id" class="preference-item">
+            <div class="preference-info">
+              <div class="preference-category">{{ getCategoryLabel(pref.category) }}</div>
+              <div class="preference-content">{{ pref.content }}</div>
+              <div class="preference-weight">权重: {{ pref.weight }}</div>
+            </div>
+            <div class="preference-actions">
+              <button class="action-btn" @click="openPreferenceModal(pref)" title="编辑">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+              </button>
+              <button class="action-btn delete" @click="deletePreference(pref.id)" title="删除">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3,6 5,6 21,6"></polyline>
+                  <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+          
+          <div v-if="userPreferences.length === 0" class="empty-state">
+            <p>暂无用户偏好</p>
+            <button class="add-first-btn" @click="openPreferenceModal()">添加第一个偏好</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 提示词管理 -->
+      <div class="management-card">
+        <div class="card-header">
+          <h2 class="card-title">提示词管理</h2>
+          <button class="add-btn" @click="openPromptModal()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            添加提示词
+          </button>
+        </div>
+
+        <div class="prompts-list">
+          <div v-for="prompt in prompts" :key="prompt.id" class="prompt-item">
+            <div class="prompt-info">
+              <div class="prompt-name">{{ prompt.name }}</div>
+              <div class="prompt-description">{{ prompt.description }}</div>
+              <div class="prompt-tags">
+                <span v-for="tag in prompt.tags" :key="tag" class="tag">{{ tag }}</span>
+              </div>
+            </div>
+            <div class="prompt-actions">
+              <button class="action-btn" @click="openPromptModal(prompt)" title="编辑">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+              </button>
+              <button class="action-btn" @click="copyPrompt(prompt)" title="复制">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+              </button>
+              <button class="action-btn delete" @click="deletePrompt(prompt.id)" title="删除">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3,6 5,6 21,6"></polyline>
+                  <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+          
+          <div v-if="prompts.length === 0" class="empty-state">
+            <p>暂无提示词</p>
+            <button class="add-first-btn" @click="openPromptModal()">添加第一个提示词</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 编辑弹窗 -->
+    <EditModal
+      :visible="showEditModal"
+      :type="editModalType"
+      :title="editModalTitle"
+      :initial-data="editModalData"
+      :api-keys="apiKeys"
+      @close="closeEditModal"
+      @save="handleSave"
+    />
+  </PanelContainer>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+import PanelContainer from '@/components/UI/PanelContainer.vue'
+import EditModal from '@/components/UI/EditModal.vue'
+
+// 响应式数据
+const showEditModal = ref(false)
+const editModalType = ref<'api-key' | 'preference' | 'prompt' | 'agent'>('api-key')
+const editModalTitle = ref('')
+const editModalData = ref<any>(null)
+const editingItem = ref<any>(null)
+
+// API密钥数据
+const apiKeys = ref([
+  {
+    id: 1,
+    name: 'OpenAI GPT-4',
+    provider: 'openai',
+    key: 'sk-...',
+    url: 'https://api.openai.com/v1',
+    status: 'active'
+  }
+])
+
+// 用户偏好数据
+const userPreferences = ref([
+  {
+    id: 1,
+    category: 'language',
+    content: '偏好使用中文进行交流',
+    weight: 8
+  }
+])
+
+// 提示词数据
+const prompts = ref([
+  {
+    id: 1,
+    name: '地图分析助手',
+    description: '专门用于地图数据分析和可视化的提示词',
+    content: '你是一个专业的地图数据分析助手，擅长处理地理空间数据和进行空间分析。',
+    tags: ['地图', '分析', '数据']
+  }
+])
+
+// 知识库管理数据
+const fileInput = ref<HTMLInputElement>()
+const isDragOver = ref(false)
+const uploadedFiles = ref([
+  {
+    id: 1,
+    name: '示例文档.pdf',
+    size: 1024000,
+    status: 'uploaded',
+    type: 'pdf'
+  }
+])
+
+// AI管理数据
+const agents = ref([
+  {
+    id: 1,
+    name: '地图分析助手',
+    description: '专门用于地图数据分析和可视化的AI助手',
+    type: 'analysis',
+    status: 'active',
+    apiKeyId: 1, // 确保与apiKeys中的id匹配
+    knowledgeBase: ['地图数据', '空间分析']
+  }
+])
+
+// 类别标签映射
+const categoryLabels = {
+  language: '语言偏好',
+  style: '风格偏好',
+  domain: '专业领域',
+  interaction: '交互方式'
+}
+
+// Agent类型标签映射
+const agentTypeLabels = {
+  analysis: '分析助手',
+  chat: '对话助手',
+  task: '任务助手',
+  assistant: '通用助手'
+}
+
+// 方法
+const getCategoryLabel = (category: string) => {
+  return categoryLabels[category as keyof typeof categoryLabels] || category
+}
+
+const getApiKeyName = (apiKeyId: number) => {
+  const apiKey = apiKeys.value.find(key => key.id === apiKeyId || key.id === Number(apiKeyId))
+  return apiKey ? `${apiKey.name} (${apiKey.provider})` : '未知密钥'
+}
+
+// 打开API密钥编辑弹窗
+const openKeyModal = (key?: any) => {
+  editingItem.value = key
+  editModalType.value = 'api-key'
+  editModalTitle.value = key ? '编辑API密钥' : '添加API密钥'
+  editModalData.value = key ? { ...key } : null
+  showEditModal.value = true
+}
+
+// 打开用户偏好编辑弹窗
+const openPreferenceModal = (pref?: any) => {
+  editingItem.value = pref
+  editModalType.value = 'preference'
+  editModalTitle.value = pref ? '编辑用户偏好' : '添加用户偏好'
+  editModalData.value = pref ? { ...pref } : null
+  showEditModal.value = true
+}
+
+// 打开提示词编辑弹窗
+const openPromptModal = (prompt?: any) => {
+  editingItem.value = prompt
+  editModalType.value = 'prompt'
+  editModalTitle.value = prompt ? '编辑提示词' : '添加提示词'
+  editModalData.value = prompt ? { ...prompt } : null
+  showEditModal.value = true
+}
+
+// 关闭编辑弹窗
+const closeEditModal = () => {
+  showEditModal.value = false
+  editModalData.value = null
+  editingItem.value = null
+}
+
+// 处理保存
+const handleSave = (data: any) => {
+  switch (editModalType.value) {
+    case 'api-key':
+      if (editingItem.value) {
+        // 更新现有密钥
+        const index = apiKeys.value.findIndex(k => k.id === editingItem.value.id)
+        if (index !== -1) {
+          apiKeys.value[index] = { ...editingItem.value, ...data, status: editingItem.value.status }
+        }
+      } else {
+        // 添加新密钥
+        const newKey = {
+          id: Date.now(),
+          ...data,
+          status: 'active'
+        }
+        apiKeys.value.push(newKey)
+      }
+      break
+      
+    case 'preference':
+      if (editingItem.value) {
+        // 更新现有偏好
+        const index = userPreferences.value.findIndex(p => p.id === editingItem.value.id)
+        if (index !== -1) {
+          userPreferences.value[index] = { ...editingItem.value, ...data }
+        }
+      } else {
+        // 添加新偏好
+        const newPref = {
+          id: Date.now(),
+          ...data
+        }
+        userPreferences.value.push(newPref)
+      }
+      break
+      
+    case 'prompt':
+      if (editingItem.value) {
+        // 更新现有提示词
+        const index = prompts.value.findIndex(p => p.id === editingItem.value.id)
+        if (index !== -1) {
+          prompts.value[index] = { ...editingItem.value, ...data }
+        }
+      } else {
+        // 添加新提示词
+        const newPrompt = {
+          id: Date.now(),
+          ...data
+        }
+        prompts.value.push(newPrompt)
+             }
+       break
+       
+     case 'agent':
+       if (editingItem.value) {
+         // 更新现有Agent
+         const index = agents.value.findIndex(a => a.id === editingItem.value.id)
+         if (index !== -1) {
+           agents.value[index] = { ...editingItem.value, ...data }
+         }
+       } else {
+         // 添加新Agent
+         const newAgent = {
+           id: Date.now(),
+           ...data,
+           status: 'active'
+         }
+         agents.value.push(newAgent)
+       }
+       break
+   }
+   
+   // 显示成功通知
+  window.dispatchEvent(new CustomEvent('showNotification', {
+    detail: {
+      title: '保存成功',
+      message: '数据已成功保存',
+      type: 'success',
+      duration: 2000
+    }
+  }))
+}
+
+const toggleKeyStatus = (id: number) => {
+  const key = apiKeys.value.find(k => k.id === id)
+  if (key) {
+    key.status = key.status === 'active' ? 'inactive' : 'active'
+  }
+}
+
+const deleteKey = (id: number) => {
+  apiKeys.value = apiKeys.value.filter(k => k.id !== id)
+}
+
+const deletePreference = (id: number) => {
+  userPreferences.value = userPreferences.value.filter(p => p.id !== id)
+}
+
+const copyPrompt = (prompt: any) => {
+  navigator.clipboard.writeText(prompt.content)
+  window.dispatchEvent(new CustomEvent('showNotification', {
+    detail: {
+      title: '复制成功',
+      message: '提示词已复制到剪贴板',
+      type: 'success',
+      duration: 2000
+    }
+  }))
+}
+
+const deletePrompt = (id: number) => {
+  prompts.value = prompts.value.filter(p => p.id !== id)
+}
+
+// 知识库管理方法
+const openFileUpload = () => {
+  fileInput.value?.click()
+}
+
+const triggerFileInput = () => {
+  fileInput.value?.click()
+}
+
+const handleDragOver = (e: DragEvent) => {
+  e.preventDefault()
+  isDragOver.value = true
+}
+
+const handleDragLeave = (e: DragEvent) => {
+  e.preventDefault()
+  isDragOver.value = false
+}
+
+const handleFileDrop = (e: DragEvent) => {
+  e.preventDefault()
+  isDragOver.value = false
+  
+  const files = e.dataTransfer?.files
+  if (files) {
+    handleFiles(Array.from(files))
+  }
+}
+
+const handleFileSelect = (e: Event) => {
+  const target = e.target as HTMLInputElement
+  const files = target.files
+  if (files) {
+    handleFiles(Array.from(files))
+  }
+}
+
+const handleFiles = (files: File[]) => {
+  files.forEach(file => {
+    const newFile = {
+      id: Date.now() + Math.random(),
+      name: file.name,
+      size: file.size,
+      status: 'uploading' as const,
+      type: file.type
+    }
+    uploadedFiles.value.push(newFile)
+    
+    // 模拟上传过程
+    setTimeout(() => {
+      const index = uploadedFiles.value.findIndex(f => f.id === newFile.id)
+      if (index !== -1) {
+        uploadedFiles.value[index].status = 'uploaded'
+      }
+    }, 2000)
+  })
+}
+
+const formatFileSize = (bytes: number) => {
+  if (bytes === 0) return '0 Bytes'
+  const k = 1024
+  const sizes = ['Bytes', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+const getStatusText = (status: string) => {
+  switch (status) {
+    case 'uploading':
+      return '上传中...'
+    case 'uploaded':
+      return '已上传'
+    case 'error':
+      return '上传失败'
+    default:
+      return status
+  }
+}
+
+const previewFile = (file: any) => {
+  // 这里可以实现文件预览功能
+  window.dispatchEvent(new CustomEvent('showNotification', {
+    detail: {
+      title: '预览功能',
+      message: `预览文件: ${file.name}`,
+      type: 'info',
+      duration: 2000
+    }
+  }))
+}
+
+const deleteFile = (id: number) => {
+  uploadedFiles.value = uploadedFiles.value.filter(f => f.id !== id)
+}
+
+// AI管理方法
+const getAgentTypeLabel = (type: string) => {
+  return agentTypeLabels[type as keyof typeof agentTypeLabels] || type
+}
+
+const openAgentModal = (agent?: any) => {
+  editingItem.value = agent
+  editModalType.value = 'agent'
+  editModalTitle.value = agent ? '编辑Agent' : '创建Agent'
+  editModalData.value = agent ? { ...agent } : null
+  showEditModal.value = true
+}
+
+const toggleAgentStatus = (id: number) => {
+  const agent = agents.value.find(a => a.id === id)
+  if (agent) {
+    agent.status = agent.status === 'active' ? 'inactive' : 'active'
+  }
+}
+
+const chatWithAgent = (agent: any) => {
+  // 这里可以实现与Agent对话的功能
+  window.dispatchEvent(new CustomEvent('showNotification', {
+    detail: {
+      title: '对话功能',
+      message: `开始与 ${agent.name} 对话`,
+      type: 'info',
+      duration: 2000
+    }
+  }))
+}
+
+const deleteAgent = (id: number) => {
+  agents.value = agents.value.filter(a => a.id !== id)
+}
+</script>
+
+<style scoped>
+.Agent-management {
+  width: 100%;
+  height: 100%;
+  padding: 24px;
+  overflow-y: auto;
+  max-height: calc(100vh - 64px);
+}
+
+.management-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.management-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.management-subtitle {
+  font-size: 16px;
+  color: var(--sub);
+  margin: 0;
+}
+
+.management-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.management-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: var(--glow);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.card-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+
+.add-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.add-btn:hover {
+  opacity: 0.9;
+}
+
+/* 列表样式 */
+.api-keys-list,
+.preferences-list,
+.prompts-list,
+.agents-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.api-key-item,
+.preference-item,
+.prompt-item,
+.agent-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: var(--surface);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.key-info,
+.preference-info,
+.prompt-info,
+.agent-info {
+  flex: 1;
+}
+
+.key-name,
+.preference-category,
+.prompt-name,
+.agent-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.key-provider,
+.key-url,
+.preference-content,
+.prompt-description,
+.agent-description {
+  font-size: 14px;
+  color: var(--sub);
+  margin-bottom: 4px;
+}
+
+.key-url {
+  font-size: 12px;
+  color: var(--sub);
+  opacity: 0.8;
+}
+
+.key-status {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  display: inline-block;
+}
+
+.key-status.active {
+  background: rgba(40, 167, 69, 0.1);
+  color: #28a745;
+}
+
+.key-status.inactive {
+  background: rgba(108, 117, 125, 0.1);
+  color: #6c757d;
+}
+
+.preference-weight {
+  font-size: 12px;
+  color: var(--sub);
+}
+
+.prompt-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: var(--accent);
+  color: white;
+  border-radius: 12px;
+}
+
+/* Agent特有样式 */
+.agent-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.agent-avatar {
+  color: var(--accent);
+}
+
+.agent-details {
+  flex: 1;
+}
+
+.agent-type {
+  font-size: 12px;
+  color: var(--sub);
+  margin-bottom: 4px;
+}
+
+.agent-api-key {
+  font-size: 12px;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.agent-status {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  display: inline-block;
+}
+
+.agent-status.active {
+  background: rgba(40, 167, 69, 0.1);
+  color: #28a745;
+}
+
+.agent-status.inactive {
+  background: rgba(108, 117, 125, 0.1);
+  color: #6c757d;
+}
+
+.key-actions,
+.preference-actions,
+.prompt-actions,
+.agent-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.action-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--sub);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.action-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.action-btn.delete:hover {
+  background: rgba(220, 53, 69, 0.1);
+  color: #dc3545;
+}
+
+/* 空状态 */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--sub);
+}
+
+.empty-state p {
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.add-first-btn {
+  padding: 8px 16px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.add-first-btn:hover {
+  opacity: 0.9;
+}
+
+/* 知识库管理样式 */
+.knowledge-base-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.file-upload-area {
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: var(--surface);
+}
+
+.file-upload-area:hover {
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.file-upload-area.drag-over {
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.05);
+  transform: scale(1.02);
+}
+
+.upload-icon {
+  margin-bottom: 16px;
+  color: var(--sub);
+}
+
+.upload-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.upload-subtitle {
+  font-size: 14px;
+  color: var(--sub);
+  margin: 0;
+}
+
+.uploaded-files {
+  margin-top: 20px;
+}
+
+.files-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.files-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+
+.file-count {
+  font-size: 12px;
+  color: var(--sub);
+  background: var(--surface);
+  padding: 4px 8px;
+  border-radius: 12px;
+}
+
+.files-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.file-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: var(--surface);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.file-icon {
+  color: var(--sub);
+}
+
+.file-details {
+  flex: 1;
+}
+
+.file-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.file-size {
+  font-size: 12px;
+  color: var(--sub);
+  margin-bottom: 4px;
+}
+
+.file-status {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  display: inline-block;
+}
+
+.file-status.uploading {
+  background: rgba(255, 193, 7, 0.1);
+  color: #ffc107;
+}
+
+.file-status.uploaded {
+  background: rgba(40, 167, 69, 0.1);
+  color: #28a745;
+}
+
+.file-status.error {
+  background: rgba(220, 53, 69, 0.1);
+  color: #dc3545;
+}
+
+.file-actions {
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .Agent-management {
+    padding: 16px;
+  }
+  
+  .management-title {
+    font-size: 24px;
+  }
+  
+  .api-key-item,
+  .preference-item,
+  .prompt-item,
+  .agent-item,
+  .file-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .key-actions,
+  .preference-actions,
+  .prompt-actions,
+  .agent-actions,
+  .file-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  
+  .file-upload-area {
+    padding: 30px 16px;
+  }
+  
+  .upload-icon svg {
+    width: 36px;
+    height: 36px;
+  }
+}
+</style>

@@ -2,6 +2,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Login from '@/views/Login.vue'
 import Register from '@/views/Register.vue'
 import Dashboard from '@/views/Dashboard.vue'
+import UserProfile from '@/views/UserProfile.vue'
+import AIManagement from '@/views/AIManagement.vue'
 
 /**
  * Vue Router 配置
@@ -33,6 +35,26 @@ const router = createRouter({
       meta: { 
         requiresAuth: false,  // 不需要登录即可访问
         title: '用户注册'
+      }
+    },
+    // 个人中心页面 - 需要认证
+    {
+      path: '/profile',
+      name: 'profile',
+      component: UserProfile,
+      meta: { 
+        requiresAuth: true,   // 需要登录才能访问
+        title: '个人中心'
+      }
+    },
+    // AI管理页面 - 需要认证
+    {
+      path: '/Agent-management',
+      name: 'Agent-management',
+      component: AIManagement,
+      meta: { 
+        requiresAuth: true,   // 需要登录才能访问
+        title: 'AI管理'
       }
     },
     // 仪表板页面 - 需要认证，包含模式子路由

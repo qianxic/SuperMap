@@ -219,8 +219,8 @@ onUnmounted(() => {
 }
 
 .dropdown-option:hover:not(.option-disabled) {
-  background: var(--sub);
-  color: white;
+  background: #f5f5f5;
+  color: var(--text);
 }
 
 .dropdown-option.option-selected {

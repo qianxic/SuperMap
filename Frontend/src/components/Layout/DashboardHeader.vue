@@ -1,7 +1,7 @@
 <template>
   <div class="screen-header">
     <div class="header-left">
-      <div class="screen-title">基于LLM的武汉市智能化城市资源管理平台</div>
+      <div class="screen-title">RAG驱动的A2A智慧城市分析系统</div>
     </div>
     
           <div class="header-right">
@@ -56,6 +56,21 @@
                   </svg>
                 </button>
               </div>
+
+              <button @click="goToProfile" class="menu-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <span>个人中心</span>
+              </button>
+
+              <button @click="goToAIManagement" class="menu-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                </svg>
+                <span>AI管理</span>
+              </button>
 
               <button @click="handleLogout" class="menu-item logout-item">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -150,6 +165,22 @@ const copyUserInfo = async () => {
   }
 }
 
+const goToProfile = () => {
+  // 关闭用户菜单
+  showUserMenu.value = false
+  
+  // 跳转到个人中心
+  router.push('/profile')
+}
+
+const goToAIManagement = () => {
+  // 关闭用户菜单
+  showUserMenu.value = false
+  
+  // 跳转到AI管理
+  router.push('/Agent-management')
+}
+
 const handleLogout = () => {
   // 使用store管理登出
   userStore.logout()
@@ -192,9 +223,6 @@ const setMode = (modeId: 'traditional' | 'llm') => {
   // 使用路由导航而不是状态管理
   router.push(`/dashboard/${modeId}`);
 };
-
-// 移除provide，因为不再需要状态共享
-// provide('activeMode', activeMode);
 
 // 初始化主题
 onMounted(() => {
