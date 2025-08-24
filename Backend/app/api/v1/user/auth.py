@@ -14,7 +14,7 @@ from app.infrastructure.database.postgres.repositories import PostgreSQLUserRepo
 from app.core.database import get_db
 from app.core.security import get_current_user_id
 
-router = APIRouter(prefix="/user", tags=["用户认证"])
+router = APIRouter()
 security = HTTPBearer()
 
 
