@@ -2,9 +2,8 @@ import { defineStore } from 'pinia'
 import { ref, reactive, computed } from 'vue'
 import { useAnalysisStore } from '@/stores/analysisStore'
 import { useMapStore } from '@/stores/mapStore'
- 
+import { useSelectionStore } from '@/stores/selectionStore'
 import { useModeStateStore } from '@/stores/modeStateStore'
-import { createAutoScroll } from '@/utils/autoScroll'
 import type { QueryCondition, QueryConfig, FieldInfo } from '@/types/query'
 
 interface FeatureLike {
@@ -189,13 +188,14 @@ export const useFeatureQueryStore = defineStore('featureQuery', () => {
     }
   }
 
-  const executeFrontendQuery = (condition: QueryCondition) => {
+  const executeFrontendQuery = async (condition: QueryCondition) => {
     const layer = mapStore.vectorLayers.find(l => l.id === selectedLayerId.value)
     if (!layer || !layer.layer) return []
-    const source = layer.layer.getSource()
-    if (!source) return []
-    const features = source.getFeatures()
-    const matched = features.filter((f: any) => executeSingleCondition(f, condition))
+    
+    // 使用统一的要素数据结构
+    const { getNormalizedFeaturesFromLayer, filterFeatures } = await import('@/utils/featureUtils')
+    const normalizedFeatures = getNormalizedFeaturesFromLayer(layer)
+    const matched = filterFeatures(normalizedFeatures, (f: any) => executeSingleCondition(f, condition))
     return matched
   }
 
@@ -232,39 +232,16 @@ export const useFeatureQueryStore = defineStore('featureQuery', () => {
     queryResults.value = unique
     selectedFeatureIndex.value = -1
     highlightQueryResults()
-    setupClickOnSelectedFeatures()
-  }
-
-  const setupClickOnSelectedFeatures = () => {
-    if (!mapStore.map) return
-    const clickHandler = (evt: any) => {
-      const pixel = evt.pixel
-      const clickedFeature = mapStore.map.forEachFeatureAtPixel(
-        pixel,
-        (feature: any, layer: any) => (layer === mapStore.selectLayer ? feature : undefined),
-        { hitTolerance: 5 }
-      )
-      if (clickedFeature) {
-        evt.preventDefault(); evt.stopPropagation()
-        const idx = queryResults.value.findIndex(f => isSameFeature(f, clickedFeature))
-        if (idx !== -1) {
-          handleSelectFeature(idx)
-          triggerMapFeatureHighlight(queryResults.value[idx])
-          analysisStore.setAnalysisStatus(`已选择要素 ${idx + 1}`)
-        }
-        return false
+    
+    // 自动选中第一个要素并触发高亮效果
+    if (unique.length > 0) {
+      selectedFeatureIndex.value = 0
+      const firstFeature = unique[0]
+      if (firstFeature) {
+        highlightFeatureOnMap(firstFeature)
+        triggerMapFeatureHighlight(firstFeature)
+        analysisStore.setAnalysisStatus(`已自动选中第一个要素`)
       }
-    }
-    mapStore.map.on('click', clickHandler)
-    ;(mapStore.map as any)._queryToolsClickHandler = clickHandler
-  }
-
-  const clearSelectionInteractions = () => {
-    if (!mapStore.map) return
-    const handler = (mapStore.map as any)._queryToolsClickHandler
-    if (handler) {
-      mapStore.map.un('click', handler)
-      delete (mapStore.map as any)._queryToolsClickHandler
     }
   }
 
@@ -394,7 +371,6 @@ export const useFeatureQueryStore = defineStore('featureQuery', () => {
           }
         })
       }
-      setupClickOnSelectedFeatures()
       analysisStore.setAnalysisStatus(`已高亮显示 ${queryResults.value.length} 个查询结果`)
     } catch (_) {
       analysisStore.setAnalysisStatus('高亮显示失败')
@@ -406,32 +382,8 @@ export const useFeatureQueryStore = defineStore('featureQuery', () => {
     const feature = queryResults.value[index]
     if (feature) {
       highlightFeatureOnMap(feature)
-      triggerMapFeatureHighlight(feature)
       analysisStore.setAnalysisStatus(`已选择要素 ${index + 1}`)
-      scrollToSelectedFeature(index)
-    }
-  }
-
-  let autoScrollInstance: any = null
-  const initAutoScroll = () => {
-    const resultList = document.querySelector('.query-results') as HTMLElement | null
-    if (!resultList) return
-    if (!autoScrollInstance) {
-      autoScrollInstance = createAutoScroll(resultList, {
-        scrollBehavior: 'smooth',
-        centerOnSelect: true,
-        scrollOffset: 0
-      })
-    } else if (typeof autoScrollInstance.getContainer === 'function' && typeof autoScrollInstance.replaceContainer === 'function') {
-      if (autoScrollInstance.getContainer() !== resultList) {
-        autoScrollInstance.replaceContainer(resultList)
-      }
-    }
-  }
-  const scrollToSelectedFeature = async (index: number) => {
-    initAutoScroll()
-    if (autoScrollInstance && typeof autoScrollInstance.scrollToIndex === 'function') {
-      try { await autoScrollInstance.scrollToIndex(index) } catch (_) {}
+      triggerMapFeatureHighlight(feature)
     }
   }
 
@@ -475,18 +427,42 @@ export const useFeatureQueryStore = defineStore('featureQuery', () => {
     }))
     queryResults.value = inverted
     selectedFeatureIndex.value = -1
-    setupClickOnSelectedFeatures()
+    
+    // 自动选中第一个要素并触发高亮效果
+    if (inverted.length > 0) {
+      selectedFeatureIndex.value = 0
+      const firstFeature = inverted[0]
+      if (firstFeature) {
+        highlightFeatureOnMap(firstFeature)
+        triggerMapFeatureHighlight(firstFeature)
+        analysisStore.setAnalysisStatus(`已自动选中反选后的第一个要素`)
+      }
+    }
   }
 
   // 清除：仅清查询侧选择、查询高亮与监听
   const clearQuerySelection = () => {
+    // 清除地图上的查询高亮
     removeFeaturesByTagOrMatch('query', queryResults.value)
+    
+    // 清除选择存储中的查询要素（如果有的话）
+    const selectionStore = useSelectionStore()
+    const updatedFeatures = selectionStore.selectedFeatures.filter((feature: any) => {
+      const sourceTag = feature.get?.('sourceTag') || feature.sourceTag || 
+                       (feature.getProperties ? feature.getProperties().sourceTag : null)
+      return sourceTag !== 'query'
+    })
+    selectionStore.setSelectedFeatures(updatedFeatures)
+    
+    // 如果当前选中的要素被移除，重置选中索引
+    if (selectionStore.selectedFeatureIndex >= updatedFeatures.length) {
+      selectionStore.setSelectedFeatureIndex(-1)
+    }
 
+    // 清除查询存储状态
     queryResults.value = []
     selectedFeatureIndex.value = -1
     highlightedFeature.value = null
-
-    clearSelectionInteractions()
 
     try {
       modeStateStore.saveToolState('query', {
@@ -516,7 +492,7 @@ export const useFeatureQueryStore = defineStore('featureQuery', () => {
     isQuerying.value = true
     analysisStore.setAnalysisStatus('正在执行前端查询...')
     try {
-      const results = executeFrontendQuery(condition)
+      const results = await executeFrontendQuery(condition)
       const formatted = results.map((feature: any) => {
         const original = (feature as any)._originalFeature || feature
         if (original && typeof original.set === 'function') original.set('layerName', layer.name)
@@ -567,10 +543,6 @@ export const useFeatureQueryStore = defineStore('featureQuery', () => {
     highlightFeatureOnMap,
     triggerMapFeatureHighlight,
     removeHighlightFeature,
-    setupClickOnSelectedFeatures,
-    initAutoScroll,
-    scrollToSelectedFeature,
-    clearSelectionInteractions,
     clearSelectedLayer,
     invertSelectedLayer,
     isSameFeature,

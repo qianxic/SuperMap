@@ -58,6 +58,19 @@ export function useLayerManager() {
       source.removeFeature(feature)
     })
 
+    // 检查弹窗中的要素是否属于被隐藏的图层
+    const popupFeature = popupStore.feature
+    if (popupFeature) {
+      const popupLayerName = popupFeature.get('layerName') || 
+                            (popupFeature.getProperties ? popupFeature.getProperties().layerName : null) ||
+                            (popupFeature.properties ? popupFeature.properties.layerName : null)
+      
+      if (popupLayerName === layerName) {
+        console.log(`弹窗中的要素属于被隐藏的图层 ${layerName}，清除弹窗`)
+        popupStore.hidePopup()
+      }
+    }
+
     // 检查当前选中的要素是否属于被隐藏的图层
     const currentSelectedFeature = selectionStore.currentSelectedFeature
     if (currentSelectedFeature) {
@@ -68,8 +81,6 @@ export function useLayerManager() {
         console.log(`当前选中的要素属于被隐藏的图层 ${layerName}，清除选择状态`)
         // 清除当前选中的要素
         selectionStore.clearSelection()
-        // 隐藏弹窗 - 结束要素信息组件的生命周期
-        popupStore.hidePopup()
       }
     }
 
@@ -107,21 +118,23 @@ export function useLayerManager() {
         
         // 强制清除所有选择状态，确保完全清除
         if (mapStore.selectLayer && mapStore.selectLayer.getSource()) {
-          mapStore.selectLayer.getSource().clear()
+          const source = mapStore.selectLayer.getSource()
+          const features = source.getFeatures()
+          features.forEach((f: any) => {
+            if (f?.get && (f.get('sourceTag') === 'click' || f.get('sourceTag') === 'area' || f.get('sourceTag') === 'query')) {
+              source.removeFeature(f)
+            }
+          })
         }
         selectionStore.clearSelection()
         
-        // 清除查询结果（如果当前在查询工具中）
-        const { useFeatureQuery } = await import('@/composables/useFeatureQuery')
-        const featureQuery = useFeatureQuery()
-        if (featureQuery.queryResults && featureQuery.queryResults.value) {
-          featureQuery.queryResults.value = []
-        }
+        // 总是清除弹窗状态，确保状态同步
+        popupStore.hidePopup()
         
-        // 重置选中要素索引
-        if (featureQuery.selectedFeatureIndex) {
-          featureQuery.selectedFeatureIndex.value = -1
-        }
+        // 清除查询结果（如果当前在查询工具中）
+        const { useFeatureQueryStore } = await import('@/stores/featureQueryStore')
+        const featureQuery = useFeatureQueryStore()
+        featureQuery.clearQuerySelection()
       }
       
       // 设置图层可见性

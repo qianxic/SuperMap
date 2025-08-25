@@ -72,17 +72,17 @@
         查询结果 ({{ queryResults.length }}个要素)
       </div>
       
-      <div class="query-results">
+      <div class="layer-list">
         <div 
           v-for="(feature, index) in queryResults" 
           :key="feature.getId?.() || index"
-          class="result-item"
+          class="layer-item"
           :class="{ 'active': selectedFeatureIndex === index }"
           @click="handleSelectFeature(index)"
         >
-          <div class="result-info">
-            <div class="result-name">要素 {{ index + 1 }}</div>
-            <div class="result-desc">{{ getFeatureDescription(feature) }}</div>
+          <div class="layer-info">
+            <div class="layer-name">要素 {{ index + 1 }} - {{ getFeatureType(feature) }}</div>
+            <div class="layer-desc">{{ getSelectedLayerName() || '未知图层' }} | {{ getFeatureGeometryInfo(feature) }}</div>
           </div>
         </div>
       </div>
@@ -198,15 +198,12 @@ onMounted(() => {
   // 延迟恢复完整状态，确保所有依赖都已准备好
   setTimeout(() => {
     restoreToolState()
-    featureQuery.initAutoScroll()
   }, 200)
 })
 
 onUnmounted(() => {
   console.log('查询工具组件卸载，保存状态')
   saveToolState()
-  // 清除点击事件监听
-  featureQuery.clearSelectionInteractions()
 })
 
 // 监听状态变化，自动保存
@@ -385,24 +382,146 @@ const handleSelectFeature = (index: number) => {
   featureQuery.handleSelectFeature(index)
 }
 
-// 获取要素描述
-const getFeatureDescription = (feature: any) => {
-  const properties = feature.getProperties?.() || feature.properties || {}
-  const geometry = feature.getGeometry?.() || feature.geometry
+
+
+// 获取要素类型
+const getFeatureType = (feature: any): string => {
+  const geometry = feature.geometry || feature.getGeometry?.()
+  if (!geometry) return '未知'
   
-  let desc = ''
-  if (geometry) {
+  // 直接返回几何类型，不进行映射
+  const geometryType = geometry.getType?.() || geometry.type
+  return geometryType || '未知'
+}
+
+// 获取要素几何信息
+const getFeatureGeometryInfo = (feature: any): string => {
+  const geometry = feature.geometry || feature.getGeometry?.()
+  if (!geometry) return '未知坐标'
+  
+  try {
     const geometryType = geometry.getType?.() || geometry.type
-    desc += `${geometryType} | `
+    const coords = geometry.getCoordinates?.() || geometry.coordinates
+    
+    if (!coords) return '坐标解析失败'
+    
+    switch (geometryType) {
+      case 'Point':
+        // 点要素显示坐标
+        if (Array.isArray(coords) && coords.length >= 2) {
+          return `${coords[0].toFixed(6)}, ${coords[1].toFixed(6)}`
+        }
+        return '点坐标解析失败'
+      
+      case 'LineString':
+        // 线要素显示长度
+        if (Array.isArray(coords) && coords.length >= 2) {
+          const length = calculateLineLength(coords)
+          return `长度: ${length.toFixed(4)}千米`
+        }
+        return '线长度计算失败'
+      
+      case 'Polygon':
+        // 面要素显示面积
+        if (Array.isArray(coords) && coords.length > 0) {
+          const area = calculatePolygonArea(coords[0]) // 使用外环计算面积
+          return `面积: ${area.toFixed(4)}平方千米`
+        }
+        return '面积计算失败'
+      
+      case 'MultiPoint':
+        // 多点显示点数和第一个点的坐标
+        if (Array.isArray(coords) && coords.length > 0) {
+          const firstPoint = coords[0]
+          if (Array.isArray(firstPoint) && firstPoint.length >= 2) {
+            return `${coords.length}个点, 起始: ${firstPoint[0].toFixed(6)}, ${firstPoint[1].toFixed(6)}`
+          }
+        }
+        return '多点坐标解析失败'
+      
+      case 'MultiLineString':
+        // 多线显示总长度
+        if (Array.isArray(coords) && coords.length > 0) {
+          let totalLength = 0
+          coords.forEach((lineCoords: number[][]) => {
+            if (Array.isArray(lineCoords)) {
+              totalLength += calculateLineLength(lineCoords)
+            }
+          })
+          return `总长度: ${totalLength.toFixed(4)}千米`
+        }
+        return '多线长度计算失败'
+      
+      case 'MultiPolygon':
+        // 多面显示总面积
+        if (Array.isArray(coords) && coords.length > 0) {
+          let totalArea = 0
+          coords.forEach((polygonCoords: number[][][]) => {
+            if (Array.isArray(polygonCoords) && polygonCoords.length > 0) {
+              totalArea += calculatePolygonArea(polygonCoords[0]) // 使用外环
+            }
+          })
+          return `总面积: ${totalArea.toFixed(4)}平方千米`
+        }
+        return '多面面积计算失败'
+      
+      default:
+        // 未知类型，尝试显示第一个坐标
+        if (Array.isArray(coords) && coords.length >= 2 && typeof coords[0] === 'number') {
+          return `${coords[0].toFixed(6)}, ${coords[1].toFixed(6)}`
+        }
+        return `${geometryType || '未知类型'}`
+    }
+  } catch (error) {
+    console.error('几何信息解析错误:', error)
+    return '几何信息解析失败'
+  }
+}
+
+// 几何计算函数
+const calculateLineLength = (coordinates: number[][]): number => {
+  if (!coordinates || coordinates.length < 2) return 0
+  
+  let totalLength = 0
+  for (let i = 1; i < coordinates.length; i++) {
+    const [lon1, lat1] = coordinates[i - 1]
+    const [lon2, lat2] = coordinates[i]
+    totalLength += haversineDistance(lat1, lon1, lat2, lon2)
+  }
+  return totalLength
+}
+
+const calculatePolygonArea = (coordinates: number[][]): number => {
+  if (!coordinates || coordinates.length < 3) return 0
+  
+  // 简化的球面面积计算（适用于小区域）
+  let area = 0
+  const n = coordinates.length
+  
+  for (let i = 0; i < n - 1; i++) {
+    const [x1, y1] = coordinates[i]
+    const [x2, y2] = coordinates[i + 1]
+    area += x1 * y2 - x2 * y1
   }
   
-  // 显示前几个属性值
-  const propertyValues = Object.values(properties).filter(v => v !== undefined && v !== null)
-  if (propertyValues.length > 0) {
-    desc += propertyValues.slice(0, 2).join(', ')
-  }
+  // 将度转换为平方千米（近似）
+  const earthRadius = 6371 // 地球半径（千米）
+  const latRad = coordinates[0][1] * Math.PI / 180
+  const kmPerDegLat = earthRadius * Math.PI / 180
+  const kmPerDegLon = kmPerDegLat * Math.cos(latRad)
   
-  return desc || '无属性信息'
+  return Math.abs(area * kmPerDegLat * kmPerDegLon / 2)
+}
+
+const haversineDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const R = 6371 // 地球半径（千米）
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLon = (lon2 - lon1) * Math.PI / 180
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  return R * c
 }
 
 // 反选当前已选中的要素
@@ -494,61 +613,63 @@ const clearQueryResults = () => {
   gap: 8px;
 }
 
-.query-results {
-  display: flex;
-  flex-direction: column;
+/* 使用图层管理的列表样式 */
+.layer-list { 
+  display: flex; 
+  flex-direction: column; 
   gap: 8px;
-  max-height: 300px;
+  max-height: 180px; /* 约3个项目的高度 */
   overflow-y: auto;
-  padding-right: 4px;
+  padding-right: 4px; /* 为滚动条预留空间 */
 }
 
-.result-item {
-  display: flex;
-  align-items: center;
+.layer-item {
+  display: flex; 
+  align-items: center; 
   justify-content: space-between;
   background: var(--btn-secondary-bg);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 10px 14px;
+  animation: fadeIn 0.3s ease-out;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.result-item:hover {
+.layer-item:hover {
   background: var(--surface-hover);
   border-color: var(--accent);
 }
 
-.result-item.active {
+.layer-item.active {
   background: var(--accent);
   border-color: var(--accent);
   color: white;
 }
 
-.result-item.active .result-name {
+.layer-info { 
+  display: flex; 
+  flex-direction: column; 
+}
+
+.layer-name { 
+  font-size: 13px; 
+  color: var(--text); 
+  font-weight: 500; 
+}
+
+.layer-item.active .layer-name {
   color: white;
 }
 
-.result-item.active .result-desc {
+.layer-desc { 
+  font-size: 11px; 
+  color: var(--sub); 
+  margin-top: 2px; 
+}
+
+.layer-item.active .layer-desc {
   color: rgba(255, 255, 255, 0.9);
-}
-
-.result-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.result-name {
-  font-size: 13px;
-  color: var(--text);
-  font-weight: 500;
-}
-
-.result-desc {
-  font-size: 11px;
-  color: var(--sub);
-  margin-top: 2px;
 }
 
 /* 字段结构样式 */
@@ -683,24 +804,24 @@ const clearQueryResults = () => {
 
 /* 滚动条样式 */
 .fields-list::-webkit-scrollbar,
-.query-results::-webkit-scrollbar {
+.layer-list::-webkit-scrollbar {
   width: 3px;
 }
 
 .fields-list::-webkit-scrollbar-track,
-.query-results::-webkit-scrollbar-track {
+.layer-list::-webkit-scrollbar-track {
   background: var(--scrollbar-track, rgba(200, 200, 200, 0.1));
   border-radius: 1.5px;
 }
 
 .fields-list::-webkit-scrollbar-thumb,
-.query-results::-webkit-scrollbar-thumb {
+.layer-list::-webkit-scrollbar-thumb {
   background: var(--scrollbar-thumb, rgba(150, 150, 150, 0.3));
   border-radius: 1.5px;
 }
 
 .fields-list::-webkit-scrollbar-thumb:hover,
-.query-results::-webkit-scrollbar-thumb:hover {
+.layer-list::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-thumb-hover, rgba(150, 150, 150, 0.5));
 }
 </style>

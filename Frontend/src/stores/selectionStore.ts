@@ -60,6 +60,12 @@ const useSelectionStore = defineStore('selection', () => {
     selectedFeatureIndex.value = -1
     highlightedFeature.value = null
   }
+
+  // 清除地图上的点击选择高亮
+  function clearClickSelection() {
+    // 这个方法需要在外部调用时传入 mapStore
+    // 这里只清除本地状态，地图高亮清除在外部处理
+  }
   
   function removeSelectedFeature(index: number) {
     if (index >= 0 && index < selectedFeatures.value.length) {
@@ -108,7 +114,8 @@ const useSelectionStore = defineStore('selection', () => {
     removeSelectedFeature,
     updateSelectedFeature,
     setQuerySelectedLayerId,
-    setQueryConfig
+    setQueryConfig,
+    clearClickSelection
   }
 })
 

@@ -2,7 +2,7 @@ import { ref, computed } from 'vue'
 import { useMapStore } from '@/stores/mapStore'
 import { useAnalysisStore } from '@/stores/analysisStore'
 import { useAreaSelectionStore } from '@/stores/areaSelectionStore'
-import { createAutoScroll } from '@/utils/autoScroll'
+import { usePopupStore } from '@/stores/popupStore'
 
 const ol = window.ol
 
@@ -10,6 +10,7 @@ export function useFeatureSelection() {
   const mapStore = useMapStore()
   const analysisStore = useAnalysisStore()
   const selectionStore = useAreaSelectionStore()
+  const popupStore = usePopupStore()
 
   // 状态管理
   const boxSelectInteraction = ref<any>(null)
@@ -52,17 +53,17 @@ export function useFeatureSelection() {
       area += x1 * y2 - x2 * y1
     }
     
-    // 将度转换为米（近似）
-    const earthRadius = 6371000 // 地球半径（米）
+    // 将度转换为平方千米（近似）
+    const earthRadius = 6371 // 地球半径（千米）
     const latRad = coordinates[0][1] * Math.PI / 180
-    const meterPerDegLat = earthRadius * Math.PI / 180
-    const meterPerDegLon = meterPerDegLat * Math.cos(latRad)
+    const kmPerDegLat = earthRadius * Math.PI / 180
+    const kmPerDegLon = kmPerDegLat * Math.cos(latRad)
     
-    return Math.abs(area * meterPerDegLat * meterPerDegLon / 2)
+    return Math.abs(area * kmPerDegLat * kmPerDegLon / 2)
   }
 
   const haversineDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-    const R = 6371000 // 地球半径（米）
+    const R = 6371 // 地球半径（千米）
     const dLat = (lat2 - lat1) * Math.PI / 180
     const dLon = (lon2 - lon1) * Math.PI / 180
     const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
@@ -104,11 +105,7 @@ export function useFeatureSelection() {
           // 线要素显示长度
           if (Array.isArray(coords) && coords.length >= 2) {
             const length = calculateLineLength(coords)
-            if (length >= 1000) {
-              return `长度: ${(length / 1000).toFixed(2)}千米`
-            } else {
-              return `长度: ${length.toFixed(2)}米`
-            }
+            return `长度: ${length.toFixed(4)}千米`
           }
           return '线长度计算失败'
         
@@ -116,11 +113,7 @@ export function useFeatureSelection() {
           // 面要素显示面积
           if (Array.isArray(coords) && coords.length > 0) {
             const area = calculatePolygonArea(coords[0]) // 使用外环计算面积
-            if (area >= 1000000) {
-              return `面积: ${(area / 1000000).toFixed(2)}平方千米`
-            } else {
-              return `面积: ${area.toFixed(2)}平方米`
-            }
+            return `面积: ${area.toFixed(4)}平方千米`
           }
           return '面积计算失败'
         
@@ -143,11 +136,7 @@ export function useFeatureSelection() {
                 totalLength += calculateLineLength(lineCoords)
               }
             })
-            if (totalLength >= 1000) {
-              return `总长度: ${(totalLength / 1000).toFixed(2)}千米`
-            } else {
-              return `总长度: ${totalLength.toFixed(2)}米`
-            }
+            return `总长度: ${totalLength.toFixed(4)}千米`
           }
           return '多线长度计算失败'
         
@@ -160,11 +149,7 @@ export function useFeatureSelection() {
                 totalArea += calculatePolygonArea(polygonCoords[0]) // 使用外环
               }
             })
-            if (totalArea >= 1000000) {
-              return `总面积: ${(totalArea / 1000000).toFixed(2)}平方千米`
-            } else {
-              return `总面积: ${totalArea.toFixed(2)}平方米`
-            }
+            return `总面积: ${totalArea.toFixed(4)}平方千米`
           }
           return '多面面积计算失败'
         
@@ -213,57 +198,6 @@ export function useFeatureSelection() {
     // 创建框选交互
     boxSelectInteraction.value = createBoxSelectInteraction()
     mapStore.map.addInteraction(boxSelectInteraction.value)
-
-    // 添加点击已选择要素的处理
-    setupClickOnSelectedFeatures()
-  }
-
-  // 设置点击已选择要素的处理
-  const setupClickOnSelectedFeatures = () => {
-    if (!mapStore.map) return
-
-    const clickHandler = (evt: any) => {
-      const pixel = evt.pixel
-      
-      // 检查是否点击到了已选择的要素
-      const clickedFeature = mapStore.map.forEachFeatureAtPixel(
-        pixel,
-        (feature: any, layer: any) => {
-          if (layer === mapStore.selectLayer) {
-            return feature
-          }
-          return undefined
-        },
-        { hitTolerance: 5 }
-      )
-
-      if (clickedFeature) {
-        // 阻止默认的要素信息窗口弹出
-        evt.preventDefault()
-        evt.stopPropagation()
-
-        // 在已选择的要素列表中查找对应的要素
-        const selectedFeatureIndex = findSelectedFeatureIndex(clickedFeature)
-
-        if (selectedFeatureIndex !== -1) {
-          // 高亮对应的列表项
-          handleSelectFeature(selectedFeatureIndex)
-          
-          // 显示橙色常亮效果
-          triggerMapFeatureHighlight(selectedFeatures.value[selectedFeatureIndex])
-          
-          analysisStore.setAnalysisStatus(`已选择要素 ${selectedFeatureIndex + 1}`)
-        }
-
-        return false
-      }
-    }
-
-    // 添加点击事件监听
-    mapStore.map.on('click', clickHandler)
-    
-    // 保存事件处理器引用，以便后续移除
-    mapStore.map._editToolsClickHandler = clickHandler
   }
 
   // 清除选择交互
@@ -273,12 +207,6 @@ export function useFeatureSelection() {
     if (boxSelectInteraction.value) {
       mapStore.map.removeInteraction(boxSelectInteraction.value)
       boxSelectInteraction.value = null
-    }
-
-    // 移除点击事件监听
-    if (mapStore.map._editToolsClickHandler) {
-      mapStore.map.un('click', mapStore.map._editToolsClickHandler)
-      delete mapStore.map._editToolsClickHandler
     }
   }
 
@@ -292,31 +220,21 @@ export function useFeatureSelection() {
     // 使用 setTimeout 让UI有机会更新
     await new Promise(resolve => setTimeout(resolve, 10))
 
+    // 使用统一的要素数据结构
+    const { getNormalizedFeaturesFromLayer } = await import('@/utils/featureUtils')
+    
     mapStore.vectorLayers.forEach(layerInfo => {
       if (layerInfo.visible && layerInfo.layer) {
         const source = layerInfo.layer.getSource()
         if (source && source.forEachFeatureInExtent) {
           source.forEachFeatureInExtent(extent, (feature: any) => {
-            // 正确提取要素的所有属性数据
-            const properties = feature.getProperties ? feature.getProperties() : {}
-            const geometry = feature.getGeometry ? feature.getGeometry() : null
-
-            // 创建包含完整数据的要素对象
-            const featureData = {
-              // 保留原始要素的方法
-              getId: () => feature.getId ? feature.getId() : feature.id || null,
-              getGeometry: () => geometry,
-              getProperties: () => properties,
-              // 添加展平的属性以便访问
-              id: feature.getId ? feature.getId() : feature.id || null,
-              properties: properties,
-              geometry: geometry,
-              layerName: layerInfo.name,
-              // 保留原始要素引用
-              _originalFeature: feature
+            // 使用统一的要素数据结构
+            const normalizedFeature = getNormalizedFeaturesFromLayer(layerInfo).find(f => 
+              f._originalFeature === feature
+            )
+            if (normalizedFeature) {
+              features.push(normalizedFeature)
             }
-
-            features.push(featureData)
           })
         }
       }
@@ -334,7 +252,7 @@ export function useFeatureSelection() {
         }
         return f
       }))
-      // 清空后首次框选：自动选中首项并触发滚动与高亮
+      // 清空后首次框选：自动选中首项并触发高亮
       if (selectionStore.selectedFeatures.length > 0) {
         selectionStore.setSelectedFeatureIndex(0)
         handleSelectFeature(0)
@@ -343,8 +261,6 @@ export function useFeatureSelection() {
       analysisStore.setAnalysisStatus('框选范围内没有找到要素')
     }
   }
-
-  // 统一后不再使用本地批处理添加逻辑，由 featureQueryStore 统一处理
 
   // 异步高亮显示多个要素
   const highlightFeaturesAsync = async (features: any[]) => {
@@ -362,10 +278,6 @@ export function useFeatureSelection() {
       batch.forEach(feature => {
         const originalFeature = feature._originalFeature || feature
         if (originalFeature) {
-          // 确保要素包含图层信息
-          if (feature.layerName) {
-            originalFeature.set('layerName', feature.layerName)
-          }
           source.addFeature(originalFeature)
         }
       })
@@ -387,9 +299,6 @@ export function useFeatureSelection() {
       
       // 触发地图中的要素常亮效果
       triggerMapFeatureHighlight(feature)
-      
-      // 自动滚动到选中的要素位置
-      scrollToSelectedFeature(index)
     }
   }
 
@@ -417,10 +326,6 @@ export function useFeatureSelection() {
         })
 
         if (!exists) {
-          // 确保要素包含图层信息
-          if (feature.layerName) {
-            originalFeature.set('layerName', feature.layerName)
-          }
           try { originalFeature.set('sourceTag', 'area') } catch (_) {}
           source.addFeature(originalFeature)
         }
@@ -649,14 +554,7 @@ export function useFeatureSelection() {
     return false
   }
 
-  // 在已选择的要素中查找对应的索引
-  const findSelectedFeatureIndex = (clickedFeature: any): number => {
-    return selectedFeatures.value.findIndex(feature => {
-      return isSameFeature(feature, clickedFeature)
-    })
-  }
-
-  // 清除地图上的选择高亮
+  // 清除地图上的区域选择高亮
   const clearMapSelection = () => {
     if (mapStore.selectLayer && mapStore.selectLayer.getSource) {
       const source = mapStore.selectLayer.getSource()
@@ -728,21 +626,35 @@ export function useFeatureSelection() {
     selectionStore.setSelectedFeatures(inverted)
     selectionStore.setSelectedFeatureIndex(-1)
 
-    // 更新状态与滚动
+    // 更新状态
     analysisStore.setAnalysisStatus(`已反选图层 "${targetLayerName}"，更新选择列表`)
-    initAutoScroll()
   }
-  // 清除选择（统一调用查询模块的清除逻辑，并清理后恢复交互与滚动绑定）
+
+  // 清除选择
   const clearSelection = () => {
     // 先移除区域选择相关交互与监听
     clearSelectionInteractions()
-    // 仅清区域侧高亮与本地状态
-    clearMapSelection()
+    
+    // 清除地图上的区域高亮
+    if (mapStore.selectLayer && mapStore.selectLayer.getSource()) {
+      const source = mapStore.selectLayer.getSource()
+      const features = source.getFeatures()
+      features.forEach((f: any) => {
+        if (f?.get && f.get('sourceTag') === 'area') {
+          source.removeFeature(f)
+        }
+      })
+      mapStore.selectLayer.changed()
+    }
+    
+    // 清除区域选择存储状态
     selectionStore.clear()
-    // 恢复区域选择交互，确保清空后可继续框选/点击
+    
+    // 清除弹窗状态，确保状态同步
+    popupStore.hidePopup()
+    
+    // 恢复区域选择交互，确保清空后可继续框选
     setupSelectionInteractions()
-    // 重新绑定自动滚动容器
-    initAutoScroll()
   }
 
   // 初始化高亮已有要素
@@ -752,38 +664,6 @@ export function useFeatureSelection() {
       setTimeout(async () => {
         await highlightFeaturesAsync(selectedFeatures.value)
       }, 100)
-    }
-  }
-
-  // 自动滚动实例
-  let autoScrollInstance: any = null
-
-  // 初始化自动滚动
-  const initAutoScroll = () => {
-    const layerList = document.querySelector('.edit-tools-panel .layer-list') as HTMLElement | null
-    if (!layerList) return
-    if (!autoScrollInstance) {
-      autoScrollInstance = createAutoScroll(layerList, {
-        scrollBehavior: 'smooth',
-        centerOnSelect: true,
-        scrollOffset: 0
-      })
-      if (autoScrollInstance) {
-        autoScrollInstance.addScrollListener(() => {})
-      }
-    } else if (typeof autoScrollInstance.getContainer === 'function' && typeof autoScrollInstance.replaceContainer === 'function') {
-      if (autoScrollInstance.getContainer() !== layerList) {
-        autoScrollInstance.replaceContainer(layerList)
-      }
-    }
-  }
-
-  // 自动滚动到选中的要素位置
-  const scrollToSelectedFeature = async (index: number) => {
-    // 确保实例与容器绑定最新
-    initAutoScroll()
-    if (autoScrollInstance && typeof autoScrollInstance.scrollToIndex === 'function') {
-      await autoScrollInstance.scrollToIndex(index)
     }
   }
 
@@ -802,13 +682,10 @@ export function useFeatureSelection() {
     triggerMapFeatureHighlight,
     removeHighlightFeature,
     initializeHighlightFeatures,
-    scrollToSelectedFeature,
-    initAutoScroll,
     
     // 内部方法（可选择性暴露）
     selectFeaturesInExtent,
     highlightFeatureOnMap,
-    findSelectedFeatureIndex,
     isSameFeature,
     getFeatureType,
     getFeatureCoords,

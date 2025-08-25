@@ -70,6 +70,7 @@ const router = createRouter({
         // 默认子路由 - 根据状态管理决定重定向
         {
           path: '',
+          name: 'dashboard-default',
           redirect: '/dashboard/llm'
         },
         // LLM模式
@@ -97,6 +98,7 @@ const router = createRouter({
               // 传统模式默认子路由 - 根据状态管理决定重定向
               {
                 path: '',
+                name: 'traditional-mode-default',
                 redirect: () => {
                   // 从localStorage获取上次的工具状态
                   const savedState = localStorage.getItem('traditionalModeState')

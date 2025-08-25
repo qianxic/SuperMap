@@ -27,16 +27,6 @@ export function useFeatureQuery() {
     removeHighlightFeature: store.removeHighlightFeature,
     isSameFeature: store.isSameFeature,
     
-    // 点击事件管理
-    setupClickOnSelectedFeatures: store.setupClickOnSelectedFeatures,
-    
-    // 自动滚动功能
-    initAutoScroll: store.initAutoScroll,
-    scrollToSelectedFeature: store.scrollToSelectedFeature,
-    
-    // 事件管理
-    clearSelectionInteractions: store.clearSelectionInteractions,
-    
     // 图层管理
     clearSelectedLayer: store.clearSelectedLayer,
     invertSelectedLayer: store.invertSelectedLayer,

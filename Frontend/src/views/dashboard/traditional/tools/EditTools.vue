@@ -89,7 +89,6 @@ const {
   handleSelectFeature,
   setupSelectionInteractions,
   clearSelectionInteractions,
-  initAutoScroll,
   getFeatureType,
   getFeatureCoords,
   getFeatureGeometryInfo
@@ -141,7 +140,7 @@ onMounted(() => {
   
   // 延迟初始化自动滚动，确保DOM已渲染
   setTimeout(() => {
-    initAutoScroll()
+    // initAutoScroll() // Removed as per edit hint
   }, 100)
 })
 

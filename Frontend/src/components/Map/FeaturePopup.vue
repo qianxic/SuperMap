@@ -11,7 +11,7 @@
     :focusable="true"
     :closeable="true"
     :resizable="true"
-    @close="popupStore.hidePopup"
+    @close="handleClose"
   >
     <div class="popup-body" v-html="popupStore.content"></div>
   </PanelWindow>
@@ -20,9 +20,98 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { usePopupStore } from '@/stores/popupStore'
+import { useSelectionStore } from '@/stores/selectionStore'
+import { useMapStore } from '@/stores/mapStore'
 import PanelWindow from '@/components/UI/PanelWindow.vue'
 
 const popupStore = usePopupStore()
+const selectionStore = useSelectionStore()
+const mapStore = useMapStore()
+
+// 要素匹配辅助函数
+const isSameFeature = (feature1: any, feature2: any): boolean => {
+  if (!feature1 || !feature2) return false
+  
+  // 首先尝试通过ID匹配
+  const id1 = feature1.getId?.() || feature1.id
+  const id2 = feature2.getId?.() || feature2.id
+  if (id1 && id2 && id1 === id2) return true
+  
+  // 通过几何坐标匹配
+  const geom1 = feature1.getGeometry?.() || feature1.geometry
+  const geom2 = feature2.getGeometry?.() || feature2.geometry
+  
+  if (geom1 && geom2) {
+    const coords1 = geom1.getCoordinates?.() || geom1.coordinates
+    const coords2 = geom2.getCoordinates?.() || geom2.coordinates
+    
+    if (coords1 && coords2) {
+      return JSON.stringify(coords1) === JSON.stringify(coords2)
+    }
+  }
+  
+  return false
+}
+
+// 处理关闭按钮点击事件
+const handleClose = () => {
+  // 获取当前弹窗对应的要素
+  const currentPopupFeature = popupStore.feature
+  
+  // 关闭要素信息弹窗
+  popupStore.hidePopup()
+  
+  // 检查要素的标识类型
+  const sourceTag = currentPopupFeature?.get?.('sourceTag') || 
+                   currentPopupFeature?.sourceTag || 
+                   (currentPopupFeature?.getProperties ? currentPopupFeature.getProperties().sourceTag : null)
+  
+  const isQueryOrAreaFeature = sourceTag === 'query' || sourceTag === 'area'
+  
+  if (isQueryOrAreaFeature) {
+    // 对于 query 和 area 标识的要素：仅关闭弹窗和橙色高亮，保持蓝色高亮
+    if (mapStore.selectLayer && mapStore.selectLayer.getSource()) {
+      const source = mapStore.selectLayer.getSource()
+      const features = source.getFeatures()
+      features.forEach((f: any) => {
+        // 只清除当前弹窗对应的要素（橙色高亮），不清除原有的蓝色高亮
+        if (currentPopupFeature && isSameFeature(f, currentPopupFeature) && 
+            f?.get && f.get('sourceTag') === 'click') {
+          source.removeFeature(f)
+        }
+      })
+      mapStore.selectLayer.changed()
+    }
+  } else {
+    // 对于其他标识的要素：按当前逻辑处理
+    if (currentPopupFeature) {
+      // 从选择存储中移除当前要素
+      const updatedFeatures = selectionStore.selectedFeatures.filter((feature: any) => {
+        return !isSameFeature(feature, currentPopupFeature)
+      })
+      selectionStore.setSelectedFeatures(updatedFeatures)
+      
+      // 如果当前选中的要素被移除，重置选中索引
+      if (selectionStore.selectedFeatureIndex >= updatedFeatures.length) {
+        selectionStore.setSelectedFeatureIndex(-1)
+      }
+    }
+    
+    // 仅清除地图上对应的点击选择高亮显示
+    if (mapStore.selectLayer && mapStore.selectLayer.getSource()) {
+      const source = mapStore.selectLayer.getSource()
+      const features = source.getFeatures()
+      features.forEach((f: any) => {
+        // 只清除当前弹窗对应的要素和标记为点击来源的要素
+        if (f?.get && f.get('sourceTag') === 'click' && 
+            (currentPopupFeature ? isSameFeature(f, currentPopupFeature) : true)) {
+          source.removeFeature(f)
+        }
+      })
+      mapStore.selectLayer.changed()
+    }
+  }
+}
 
 // 计算弹窗高度为屏幕高度的1/4（缩小一半）
 const popupHeight = computed(() => {

@@ -32,7 +32,7 @@
 </template>
 <!-- 面板窗口 -->
 <script setup lang="ts">
-import { computed, defineProps, defineEmits, withDefaults, ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import { computed, ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import type { CSSProperties } from 'vue'
 import SecondaryButton from './SecondaryButton.vue'
 import { useModeStateStore } from '@/stores/modeStateStore'
