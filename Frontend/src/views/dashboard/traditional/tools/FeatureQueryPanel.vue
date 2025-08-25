@@ -17,7 +17,7 @@
     </div>
     
     <!-- 数据字段结构 -->
-    <div class="analysis-section" v-if="layerFields.length > 0">
+    <div class="analysis-section no-theme-flicker" v-if="layerFields.length > 0">
       <div class="section-title">
         数据字段结构 ({{ layerFields.length }}个字段)
         <span class="field-hint">选择字段后将自动复制名称</span>
@@ -464,6 +464,17 @@ const clearQueryResults = () => {
   padding: 16px;
   animation: fadeIn 0.3s ease-out;
   margin-bottom: 16px;
+}
+
+/* 避免主题切换时该区域闪烁：禁用动画与过渡 */
+.no-theme-flicker {
+  animation: none !important;
+}
+
+.no-theme-flicker *,
+.no-theme-flicker *::before,
+.no-theme-flicker *::after {
+  transition: none !important;
 }
 
 @keyframes fadeIn {

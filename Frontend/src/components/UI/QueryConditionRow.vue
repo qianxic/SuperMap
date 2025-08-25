@@ -145,10 +145,7 @@ watch(() => props.condition, (newCondition) => {
 }, { deep: true })
 
 // 监听字段选择变化，更新占位符和验证
-watch(() => props.condition.fieldName, (newFieldName) => {
-  if (newFieldName) {
-    validateFieldName()
-  }
+watch(() => props.condition.fieldName, () => {
   emit('update', props.condition)
 })
 

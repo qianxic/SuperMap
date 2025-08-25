@@ -63,7 +63,7 @@ const handleClick = (event: MouseEvent) => {
   justify-content: center;
   gap: 6px;
   min-height: 32px;
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .btn:disabled {
