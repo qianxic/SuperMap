@@ -1,8 +1,7 @@
 import { ref, computed } from 'vue'
 import { useMapStore } from '@/stores/mapStore'
 import { useAnalysisStore } from '@/stores/analysisStore'
-import { useSelectionStore } from '@/stores/selectionStore'
-import { useFeatureQueryStore } from '@/stores/featureQueryStore'
+import { useAreaSelectionStore } from '@/stores/areaSelectionStore'
 import { createAutoScroll } from '@/utils/autoScroll'
 
 const ol = window.ol
@@ -10,8 +9,7 @@ const ol = window.ol
 export function useFeatureSelection() {
   const mapStore = useMapStore()
   const analysisStore = useAnalysisStore()
-  const selectionStore = useSelectionStore()
-  const featureQueryStore = useFeatureQueryStore()
+  const selectionStore = useAreaSelectionStore()
 
   // 状态管理
   const boxSelectInteraction = ref<any>(null)
@@ -326,7 +324,21 @@ export function useFeatureSelection() {
 
     if (features.length > 0) {
       analysisStore.setAnalysisStatus(`找到 ${features.length} 个要素，正在处理...`)
-      await featureQueryStore.applyUnifiedSelection(features)
+      // 区域侧仅维护自己的结果
+      selectionStore.setSelectedFeatures(features)
+      selectionStore.setSelectedFeatureIndex(-1)
+      // 在地图上高亮并标记来源为 area
+      await highlightFeaturesAsync(features.map(f => {
+        if (f._originalFeature && typeof f._originalFeature.set === 'function') {
+          try { f._originalFeature.set('sourceTag', 'area') } catch (_) {}
+        }
+        return f
+      }))
+      // 清空后首次框选：自动选中首项并触发滚动与高亮
+      if (selectionStore.selectedFeatures.length > 0) {
+        selectionStore.setSelectedFeatureIndex(0)
+        handleSelectFeature(0)
+      }
     } else {
       analysisStore.setAnalysisStatus('框选范围内没有找到要素')
     }
@@ -409,6 +421,7 @@ export function useFeatureSelection() {
           if (feature.layerName) {
             originalFeature.set('layerName', feature.layerName)
           }
+          try { originalFeature.set('sourceTag', 'area') } catch (_) {}
           source.addFeature(originalFeature)
         }
       }
@@ -648,22 +661,88 @@ export function useFeatureSelection() {
     if (mapStore.selectLayer && mapStore.selectLayer.getSource) {
       const source = mapStore.selectLayer.getSource()
       if (source) {
-        source.clear()
+        const feats = source.getFeatures?.() || []
+        feats.forEach((f: any) => {
+          if (f?.get && f.get('sourceTag') === 'area') {
+            source.removeFeature(f)
+          }
+        })
       }
     }
   }
 
-  // 清除选择
-  const clearSelection = () => {
-    // 清除常亮效果
-    if (highlightedFeature.value) {
-      removeHighlightFeature()
-      highlightedFeature.value = null
+  // 反选：基于当前已选要素所在图层进行反选
+  const invertSelectedLayer = () => {
+    // 推断目标图层：优先使用当前选择的首个要素的 layerName
+    const first = selectedFeatures.value[0]
+    const targetLayerName = first?.layerName
+    if (!targetLayerName) {
+      analysisStore.setAnalysisStatus('请先选择要操作的数据')
+      return
     }
 
-    selectionStore.clearSelection()
+    const layerInfo = mapStore.vectorLayers.find(l => l.name === targetLayerName)
+    if (!layerInfo || !layerInfo.layer) {
+      analysisStore.setAnalysisStatus('图层不存在或不可用')
+      return
+    }
+
+    const source = layerInfo.layer.getSource?.()
+    const selectSource = mapStore.selectLayer?.getSource?.()
+    if (!source || !selectSource) {
+      analysisStore.setAnalysisStatus('数据源不可用')
+      return
+    }
+
+    // 移除区域侧旧高亮
     clearMapSelection()
-    analysisStore.setAnalysisStatus('已清除所有选择')
+
+    // 计算未被选择的要素集合
+    const all = source.getFeatures?.() || []
+    const currentSelectedOriginals = selectedFeatures.value.map((r: any) => r._originalFeature || r)
+    const unselected: any[] = []
+    all.forEach((f: any) => {
+      const isSelected = currentSelectedOriginals.some((sf: any) => {
+        const sg = sf.getGeometry?.(); const fg = f.getGeometry?.()
+        if (sg && fg) return JSON.stringify(sg.getCoordinates()) === JSON.stringify(fg.getCoordinates())
+        return false
+      })
+      if (!isSelected) unselected.push(f)
+    })
+
+    // 高亮未选中的要素并标记来源
+    unselected.forEach(f => {
+      try { f.set('sourceTag', 'area') } catch (_) {}
+      try { f.set('layerName', targetLayerName) } catch (_) {}
+      selectSource.addFeature(f)
+    })
+
+    // 写入区域选择结果
+    const inverted = unselected.map((f: any) => ({
+      id: f.getId?.() || null,
+      properties: f.getProperties ? f.getProperties() : {},
+      geometry: f.getGeometry ? f.getGeometry() : null,
+      layerName: targetLayerName,
+      _originalFeature: f
+    }))
+    selectionStore.setSelectedFeatures(inverted)
+    selectionStore.setSelectedFeatureIndex(-1)
+
+    // 更新状态与滚动
+    analysisStore.setAnalysisStatus(`已反选图层 "${targetLayerName}"，更新选择列表`)
+    initAutoScroll()
+  }
+  // 清除选择（统一调用查询模块的清除逻辑，并清理后恢复交互与滚动绑定）
+  const clearSelection = () => {
+    // 先移除区域选择相关交互与监听
+    clearSelectionInteractions()
+    // 仅清区域侧高亮与本地状态
+    clearMapSelection()
+    selectionStore.clear()
+    // 恢复区域选择交互，确保清空后可继续框选/点击
+    setupSelectionInteractions()
+    // 重新绑定自动滚动容器
+    initAutoScroll()
   }
 
   // 初始化高亮已有要素
@@ -681,41 +760,30 @@ export function useFeatureSelection() {
 
   // 初始化自动滚动
   const initAutoScroll = () => {
-    const layerList = document.querySelector('.layer-list') as HTMLElement | null
-    if (layerList && !autoScrollInstance) {
+    const layerList = document.querySelector('.edit-tools-panel .layer-list') as HTMLElement | null
+    if (!layerList) return
+    if (!autoScrollInstance) {
       autoScrollInstance = createAutoScroll(layerList, {
         scrollBehavior: 'smooth',
         centerOnSelect: true,
         scrollOffset: 0
       })
-      
-      // 添加滚动监听器
       if (autoScrollInstance) {
         autoScrollInstance.addScrollListener(() => {})
+      }
+    } else if (typeof autoScrollInstance.getContainer === 'function' && typeof autoScrollInstance.replaceContainer === 'function') {
+      if (autoScrollInstance.getContainer() !== layerList) {
+        autoScrollInstance.replaceContainer(layerList)
       }
     }
   }
 
   // 自动滚动到选中的要素位置
   const scrollToSelectedFeature = async (index: number) => {
-    try {
-      // 确保自动滚动实例已初始化
-      if (!autoScrollInstance) {
-        initAutoScroll()
-      }
-      
-      if (autoScrollInstance) {
-        const success = await autoScrollInstance.scrollToIndex(index)
-        if (success) {
-          console.log(`成功滚动到索引 ${index}`)
-        } else {
-          console.error(`滚动到索引 ${index} 失败`)
-        }
-      } else {
-        console.error('自动滚动实例未初始化')
-      }
-    } catch (error) {
-      console.error('自动滚动失败:', error)
+    // 确保实例与容器绑定最新
+    initAutoScroll()
+    if (autoScrollInstance && typeof autoScrollInstance.scrollToIndex === 'function') {
+      await autoScrollInstance.scrollToIndex(index)
     }
   }
 
@@ -730,6 +798,7 @@ export function useFeatureSelection() {
     clearSelectionInteractions,
     handleSelectFeature,
     clearSelection,
+    invertSelectedLayer,
     triggerMapFeatureHighlight,
     removeHighlightFeature,
     initializeHighlightFeatures,

@@ -2,7 +2,8 @@ import { defineStore } from 'pinia'
 import { ref, reactive, computed } from 'vue'
 import { useAnalysisStore } from '@/stores/analysisStore'
 import { useMapStore } from '@/stores/mapStore'
-import { useSelectionStore } from '@/stores/selectionStore'
+ 
+import { useModeStateStore } from '@/stores/modeStateStore'
 import { createAutoScroll } from '@/utils/autoScroll'
 import type { QueryCondition, QueryConfig, FieldInfo } from '@/types/query'
 
@@ -16,7 +17,7 @@ interface FeatureLike {
 export const useFeatureQueryStore = defineStore('featureQuery', () => {
   const analysisStore = useAnalysisStore()
   const mapStore = useMapStore()
-  const selectionStore = useSelectionStore()
+  const modeStateStore = useModeStateStore()
 
   const selectedLayerId = ref<string>('')
   const queryResults = ref<any[]>([])
@@ -198,8 +199,8 @@ export const useFeatureQueryStore = defineStore('featureQuery', () => {
     return matched
   }
 
-  // 统一应用选择结果（供属性查询与区域选择共用）
-  const applyUnifiedSelection = async (features: any[]) => {
+  // 归一化并应用到查询结果（仅限查询模块内部）
+  const applyQuerySelection = async (features: any[]) => {
     if (!Array.isArray(features)) {
       return
     }
@@ -227,9 +228,8 @@ export const useFeatureQueryStore = defineStore('featureQuery', () => {
       }
     })
 
-    // 同步到状态与地图
+    // 同步到状态与地图（仅查询侧）
     queryResults.value = unique
-    selectionStore.setSelectedFeatures(unique)
     selectedFeatureIndex.value = -1
     highlightQueryResults()
     setupClickOnSelectedFeatures()
@@ -281,6 +281,8 @@ export const useFeatureQueryStore = defineStore('featureQuery', () => {
         })
         if (!exists) {
           if (feature.layerName) original.set('layerName', feature.layerName)
+          // 标记来源为查询
+          try { original.set('sourceTag', 'query') } catch (_) {}
           source.addFeature(original)
         }
       }
@@ -365,16 +367,31 @@ export const useFeatureQueryStore = defineStore('featureQuery', () => {
     mapStore.selectLayer.changed()
   }
 
+  const removeFeaturesByTagOrMatch = (tag: string, candidates: any[] = []) => {
+    if (!mapStore.selectLayer || !mapStore.selectLayer.getSource) return
+    const source = mapStore.selectLayer.getSource()
+    if (!source) return
+    const featuresOnLayer = source.getFeatures?.() || []
+    featuresOnLayer.forEach((f: any) => {
+      const isTagMatch = f?.get && f.get('sourceTag') === tag
+      const isGeomMatch = candidates.some((c: any) => isSameFeature(c._originalFeature || c, f))
+      if (isTagMatch || isGeomMatch) {
+        source.removeFeature(f)
+      }
+    })
+  }
+
   const highlightQueryResults = () => {
     if (queryResults.value.length === 0) return
     try {
-      if (mapStore.selectLayer && mapStore.selectLayer.getSource()) {
-        mapStore.selectLayer.getSource().clear()
-      }
+      removeFeaturesByTagOrMatch('query')
       const selectSource = mapStore.selectLayer?.getSource()
       if (selectSource) {
         queryResults.value.forEach((r: any) => {
-          if (r._originalFeature) selectSource.addFeature(r._originalFeature)
+          if (r._originalFeature) {
+            try { r._originalFeature.set('sourceTag', 'query') } catch (_) {}
+            selectSource.addFeature(r._originalFeature)
+          }
         })
       }
       setupClickOnSelectedFeatures()
@@ -397,18 +414,23 @@ export const useFeatureQueryStore = defineStore('featureQuery', () => {
 
   let autoScrollInstance: any = null
   const initAutoScroll = () => {
-    const resultList = document.querySelector('.query-results') as HTMLElement
-    if (resultList && !autoScrollInstance) {
+    const resultList = document.querySelector('.query-results') as HTMLElement | null
+    if (!resultList) return
+    if (!autoScrollInstance) {
       autoScrollInstance = createAutoScroll(resultList, {
         scrollBehavior: 'smooth',
         centerOnSelect: true,
         scrollOffset: 0
       })
+    } else if (typeof autoScrollInstance.getContainer === 'function' && typeof autoScrollInstance.replaceContainer === 'function') {
+      if (autoScrollInstance.getContainer() !== resultList) {
+        autoScrollInstance.replaceContainer(resultList)
+      }
     }
   }
   const scrollToSelectedFeature = async (index: number) => {
-    if (!autoScrollInstance) initAutoScroll()
-    if (autoScrollInstance) {
+    initAutoScroll()
+    if (autoScrollInstance && typeof autoScrollInstance.scrollToIndex === 'function') {
       try { await autoScrollInstance.scrollToIndex(index) } catch (_) {}
     }
   }
@@ -417,9 +439,7 @@ export const useFeatureQueryStore = defineStore('featureQuery', () => {
     if (!layerId) return
     const layer = mapStore.vectorLayers.find(l => l.id === layerId)
     if (!layer || !layer.layer) return
-    if (mapStore.selectLayer && mapStore.selectLayer.getSource()) {
-      mapStore.selectLayer.getSource().clear()
-    }
+    removeFeaturesByTagOrMatch('query', queryResults.value)
   }
 
   const invertSelectedLayer = (layerId: string) => {
@@ -429,7 +449,8 @@ export const useFeatureQueryStore = defineStore('featureQuery', () => {
     const source = layer.layer.getSource(); if (!source) return
     const all = source.getFeatures()
     const selectSource = mapStore.selectLayer?.getSource(); if (!selectSource) return
-    selectSource.clear()
+    // 仅清除查询侧高亮，避免影响区域侧
+    removeFeaturesByTagOrMatch('query')
     const currentSelected = queryResults.value.map((r: any) => r._originalFeature || r)
     const unselected: any[] = []
     all.forEach((f: any) => {
@@ -440,7 +461,11 @@ export const useFeatureQueryStore = defineStore('featureQuery', () => {
       })
       if (!isSelected) unselected.push(f)
     })
-    unselected.forEach(f => selectSource.addFeature(f))
+    unselected.forEach(f => {
+      try { f.set('sourceTag', 'query') } catch (_) {}
+      try { f.set('layerName', layer.name) } catch (_) {}
+      selectSource.addFeature(f)
+    })
     const inverted = unselected.map((f: any) => ({
       id: f.getId?.() || null,
       properties: f.getProperties ? f.getProperties() : {},
@@ -449,9 +474,29 @@ export const useFeatureQueryStore = defineStore('featureQuery', () => {
       _originalFeature: f
     }))
     queryResults.value = inverted
-    selectionStore.setSelectedFeatures(inverted)
     selectedFeatureIndex.value = -1
     setupClickOnSelectedFeatures()
+  }
+
+  // 清除：仅清查询侧选择、查询高亮与监听
+  const clearQuerySelection = () => {
+    removeFeaturesByTagOrMatch('query', queryResults.value)
+
+    queryResults.value = []
+    selectedFeatureIndex.value = -1
+    highlightedFeature.value = null
+
+    clearSelectionInteractions()
+
+    try {
+      modeStateStore.saveToolState('query', {
+        selectedLayerId: selectedLayerId.value,
+        queryConfig: { condition: { ...queryConfig.condition } },
+        queryResults: []
+      })
+    } catch (_) {}
+
+    analysisStore.setAnalysisStatus('已清空查询结果')
   }
 
   const executeQuery = async () => {
@@ -483,7 +528,7 @@ export const useFeatureQueryStore = defineStore('featureQuery', () => {
           _originalFeature: original
         }
       })
-      await applyUnifiedSelection(formatted)
+      await applyQuerySelection(formatted)
       const queryDesc = `${condition.fieldName} ${condition.operator} ${condition.value}`
       lastExecutedQuery.value = `前端查询: ${queryDesc}`
       analysisStore.setAnalysisStatus(`前端查询完成，找到 ${formatted.length} 个匹配要素`)
@@ -529,7 +574,8 @@ export const useFeatureQueryStore = defineStore('featureQuery', () => {
     clearSelectedLayer,
     invertSelectedLayer,
     isSameFeature,
-    applyUnifiedSelection
+    applyQuerySelection,
+    clearQuerySelection
   }
 })
 

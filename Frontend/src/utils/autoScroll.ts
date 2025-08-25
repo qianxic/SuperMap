@@ -25,6 +25,7 @@ class AutoScroll {
   private options: Required<AutoScrollOptions>
   private isInitialized: boolean = false
   private scrollListeners: Array<(scrollInfo: ScrollInfo) => void> = []
+  private boundHandleScroll: any
 
   constructor(container: HTMLElement, options: AutoScrollOptions = {}) {
     this.container = container
@@ -53,7 +54,8 @@ class AutoScroll {
     this.container.style.position = 'relative'
     
     // 添加滚动事件监听
-    this.container.addEventListener('scroll', this.handleScroll.bind(this))
+    this.boundHandleScroll = this.handleScroll.bind(this)
+    this.container.addEventListener('scroll', this.boundHandleScroll)
     
     this.isInitialized = true
     return true
@@ -358,7 +360,7 @@ class AutoScroll {
   private waitForNextTick(): Promise<void> {
     return new Promise(resolve => {
       if (typeof requestAnimationFrame !== 'undefined') {
-        requestAnimationFrame(resolve)
+        requestAnimationFrame(() => resolve())
       } else {
         setTimeout(resolve, 0)
       }
@@ -381,11 +383,32 @@ class AutoScroll {
    */
   destroy(): void {
     if (this.container) {
-      this.container.removeEventListener('scroll', this.handleScroll.bind(this))
+      if (this.boundHandleScroll) {
+        this.container.removeEventListener('scroll', this.boundHandleScroll)
+      }
     }
     
     this.scrollListeners = []
     this.isInitialized = false
+  }
+
+  /**
+   * 获取当前容器
+   */
+  getContainer(): HTMLElement {
+    return this.container
+  }
+
+  /**
+   * 替换容器并重新初始化
+   */
+  replaceContainer(newContainer: HTMLElement): void {
+    if (!newContainer || newContainer === this.container) {
+      return
+    }
+    this.destroy()
+    this.container = newContainer
+    this.init()
   }
 }
 

@@ -15,7 +15,7 @@ const router = createRouter({
     // 根路径重定向到登录页
     {
       path: '/',
-      redirect: '/login'
+      redirect: '/dashboard/llm'
     },
     // 登录页面 - 不需要认证
     {
@@ -70,14 +70,7 @@ const router = createRouter({
         // 默认子路由 - 根据状态管理决定重定向
         {
           path: '',
-          redirect: (to) => {
-            // 从localStorage获取上次的模式状态
-            const savedMode = localStorage.getItem('currentMode')
-            if (savedMode === 'traditional') {
-              return '/dashboard/traditional'
-            }
-            return '/dashboard/llm'
-          }
+          redirect: '/dashboard/llm'
         },
         // LLM模式
         {
@@ -104,7 +97,7 @@ const router = createRouter({
               // 传统模式默认子路由 - 根据状态管理决定重定向
               {
                 path: '',
-                redirect: (to) => {
+                redirect: () => {
                   // 从localStorage获取上次的工具状态
                   const savedState = localStorage.getItem('traditionalModeState')
                   if (savedState) {
@@ -209,7 +202,7 @@ const router = createRouter({
  * 全局路由守卫
  * 在每次路由跳转前执行，用于权限控制和页面重定向
  */
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
   // 检查用户是否已登录（通过localStorage中的authToken判断）
   const isLoggedIn = localStorage.getItem('authToken')
   
@@ -219,7 +212,7 @@ router.beforeEach((to, from, next) => {
   } 
   // 如果已登录用户访问登录页或注册页，重定向到仪表板
   else if ((to.path === '/login' || to.path === '/register') && isLoggedIn) {
-    next('/dashboard')
+    next('/dashboard/llm')
   } 
   // 其他情况正常跳转
   else {

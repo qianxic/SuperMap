@@ -49,6 +49,10 @@
       <div class="section-title">选择操作</div>
       <div class="button-column">
         <SecondaryButton 
+          text="反选当前要素"
+          @click="invertSelectedLayer"
+        />
+        <SecondaryButton 
           text="清除选择"
           variant="danger"
           @click="clearSelection"
@@ -81,6 +85,7 @@ const {
   selectedFeatures,
   selectedFeatureIndex,
   clearSelection,
+  invertSelectedLayer,
   handleSelectFeature,
   setupSelectionInteractions,
   clearSelectionInteractions,

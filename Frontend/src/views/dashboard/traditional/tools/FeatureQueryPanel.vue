@@ -21,7 +21,6 @@
     <div class="analysis-section no-theme-flicker" v-if="layerFields.length > 0">
       <div class="section-title">
         数据字段结构 ({{ layerFields.length }}个字段)
-        <span class="field-hint">选择字段后将自动复制名称</span>
       </div>
       <div class="fields-info">
         <div class="fields-header">
@@ -35,8 +34,8 @@
             v-for="field in layerFields" 
             :key="field.name"
             class="field-item"
-            @click="copyFieldName(field.name)"
-            :title="`点击复制字段名: ${field.name}`"
+            :class="{ active: selectedFieldName === field.name }"
+            @click="selectFieldName(field.name)"
           >
             <span class="field-name">{{ field.name }}</span>
             <span class="field-type" :class="getFieldTypeClass(field.type)">{{ field.type }}</span>
@@ -119,7 +118,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, watch } from 'vue'
+import { computed, onMounted, onUnmounted, watch, ref } from 'vue'
 import { useAnalysisStore } from '@/stores/analysisStore.ts'
 import { useFeatureQueryStore } from '@/stores/featureQueryStore.ts'
 import { useModeStateStore } from '@/stores/modeStateStore.ts'
@@ -129,12 +128,12 @@ import PanelWindow from '@/components/UI/PanelWindow.vue'
 import TipWindow from '@/components/UI/TipWindow.vue'
 import QueryConditionRow from '@/components/UI/QueryConditionRow.vue'
 import type { QueryCondition } from '@/types/query'
-import { useMapStore } from '@/stores/mapStore.ts'
+ 
 
 const analysisStore = useAnalysisStore()
 const featureQuery = useFeatureQueryStore()
 const modeStateStore = useModeStateStore()
-const mapStore = useMapStore()
+ 
 
 // 状态管理
 const selectedLayerId = computed({
@@ -144,6 +143,7 @@ const selectedLayerId = computed({
 
 const queryResults = computed(() => featureQuery.queryResults)
 const layerFields = computed(() => featureQuery.layerFields)
+const selectedFieldName = ref<string>('')
 const queryConfig = computed(() => featureQuery.queryConfig)
 const isQuerying = computed(() => featureQuery.isQuerying)
 const selectedFeatureIndex = computed(() => featureQuery.selectedFeatureIndex)
@@ -329,14 +329,8 @@ const getFieldTypeClass = (type: string): string => {
 }
 
 // 复制字段名到剪贴板
-const copyFieldName = async (fieldName: string) => {
-  try {
-    await navigator.clipboard.writeText(fieldName)
-    analysisStore.setAnalysisStatus(`已复制字段名: ${fieldName}`)
-  } catch (error) {
-    console.error('复制字段名失败:', error)
-    analysisStore.setAnalysisStatus('复制字段名失败')
-  }
+const selectFieldName = (fieldName: string) => {
+  selectedFieldName.value = fieldName
 }
 
 // 查询条件管理
@@ -427,28 +421,9 @@ const invertSelectedLayer = () => {
   }
 }
 
-// 清空查询结果
+// 清空查询结果（统一清除）
 const clearQueryResults = () => {
-  // 清空查询结果数组
-  featureQuery.queryResults = []
-  
-  // 同时清空地图上的高亮显示
-  if (mapStore.selectLayer && mapStore.selectLayer.getSource()) {
-    mapStore.selectLayer.getSource().clear()
-  }
-  
-  // 清除点击事件监听
-  featureQuery.clearSelectionInteractions()
-  
-  // 重置选中要素索引
-  featureQuery.selectedFeatureIndex = -1
-  
-  // 清空选择状态
-  if (featureQuery.highlightedFeature) {
-    featureQuery.removeHighlightFeature()
-  }
-  
-  analysisStore.setAnalysisStatus('已清空查询结果')
+  featureQuery.clearQuerySelection()
 }
 
 
@@ -612,6 +587,11 @@ const clearQueryResults = () => {
   font-size: 12px;
   background: var(--panel);
   transition: background-color 0.2s ease;
+}
+
+.field-item.active {
+  background: var(--surface-hover);
+  border-left: 2px solid var(--accent);
 }
 
 .field-item:hover {
