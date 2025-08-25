@@ -29,9 +29,9 @@
       </div>
     </div>
 
-    <!-- 要素详细信息 -->
+    <!-- 要素信息 -->
     <div class="analysis-section" v-if="selectedFeatureIndex !== -1 && selectedFeatures[selectedFeatureIndex]">
-      <div class="section-title">要素详细信息</div>
+      <div class="section-title">要素信息</div>
       <div class="feature-details">
         <div 
           v-for="(item, index) in selectedFeatureInfo" 
@@ -84,6 +84,7 @@ const {
   handleSelectFeature,
   setupSelectionInteractions,
   clearSelectionInteractions,
+  initAutoScroll,
   getFeatureType,
   getFeatureCoords,
   getFeatureGeometryInfo
@@ -132,6 +133,11 @@ watch(() => analysisStore.toolPanel?.activeTool, (tool) => {
 // 组件挂载时设置交互
 onMounted(() => {
   setupSelectionInteractions()
+  
+  // 延迟初始化自动滚动，确保DOM已渲染
+  setTimeout(() => {
+    initAutoScroll()
+  }, 100)
 })
 
 // 组件卸载时清理 - 只清除交互，保持要素选择

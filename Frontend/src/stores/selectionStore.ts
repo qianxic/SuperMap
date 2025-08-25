@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import type { QueryConfig } from '@/types/query'
 
 export type SelectionMode = 'single' | 'area'
 
@@ -13,6 +14,16 @@ const useSelectionStore = defineStore('selection', () => {
   
   // 高亮要素
   const highlightedFeature = ref<any>(null)
+
+  // 按属性查询的持久化状态
+  const querySelectedLayerId = ref<string>('')
+  const queryConfig = ref<QueryConfig>({
+    condition: {
+      fieldName: '',
+      operator: 'eq',
+      value: ''
+    }
+  })
   
   // 计算属性
   const hasSelectedFeatures = computed(() => selectedFeatures.value.length > 0)
@@ -64,6 +75,15 @@ const useSelectionStore = defineStore('selection', () => {
       selectedFeatures.value[index] = feature
     }
   }
+
+  // 按属性查询：设置/获取图层与条件
+  function setQuerySelectedLayerId(layerId: string) {
+    querySelectedLayerId.value = layerId
+  }
+
+  function setQueryConfig(config: QueryConfig) {
+    queryConfig.value = config
+  }
   
   return {
     // 状态
@@ -71,6 +91,8 @@ const useSelectionStore = defineStore('selection', () => {
     selectedFeatures,
     selectedFeatureIndex,
     highlightedFeature,
+    querySelectedLayerId,
+    queryConfig,
     
     // 计算属性
     hasSelectedFeatures,
@@ -84,7 +106,9 @@ const useSelectionStore = defineStore('selection', () => {
     setHighlightedFeature,
     clearSelection,
     removeSelectedFeature,
-    updateSelectedFeature
+    updateSelectedFeature,
+    setQuerySelectedLayerId,
+    setQueryConfig
   }
 })
 

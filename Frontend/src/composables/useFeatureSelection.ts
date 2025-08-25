@@ -2,6 +2,7 @@ import { ref, computed, nextTick } from 'vue'
 import { useMapStore } from '@/stores/mapStore'
 import { useAnalysisStore } from '@/stores/analysisStore'
 import { useSelectionStore } from '@/stores/selectionStore'
+import { createAutoScroll } from '@/utils/autoScroll'
 
 const ol = window.ol
 
@@ -742,37 +743,49 @@ export function useFeatureSelection() {
     }
   }
 
-  // 自动滚动到选中的要素位置
-  const scrollToSelectedFeature = (index: number) => {
-    nextTick(() => {
-      try {
-        const layerList = document.querySelector('.layer-list')
-        if (!layerList) return
+  // 自动滚动实例
+  let autoScrollInstance: any = null
 
-        const selectedElement = layerList.children[index] as HTMLElement
-        if (!selectedElement) return
-
-        // 计算滚动位置
-        const containerHeight = layerList.clientHeight
-        const elementTop = selectedElement.offsetTop
-        const elementHeight = selectedElement.offsetHeight
-
-        // 计算目标滚动位置，让选中元素居中显示
-        const targetScrollTop = elementTop - (containerHeight / 2) + (elementHeight / 2)
-
-        // 确保滚动位置在有效范围内
-        const maxScrollTop = layerList.scrollHeight - containerHeight
-        const finalScrollTop = Math.max(0, Math.min(targetScrollTop, maxScrollTop))
-
-        // 平滑滚动到目标位置
-        layerList.scrollTo({
-          top: finalScrollTop,
-          behavior: 'smooth'
+  // 初始化自动滚动
+  const initAutoScroll = () => {
+    const layerList = document.querySelector('.layer-list')
+    if (layerList && !autoScrollInstance) {
+      autoScrollInstance = createAutoScroll(layerList, {
+        scrollBehavior: 'smooth',
+        centerOnSelect: true,
+        scrollOffset: 0
+      })
+      
+      // 添加滚动监听器
+      if (autoScrollInstance) {
+        autoScrollInstance.addScrollListener((scrollInfo: any) => {
+          console.log('滚动信息:', scrollInfo)
         })
-      } catch (error) {
-        console.error('自动滚动失败:', error)
       }
-    })
+    }
+  }
+
+  // 自动滚动到选中的要素位置
+  const scrollToSelectedFeature = async (index: number) => {
+    try {
+      // 确保自动滚动实例已初始化
+      if (!autoScrollInstance) {
+        initAutoScroll()
+      }
+      
+      if (autoScrollInstance) {
+        const success = await autoScrollInstance.scrollToIndex(index)
+        if (success) {
+          console.log(`成功滚动到索引 ${index}`)
+        } else {
+          console.error(`滚动到索引 ${index} 失败`)
+        }
+      } else {
+        console.error('自动滚动实例未初始化')
+      }
+    } catch (error) {
+      console.error('自动滚动失败:', error)
+    }
   }
 
   return {
@@ -790,6 +803,7 @@ export function useFeatureSelection() {
     removeHighlightFeature,
     initializeHighlightFeatures,
     scrollToSelectedFeature,
+    initAutoScroll,
     
     // 内部方法（可选择性暴露）
     selectFeaturesInExtent,

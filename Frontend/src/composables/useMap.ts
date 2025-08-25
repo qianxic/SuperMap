@@ -826,7 +826,7 @@ export function useMap() {
 
       return new Promise((resolve, reject) => {
         featureService.getFeaturesByGeometry(getFeaturesByGeometryParams, (serviceResult: any) => {
-      // 要素信息查询 - 从SuperMap iServer FeatureService获取要素详细信息
+      // 要素信息查询 - 从SuperMap iServer FeatureService获取要素信息
       // 端点: http://localhost:8090/iserver/services/data-WuHan/rest/data/datasources/wuhan/datasets/武汉_县级/features.json
       // 目的: 根据几何条件查询要素，获取要素的详细属性信息
       console.log(`=== 图层 ${layerName} 要素信息查询 ===`);
@@ -1033,12 +1033,48 @@ export function useMap() {
     await handleNormalClick(evt, selectSource)
   }
 
+  // 触发查询要素选择
+  const triggerQueryFeatureSelection = async (clickedFeature: any) => {
+    try {
+      // 查找点击的要素在查询结果中的索引
+      const { useFeatureQuery } = await import('@/composables/useFeatureQuery')
+      const featureQuery = useFeatureQuery()
+      
+      const queryResults = featureQuery.queryResults.value
+      const selectedIndex = queryResults.findIndex((result: any) => {
+        const resultGeometry = result.getGeometry?.() || result.geometry
+        const clickedGeometry = clickedFeature.getGeometry()
+        
+        if (resultGeometry && clickedGeometry) {
+          const resultCoords = resultGeometry.getCoordinates?.() || resultGeometry.coordinates
+          const clickedCoords = clickedGeometry.getCoordinates()
+          
+          if (resultCoords && clickedCoords) {
+            return JSON.stringify(resultCoords) === JSON.stringify(clickedCoords)
+          }
+        }
+        return false
+      })
+      
+      if (selectedIndex !== -1) {
+        // 触发查询结果列表中的要素选择
+        featureQuery.handleSelectFeature(selectedIndex)
+        analysisStore.setAnalysisStatus(`已选择查询结果中的要素 ${selectedIndex + 1}`)
+      }
+    } catch (error) {
+      console.error('触发查询要素选择时出错:', error)
+    }
+  }
+
   const handleNormalClick = async (evt: any, selectSource: any): Promise<void> => {
     const map = evt.map;
     const coordinate = evt.coordinate;
     
     // 检查是否处于编辑工具状态（按区域选择要素工具）
     const isEditToolActive = analysisStore.toolPanel?.activeTool === 'bianji';
+    
+    // 检查是否处于查询工具状态（按属性选择要素工具）
+    const isQueryToolActive = analysisStore.toolPanel?.activeTool === 'query';
     
     // 首先检查是否点击到了已加载的要素
     const feature = map.forEachFeatureAtPixel(
@@ -1056,41 +1092,47 @@ export function useMap() {
       }
     );
 
-    // 只有在非编辑工具状态下才清除选择
-    if (!isEditToolActive) {
+    // 只有在非编辑工具状态且非查询工具状态下才清除选择
+    if (!isEditToolActive && !isQueryToolActive) {
       selectSource.clear();
       selectionStore.clearSelection();
     }
 
-    if (feature) {
-      // 检查是否处于编辑工具状态
-      if (isEditToolActive) {
-        // 编辑工具状态：检查点击的要素是否已经在区域选择列表中
-        const isInSelectedFeatures = selectionStore.selectedFeatures.some((selectedFeature: any) => {
-          // 比较要素是否相同
-          const selectedGeometry = selectedFeature.getGeometry?.() || selectedFeature.geometry;
-          const clickedGeometry = feature.getGeometry();
-          
-          if (selectedGeometry && clickedGeometry) {
-            const selectedCoords = selectedGeometry.getCoordinates?.() || selectedGeometry.coordinates;
-            const clickedCoords = clickedGeometry.getCoordinates();
+          if (feature) {
+        // 检查是否处于编辑工具状态或查询工具状态
+        if (isEditToolActive || isQueryToolActive) {
+          // 检查点击的要素是否已经在选择列表中
+          const isInSelectedFeatures = selectionStore.selectedFeatures.some((selectedFeature: any) => {
+            // 比较要素是否相同
+            const selectedGeometry = selectedFeature.getGeometry?.() || selectedFeature.geometry;
+            const clickedGeometry = feature.getGeometry();
             
-            if (selectedCoords && clickedCoords) {
-              return JSON.stringify(selectedCoords) === JSON.stringify(clickedCoords);
+            if (selectedGeometry && clickedGeometry) {
+              const selectedCoords = selectedGeometry.getCoordinates?.() || selectedGeometry.coordinates;
+              const clickedCoords = clickedGeometry.getCoordinates();
+              
+              if (selectedCoords && clickedCoords) {
+                return JSON.stringify(selectedCoords) === JSON.stringify(clickedCoords);
+              }
             }
+            return false;
+          });
+          
+          if (isInSelectedFeatures) {
+            // 如果点击的是已选择的要素，允许处理
+            if (isEditToolActive) {
+              console.log('点击了已选择的要素，由区域选择功能处理');
+            } else if (isQueryToolActive) {
+              console.log('点击了已选择的要素，由查询功能处理');
+              // 触发查询结果列表中的对应要素选择
+              await triggerQueryFeatureSelection(feature);
+            }
+          } else {
+            // 如果点击的是未选择的要素，不进行任何操作
+            console.log('点击了未选择的要素，忽略操作');
+            return;
           }
-          return false;
-        });
-        
-        if (isInSelectedFeatures) {
-          // 如果点击的是已选择的要素，允许处理（由 useFeatureSelection 处理）
-          console.log('点击了已选择的要素，由区域选择功能处理');
         } else {
-          // 如果点击的是未选择的要素，不进行任何操作
-          console.log('点击了未选择的要素，忽略操作');
-          return;
-        }
-      } else {
         // 非编辑工具状态：正常处理要素点击
         console.log('选中要素:', feature);
         console.log('要素几何类型:', feature.getGeometry()?.getType());

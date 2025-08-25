@@ -1,7 +1,7 @@
 <template>
   <div class="screen-header">
     <div class="header-left">
-      <div class="screen-title">基于RAG的A2A智慧城市管理分析平台</div>
+      <div class="screen-title">基于LLM的A2A智慧城市管理分析平台</div>
     </div>
     
           <div class="header-right">

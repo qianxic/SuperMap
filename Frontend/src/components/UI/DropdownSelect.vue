@@ -7,7 +7,7 @@
       @blur="closeDropdown"
       tabindex="0"
     >
-      <span class="dropdown-value">
+      <span class="dropdown-value" :class="{ 'placeholder': !displayValue }">
         {{ displayValue || placeholder }}
       </span>
     </div>
@@ -68,9 +68,9 @@ const options = computed(() => {
 });
 
 const displayValue = computed(() => {
-  if (!props.modelValue) return '';
+  if (props.modelValue === undefined || props.modelValue === null || props.modelValue === '') return '';
   const selectedOption = options.value.find(opt => opt.value === props.modelValue);
-  return selectedOption ? selectedOption.label : props.modelValue;
+  return selectedOption ? selectedOption.label : '';
 });
 
 const toggleDropdown = () => {
@@ -135,7 +135,7 @@ onUnmounted(() => {
 .dropdown-select {
   width: 100%;
   padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
   color: var(--text);
@@ -158,7 +158,7 @@ onUnmounted(() => {
 
 .dropdown-select:hover:not(.dropdown-disabled) {
   border-color: var(--border);
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--surface-hover);
 }
 
 .dropdown-disabled {
@@ -171,9 +171,8 @@ onUnmounted(() => {
   color: var(--text);
 }
 
-.dropdown-value:empty::before {
-  content: attr(data-placeholder);
-  color: var(--border);
+.dropdown-value.placeholder {
+  color: var(--sub);
   opacity: 0.7;
 }
 
@@ -211,7 +210,7 @@ onUnmounted(() => {
   color: var(--text);
   font-size: 12px;
   cursor: pointer;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--divider);
 }
 
 .dropdown-option:last-child {
@@ -219,12 +218,12 @@ onUnmounted(() => {
 }
 
 .dropdown-option:hover:not(.option-disabled) {
-  background: #f5f5f5;
+  background: var(--surface-hover);
   color: var(--text);
 }
 
 .dropdown-option.option-selected {
-  background: transparent;
+  background: var(--selection-bg);
   color: var(--text);
 }
 
@@ -240,16 +239,16 @@ onUnmounted(() => {
 }
 
 .dropdown-options::-webkit-scrollbar-track {
-  background: rgba(200, 200, 200, 0.1);
+  background: var(--scrollbar-track, rgba(200, 200, 200, 0.1));
   border-radius: 1.5px;
 }
 
 .dropdown-options::-webkit-scrollbar-thumb {
-  background: rgba(150, 150, 150, 0.3);
+  background: var(--scrollbar-thumb, rgba(150, 150, 150, 0.3));
   border-radius: 1.5px;
 }
 
 .dropdown-options::-webkit-scrollbar-thumb:hover {
-  background: rgba(150, 150, 150, 0.5);
+  background: var(--scrollbar-thumb-hover, rgba(150, 150, 150, 0.5));
 }
 </style>

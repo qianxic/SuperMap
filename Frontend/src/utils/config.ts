@@ -9,7 +9,7 @@ export const createAPIConfig = (): APIConfig => {
     baseUrl: baseUrl.replace(/\/$/, ''), // 移除末尾斜杠
     mapService,
     dataService,
-    datasetName: import.meta.env.VITE_SUPERMAP_DATASET_NAME || '武汉_县级@wuhan@@武汉',
+    datasetName: import.meta.env.VITE_SUPERMAP_DATASET_NAME || '',
     // 底图配置 - 根据主题自动切换
     baseMaps: {
       light: 'https://www.supermapol.com/proxy/gqzvimgx/iserver/services/map_china-1-_331nhzuk/rest/maps/China_Light?prjCoordSys=%7B%22epsgCode%22:4326%7D',

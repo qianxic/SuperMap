@@ -24,6 +24,30 @@ export function useLayerManager() {
       const layerId = feature.get('layerName') || 
                      (feature.getProperties ? feature.getProperties().layerName : null) ||
                      (feature.properties ? feature.properties.layerName : null)
+      
+      // 如果没有layerName属性，尝试通过图层ID匹配
+      if (!layerId) {
+        // 检查要素是否来自当前隐藏的图层
+        const layerInfo = mapStore.vectorLayers.find(l => l.name === layerName)
+        if (layerInfo && layerInfo.layer) {
+          const layerSource = layerInfo.layer.getSource()
+          if (layerSource) {
+            const layerFeatures = layerSource.getFeatures()
+            return layerFeatures.some((lf: any) => {
+              // 通过几何坐标比较来判断是否为同一要素
+              const lfGeom = lf.getGeometry()
+              const featureGeom = feature.getGeometry()
+              if (lfGeom && featureGeom) {
+                const lfCoords = JSON.stringify(lfGeom.getCoordinates())
+                const featureCoords = JSON.stringify(featureGeom.getCoordinates())
+                return lfCoords === featureCoords
+              }
+              return false
+            })
+          }
+        }
+      }
+      
       return layerId === layerName
     })
 
@@ -68,7 +92,7 @@ export function useLayerManager() {
     console.log(`图层 ${layerName} 的选择状态清除完成`)
   }
 
-  const toggleLayerVisibility = (layerId: string) => {
+  const toggleLayerVisibility = async (layerId: string) => {
     const layerInfo = mapStore.vectorLayers.find(l => l.id === layerId)
     if (layerInfo && layerInfo.layer) {
       const currentVisibility = layerInfo.layer.getVisible()
@@ -81,14 +105,23 @@ export function useLayerManager() {
         console.log(`图层 ${layerInfo.name} 被隐藏，立即清除相关选择状态`)
         clearLayerSelection(layerInfo.name)
         
-        // 调用通用清除逻辑，确保完全清除选择状态
+        // 强制清除所有选择状态，确保完全清除
         if (mapStore.selectLayer && mapStore.selectLayer.getSource()) {
           mapStore.selectLayer.getSource().clear()
         }
         selectionStore.clearSelection()
         
-        // 调用 clearSelection 方法以确保完整的清除逻辑
-        selectionStore.clearSelection()
+        // 清除查询结果（如果当前在查询工具中）
+        const { useFeatureQuery } = await import('@/composables/useFeatureQuery')
+        const featureQuery = useFeatureQuery()
+        if (featureQuery.queryResults && featureQuery.queryResults.value) {
+          featureQuery.queryResults.value = []
+        }
+        
+        // 重置选中要素索引
+        if (featureQuery.selectedFeatureIndex) {
+          featureQuery.selectedFeatureIndex.value = -1
+        }
       }
       
       // 设置图层可见性
