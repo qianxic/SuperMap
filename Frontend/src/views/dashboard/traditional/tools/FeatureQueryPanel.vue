@@ -72,7 +72,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useAnalysisStore } from '@/stores/analysisStore.ts'
-import { useMapStore } from '@/stores/mapStore.ts'
 import { useFeatureQuery } from '@/composables/useFeatureQuery.ts'
 import { useModeStateStore } from '@/stores/modeStateStore.ts'
 import DropdownSelect from '@/components/UI/DropdownSelect.vue'

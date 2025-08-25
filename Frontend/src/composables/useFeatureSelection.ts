@@ -1,26 +1,28 @@
 import { ref, computed, nextTick } from 'vue'
 import { useMapStore } from '@/stores/mapStore'
 import { useAnalysisStore } from '@/stores/analysisStore'
+import { useSelectionStore } from '@/stores/selectionStore'
 
 const ol = window.ol
 
 export function useFeatureSelection() {
   const mapStore = useMapStore()
   const analysisStore = useAnalysisStore()
+  const selectionStore = useSelectionStore()
 
   // 状态管理
   const boxSelectInteraction = ref<any>(null)
   const highlightedFeature = ref<any>(null)
 
-  // 选中要素列表（使用 mapStore 的持久化状态）
+  // 选中要素列表（使用 selectionStore 的状态）
   const selectedFeatures = computed({
-    get: () => mapStore.persistentSelectedFeatures,
-    set: (value) => mapStore.setPersistentSelectedFeatures(value)
+    get: () => selectionStore.selectedFeatures,
+    set: (value) => selectionStore.setSelectedFeatures(value)
   })
 
   const selectedFeatureIndex = computed({
-    get: () => mapStore.selectedFeatureIndex,
-    set: (value) => mapStore.setSelectedFeatureIndex(value)
+    get: () => selectionStore.selectedFeatureIndex,
+    set: (value) => selectionStore.setSelectedFeatureIndex(value)
   })
 
   // 几何计算函数
@@ -725,7 +727,7 @@ export function useFeatureSelection() {
       highlightedFeature.value = null
     }
 
-    mapStore.clearPersistentSelection()
+    selectionStore.clearSelection()
     clearMapSelection()
     analysisStore.setAnalysisStatus('已清除所有选择')
   }

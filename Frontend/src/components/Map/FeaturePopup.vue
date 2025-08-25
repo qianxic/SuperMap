@@ -1,6 +1,6 @@
 <template>
   <PanelWindow
-    :visible="mapStore.popupVisible"
+    :visible="popupStore.visible"
     title="要素信息"
     :width="175"
     :height="popupHeight"
@@ -11,18 +11,18 @@
     :focusable="true"
     :closeable="true"
     :resizable="true"
-    @close="mapStore.hidePopup"
+    @close="popupStore.hidePopup"
   >
-    <div class="popup-body" v-html="mapStore.popupContent"></div>
+    <div class="popup-body" v-html="popupStore.content"></div>
   </PanelWindow>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useMapStore } from '@/stores/mapStore.ts'
+import { usePopupStore } from '@/stores/popupStore'
 import PanelWindow from '@/components/UI/PanelWindow.vue'
 
-const mapStore = useMapStore()
+const popupStore = usePopupStore()
 
 // 计算弹窗高度为屏幕高度的1/4（缩小一半）
 const popupHeight = computed(() => {
@@ -36,11 +36,11 @@ const adjustedPosition = computed(() => {
   const popupWidth = 175 // 宽度缩小一半
   
   // 将弹窗放在鼠标位置的右侧
-  let x = mapStore.popupPosition.x + 10 // 鼠标位置右侧，留10px间距
-  let y = mapStore.popupPosition.y - popupHeight.value / 2 // 垂直居中于鼠标位置
+  let x = popupStore.position.x + 10 // 鼠标位置右侧，留10px间距
+  let y = popupStore.position.y - popupHeight.value / 2 // 垂直居中于鼠标位置
   
   // 确保弹窗不会超出屏幕边界
-  if (x + popupWidth > windowWidth) x = mapStore.popupPosition.x - popupWidth - 10 // 如果右侧放不下，放在左侧
+  if (x + popupWidth > windowWidth) x = popupStore.position.x - popupWidth - 10 // 如果右侧放不下，放在左侧
   if (x < 0) x = 0
   if (y < 0) y = 0
   if (y + popupHeight.value > windowHeight) y = windowHeight - popupHeight.value

@@ -18,8 +18,13 @@ user_router.include_router(user_profile_router)
 # 注册用户模块路由
 api_v1_router.include_router(user_router)
 
+# GIS分析模块路由组
+from app.api.v1.gis import gis_router
+
+# 注册GIS模块路由
+api_v1_router.include_router(gis_router)
+
 # TODO: 后续添加其他模块路由
-# gis_router = APIRouter(prefix="/gis", tags=["GIS分析"])
 # agent_router = APIRouter(prefix="/agent", tags=["智能体"])
 # knowledge_router = APIRouter(prefix="/knowledge", tags=["知识库"])
 # system_router = APIRouter(prefix="/system", tags=["系统管理"])

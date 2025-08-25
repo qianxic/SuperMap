@@ -190,7 +190,7 @@ watch(() => props.visible, async (visible) => {
 .panel-title { 
   font-size: 14px; 
   font-weight: 600; 
-  color: var(--text); 
+  color: var(--accent); 
   margin-bottom: 12px;
   display: flex;
   justify-content: space-between;

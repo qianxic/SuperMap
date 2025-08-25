@@ -1,5 +1,8 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useMapStore } from '@/stores/mapStore'
+import { useSelectionStore } from '@/stores/selectionStore'
+import { usePopupStore } from '@/stores/popupStore'
+import { useInteractionStore } from '@/stores/interactionStore'
 import { useAnalysisStore } from '@/stores/analysisStore'
 import { useLoadingStore } from '@/stores/loadingStore'
 import { useThemeStore } from '@/stores/themeStore'
@@ -12,6 +15,9 @@ const ol = window.ol;
 
 export function useMap() {
   let mapStore = useMapStore()
+  const selectionStore = useSelectionStore()
+  const popupStore = usePopupStore()
+  const interactionStore = useInteractionStore()
   const analysisStore = useAnalysisStore()
   const loadingStore = useLoadingStore()
   const themeStore = useThemeStore()
@@ -735,28 +741,6 @@ export function useMap() {
           `图层 ${layerName} 加载完成`,
           `共 ${features.length} 个要素\n总要素数: ${serviceResult.result.totalCount || '未知'}\n当前返回: ${serviceResult.result.currentCount || features.length}\n最大要素数: ${serviceResult.result.maxFeatures || '无限制'}\nfeatureCount: ${(serviceResult.result.featureCount ?? serviceResult.result.totalCount ?? serviceResult.result.currentCount ?? features.length) || 0}\n数据来源: SuperMap iServer\n服务器地址: ${mapStore.mapConfig.dataUrl}`
         );
-        
-        // 输出详细信息到控制台
-        console.log(`=== 图层 ${layerName} 加载完成详细信息 ===`);
-        console.log('图层名称:', layerName);
-        console.log('要素数量:', features.length);
-        console.log('总要素数:', serviceResult.result.totalCount);
-        console.log('当前返回数:', serviceResult.result.currentCount);
-        console.log('最大要素数:', serviceResult.result.maxFeatures);
-        console.log('数据来源服务器:', mapStore.mapConfig.dataUrl);
-        console.log('数据获取API:', 'SuperMap FeatureService GetFeaturesByBounds');
-        console.log('数据原始格式:', 'SuperMap内部格式');
-        console.log('数据转换格式:', 'GeoJSON');
-        console.log('数据转换工具:', 'SuperMap iServer自动转换');
-        console.log('完整API请求地址:', `${mapStore.mapConfig.dataUrl}/datasources/${datasource}/datasets/${dataset}/features.json`);
-        console.log('数据存储位置:', 'SuperMap iServer数据库');
-        console.log('数据服务类型:', 'RESTful FeatureService');
-      } else {
-        console.warn(`图层 ${layerName} 未获取到数据`);
-        notificationManager.warning(
-          `图层 ${layerName} 加载失败`,
-          '未获取到任何要素数据'
-        );
       }
     });
     
@@ -842,7 +826,7 @@ export function useMap() {
 
       return new Promise((resolve, reject) => {
         featureService.getFeaturesByGeometry(getFeaturesByGeometryParams, (serviceResult: any) => {
-                // 要素信息查询 - 从SuperMap iServer FeatureService获取要素详细信息
+      // 要素信息查询 - 从SuperMap iServer FeatureService获取要素详细信息
       // 端点: http://localhost:8090/iserver/services/data-WuHan/rest/data/datasources/wuhan/datasets/武汉_县级/features.json
       // 目的: 根据几何条件查询要素，获取要素的详细属性信息
       console.log(`=== 图层 ${layerName} 要素信息查询 ===`);
@@ -1001,10 +985,10 @@ export function useMap() {
   const setupMapEvents = (map: any, hoverSource: any, selectSource: any): void => {
     const view = map.getView()
     view.on('change:center', () => {
-      mapStore.updatePopupPosition()
+      popupStore.updatePosition(popupStore.position)
     })
     view.on('change:resolution', () => {
-      mapStore.updatePopupPosition()
+      popupStore.updatePosition(popupStore.position)
     })
     
     map.on('pointermove', (evt: any) => {
@@ -1072,56 +1056,81 @@ export function useMap() {
       }
     );
 
-    // 普通点击选择：清除所有选择，不保留几何选择
-    selectSource.clear();
-    mapStore.setSelectedFeature(null);
+    // 只有在非编辑工具状态下才清除选择
+    if (!isEditToolActive) {
+      selectSource.clear();
+      selectionStore.clearSelection();
+    }
 
     if (feature) {
-      // 如果点击到要素，添加到选择图层并显示其属性信息
-      console.log('选中要素:', feature);
-      console.log('要素几何类型:', feature.getGeometry()?.getType());
-      console.log('选择图层源:', selectSource);
-      console.log('选择图层:', mapStore.selectLayer);
-      
-      // 确定要素所属的图层名称
-      let layerName = '未知图层';
-      for (const layerInfo of mapStore.vectorLayers) {
-        if (layerInfo.layer && layerInfo.layer.getSource()) {
-          const source = layerInfo.layer.getSource();
-          const features = source.getFeatures();
-          if (features.includes(feature)) {
-            layerName = layerInfo.name;
-            break;
+      // 检查是否处于编辑工具状态
+      if (isEditToolActive) {
+        // 编辑工具状态：检查点击的要素是否已经在区域选择列表中
+        const isInSelectedFeatures = selectionStore.selectedFeatures.some((selectedFeature: any) => {
+          // 比较要素是否相同
+          const selectedGeometry = selectedFeature.getGeometry?.() || selectedFeature.geometry;
+          const clickedGeometry = feature.getGeometry();
+          
+          if (selectedGeometry && clickedGeometry) {
+            const selectedCoords = selectedGeometry.getCoordinates?.() || selectedGeometry.coordinates;
+            const clickedCoords = clickedGeometry.getCoordinates();
+            
+            if (selectedCoords && clickedCoords) {
+              return JSON.stringify(selectedCoords) === JSON.stringify(clickedCoords);
+            }
+          }
+          return false;
+        });
+        
+        if (isInSelectedFeatures) {
+          // 如果点击的是已选择的要素，允许处理（由 useFeatureSelection 处理）
+          console.log('点击了已选择的要素，由区域选择功能处理');
+        } else {
+          // 如果点击的是未选择的要素，不进行任何操作
+          console.log('点击了未选择的要素，忽略操作');
+          return;
+        }
+      } else {
+        // 非编辑工具状态：正常处理要素点击
+        console.log('选中要素:', feature);
+        console.log('要素几何类型:', feature.getGeometry()?.getType());
+        console.log('选择图层源:', selectSource);
+        console.log('选择图层:', mapStore.selectLayer);
+        
+        // 确定要素所属的图层名称
+        let layerName = '未知图层';
+        for (const layerInfo of mapStore.vectorLayers) {
+          if (layerInfo.layer && layerInfo.layer.getSource()) {
+            const source = layerInfo.layer.getSource();
+            const features = source.getFeatures();
+            if (features.includes(feature)) {
+              layerName = layerInfo.name;
+              break;
+            }
           }
         }
-      }
-      
-      // 设置要素的图层信息
-      feature.set('layerName', layerName);
-      
-      selectSource.addFeature(feature);
-      mapStore.setSelectedFeature(feature);
-      
-      // 普通点击选择：不更新持久化选中要素列表，只进行单次选择
-      
-      // 强制刷新选择图层
-      if (mapStore.selectLayer) {
-        mapStore.selectLayer.changed();
-      }
+        
+        // 设置要素的图层信息
+        feature.set('layerName', layerName);
+        
+        selectSource.addFeature(feature);
+        selectionStore.addSelectedFeature(feature);
+        
+        // 普通点击选择：不更新持久化选中要素列表，只进行单次选择
+        
+        // 强制刷新选择图层
+        if (mapStore.selectLayer) {
+          mapStore.selectLayer.changed();
+        }
 
-      // 只有在非编辑工具状态下才显示要素信息弹窗
-      if (!isEditToolActive) {
-        // 生成详细的要素属性信息 - 显示所有从数据服务中读取的数据
+        // 显示要素信息弹窗
         const properties = feature.getProperties();
         let content = '<div class="feature-info">';
         
-        // 显示要素基本信息
-        content += `<div class="feature-header">要素详细信息</div>`;
         content += `<div class="field-row"><span class="field-label">要素ID:</span><span class="field-value">${feature.getId() || '无'}</span></div>`;
         content += `<div class="field-row"><span class="field-label">几何类型:</span><span class="field-value">${feature.getGeometry()?.getType() || '未知'}</span></div>`;
         
         // 显示所有属性字段，包括空值
-        content += `<div class="feature-header">属性字段 (共${Object.keys(properties).filter(k => k !== 'geometry').length}个)</div>`;
         Object.keys(properties).forEach(key => {
           if (key !== 'geometry') {
             const value = properties[key];
@@ -1132,25 +1141,23 @@ export function useMap() {
         
         content += '</div>';
 
-        mapStore.showPopup(
+        popupStore.showPopup(
           { x: evt.pixel[0], y: evt.pixel[1] },
           content,
           feature,
           evt.coordinate
         );
-      } else {
-        // 编辑工具状态下，隐藏任何现有的弹窗
-        mapStore.hidePopup();
       }
     } else {
-      // 只有在非编辑工具状态下才查询和显示要素信息
+      // 点击空白区域的处理
       if (!isEditToolActive) {
-        // 如果没有点击到要素，清除选择状态并查询要素信息
-        mapStore.clearSelection();
+        // 非编辑工具状态：清除选择状态并查询要素信息
+        selectionStore.clearSelection();
         await queryFeaturesAtPoint(coordinate, evt.pixel);
       } else {
-        // 编辑工具状态下，隐藏任何现有的弹窗
-        mapStore.hidePopup();
+        // 编辑工具状态：只隐藏弹窗，不清除选择状态
+        popupStore.hidePopup();
+        // 保持区域选择的要素高亮状态
       }
     }
   }
@@ -1160,16 +1167,30 @@ export function useMap() {
     try {
       const allFeatures: any[] = [];
       
-      // 查询所有已加载的矢量图层
+      // 查询所有已加载的矢量图层，使用本地缓存数据
       for (const layerInfo of mapStore.vectorLayers) {
-        if (layerInfo.visible && layerInfo.source === 'supermap') {
-          const result = await getFeatureInfo(coordinate, layerInfo.id);
-          if (result.success && result.features.length > 0) {
-            result.features.forEach((feature: any) => {
-              allFeatures.push({
-                ...feature,
-                layerName: result.layerName
-              });
+        if (layerInfo.layer && layerInfo.layer.getVisible()) {
+          const source = layerInfo.layer.getSource();
+          if (source) {
+            const features = source.getFeatures();
+            
+            // 检查每个要素是否在点击位置附近
+            features.forEach((feature: any) => {
+              const geometry = feature.getGeometry();
+              if (geometry) {
+                // 使用点击坐标创建点几何，检查要素是否包含该点
+                const point = new ol.geom.Point(coordinate);
+                if (geometry.intersectsCoordinate(coordinate)) {
+                  allFeatures.push({
+                    id: feature.getId(),
+                    geometry: {
+                      type: geometry.getType()
+                    },
+                    properties: feature.getProperties(),
+                    layerName: layerInfo.name
+                  });
+                }
+              }
             });
           }
         }
@@ -1188,14 +1209,14 @@ export function useMap() {
           const zb = layerNameToZ[b.layerName] ?? 0;
           return zb - za;
         });
-        // 显示查询到的要素信息 - 显示所有从数据服务中读取的数据
+        
+        // 显示查询到的要素信息 - 使用本地缓存数据
         let content = '<div class="multi-feature-info">';
-        content += `<div class="feature-count">==============featureCount======================= ${allFeatures.length}</div>`;
+        content += `<div class="feature-count">找到 ${allFeatures.length} 个要素</div>`;
         
         allFeatures.forEach((feature, index) => {
           content += `<div class="feature-item">`;
           content += `<div class="feature-header">要素 ${index + 1} (${feature.layerName})</div>`;
-          content += `<div class="field-row"><span class="field-label">==============featureCount=======================</span><span class="field-value">1</span></div>`;
           
           // 显示要素基本信息
           content += `<div class="field-row"><span class="field-label">要素ID:</span><span class="field-value">${feature.id || '无'}</span></div>`;
@@ -1205,9 +1226,11 @@ export function useMap() {
           const properties = feature.properties || {};
           content += `<div class="field-row"><span class="field-label">属性字段数:</span><span class="field-value">${Object.keys(properties).length}个</span></div>`;
           Object.keys(properties).forEach(key => {
-            const value = properties[key];
-            const displayValue = value !== undefined && value !== null ? value : '(空值)';
-            content += `<div class="field-row"><span class="field-label">${key}:</span><span class="field-value">${displayValue}</span></div>`;
+            if (key !== 'geometry') {
+              const value = properties[key];
+              const displayValue = value !== undefined && value !== null ? value : '(空值)';
+              content += `<div class="field-row"><span class="field-label">${key}:</span><span class="field-value">${displayValue}</span></div>`;
+            }
           });
           
           content += '</div>';
@@ -1215,7 +1238,7 @@ export function useMap() {
         
         content += '</div>';
         
-        mapStore.showPopup(
+        popupStore.showPopup(
           { x: pixel[0], y: pixel[1] },
           content,
           null,
@@ -1223,11 +1246,11 @@ export function useMap() {
         );
       } else {
         // 没有找到要素，隐藏弹窗
-        mapStore.hidePopup();
+        popupStore.hidePopup();
       }
     } catch (error) {
       console.error('查询要素信息失败:', error);
-      mapStore.hidePopup();
+      popupStore.hidePopup();
     }
   }
 
@@ -1255,7 +1278,7 @@ export function useMap() {
   watch(() => analysisStore.toolPanel?.activeTool, (newTool) => {
     if (newTool === 'bianji') {
       // 当编辑工具激活时，隐藏要素信息弹窗
-      mapStore.hidePopup();
+      popupStore.hidePopup();
     }
   });
 
@@ -1290,7 +1313,6 @@ export function useMap() {
     cleanup,
     updateLayerStyles, // 导出样式更新函数
     createLayerStyle,  // 导出样式创建函数
-    getFeatureInfo,    // 导出要素信息查询函数
     getDatasetList,    // 导出数据集列表查询函数
     getDatasetInfo,    // 导出数据集信息查询函数
     queryFeaturesAtPoint // 导出点查询函数
