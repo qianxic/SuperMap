@@ -32,9 +32,10 @@
 </template>
 <!-- 面板窗口 -->
 <script setup lang="ts">
-import { computed, defineProps, defineEmits, withDefaults, ref, watch, nextTick } from 'vue'
+import { computed, defineProps, defineEmits, withDefaults, ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import type { CSSProperties } from 'vue'
 import SecondaryButton from './SecondaryButton.vue'
+import { useModeStateStore } from '@/stores/modeStateStore'
 
 const emit = defineEmits<{
   close: []
@@ -54,6 +55,7 @@ interface Props {
   zIndex?: number;
   focusable?: boolean;
   closeable?: boolean;
+  componentId?: string; // 可选：用于持久化布局
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -68,7 +70,8 @@ const props = withDefaults(defineProps<Props>(), {
   resizable: false,
   zIndex: 1300,
   focusable: false,
-  closeable: false
+  closeable: false,
+  componentId: undefined
 })
 
 const panelStyle = computed((): CSSProperties => {
@@ -121,6 +124,7 @@ const panelStyle = computed((): CSSProperties => {
 })
 
 const panelRef = ref<HTMLElement | null>(null)
+const modeStateStore = useModeStateStore()
 
 // 事件处理函数
 const handleClick = (event: Event) => {
@@ -157,6 +161,36 @@ watch(() => props.visible, async (visible) => {
     panelRef.value.focus()
   }
 }, { immediate: true })
+
+// 持久化：保存/恢复滚动位置与尺寸（仅当提供 componentId 时）
+const restoreLayout = () => {
+  if (!props.componentId || !panelRef.value) return
+  const layout = modeStateStore.getComponentLayout(props.componentId)
+  const content = panelRef.value.querySelector('.panel-content') as HTMLElement | null
+  if (content && typeof layout.scrollTop === 'number') {
+    content.scrollTop = layout.scrollTop
+  }
+}
+
+const saveLayout = () => {
+  if (!props.componentId || !panelRef.value) return
+  const content = panelRef.value.querySelector('.panel-content') as HTMLElement | null
+  const layout: Record<string, any> = {}
+  if (content) layout.scrollTop = content.scrollTop
+  modeStateStore.saveComponentLayout(props.componentId, layout)
+}
+
+onMounted(() => {
+  restoreLayout()
+  const content = panelRef.value?.querySelector('.panel-content') as HTMLElement | null
+  content?.addEventListener('scroll', saveLayout)
+})
+
+onUnmounted(() => {
+  saveLayout()
+  const content = panelRef.value?.querySelector('.panel-content') as HTMLElement | null
+  content?.removeEventListener('scroll', saveLayout)
+})
 </script>
 
 <style scoped>
@@ -190,7 +224,7 @@ watch(() => props.visible, async (visible) => {
 .panel-title { 
   font-size: 14px; 
   font-weight: 600; 
-  color: var(--text); 
+  color: var(--accent); 
   margin-bottom: 12px;
   display: flex;
   justify-content: space-between;

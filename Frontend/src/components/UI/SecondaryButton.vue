@@ -3,10 +3,12 @@
     class="btn"
     :class="[
       variant,
-      { active: isActive }
+      { active: isActive, loading: loading }
     ]"
+    :disabled="disabled || loading"
     @click="handleClick"
   >
+    <span v-if="loading" class="loading-spinner"></span>
     <slot>{{ text }}</slot>
   </button>
 </template>
@@ -25,6 +27,14 @@ const props = defineProps({
   active: {
     type: Boolean,
     default: false
+  },
+  disabled: {
+    type: Boolean,
+    default: false
+  },
+  loading: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -33,7 +43,9 @@ const emit = defineEmits(['click'])
 const isActive = props.active
 
 const handleClick = (event: MouseEvent) => {
-  emit('click', event)
+  if (!props.disabled && !props.loading) {
+    emit('click', event)
+  }
 }
 </script>
 
@@ -46,9 +58,22 @@ const handleClick = (event: MouseEvent) => {
   color: var(--btn-secondary-color); 
   font-size: 12px; 
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.btn:hover {
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn:hover:not(:disabled) {
   background: var(--btn-secondary-bg);
   border-color: var(--border);
   color: var(--btn-secondary-color);
@@ -62,7 +87,7 @@ const handleClick = (event: MouseEvent) => {
   border-color: var(--accent);
 }
 
-.btn.primary:hover {
+.btn.primary:hover:not(:disabled) {
   background: var(--accent);
   color: white;
   border-color: var(--accent);
@@ -81,7 +106,7 @@ const handleClick = (event: MouseEvent) => {
   border-color: #ff4757;
 }
 
-.btn.danger:hover {
+.btn.danger:hover:not(:disabled) {
   background: #ff3742;
   color: white;
   border-color: #ff3742;
@@ -101,5 +126,24 @@ const handleClick = (event: MouseEvent) => {
   color: white;
   border-color: #ff4757;
   box-shadow: none;
+}
+
+/* 加载动画 */
+.loading-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.btn.loading {
+  cursor: wait;
 }
 </style>

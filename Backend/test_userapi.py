@@ -21,8 +21,8 @@ TEST_USER = {
     "username": f"testuser_{int(datetime.now().timestamp())}",
     "email": f"test_{int(datetime.now().timestamp())}@example.com",
     "phone": f"138{int(datetime.now().timestamp()) % 100000000:08d}",
-    "password": "password123",
-    "confirm_password": "password123"
+    "password": "password",
+    "confirm_password": "password"
 }
 
 async def test_health_check():

@@ -11,10 +11,16 @@ from datetime import datetime
 from .models import UserModel
 from app.domains.user.repositories import UserRepository
 from app.domains.user.entities import UserEntity
+from app.domains.gis.repositories import (
+    LayerRepository, SpatialFeatureRepository, AnalysisResultRepository
+)
+from app.domains.gis.entities import (
+    Layer, SpatialFeature, AnalysisResult, SpatialExtent, GeometryType, AnalysisType
+)
 
 
 class PostgreSQLUserRepository(UserRepository):
-    """PostgreSQL用户仓储实现"""
+    """PostgreSQL用户(users)仓储实现"""
     
     def __init__(self, session: AsyncSession):
         self.session = session
@@ -211,3 +217,156 @@ class PostgreSQLUserRepository(UserRepository):
             updated_at=user_model.updated_at,  # type: ignore
             last_login=user_model.last_login  # type: ignore
         )
+
+
+class PostgreSQLLayerRepository(LayerRepository):
+    """PostgreSQL图层(layers)仓储实现
+    
+    注意: 此实现需要根据您实际制作的表结构进行调整
+    当前为占位实现，等待表结构完成后进行完善
+    """
+    
+    def __init__(self, session: AsyncSession):
+        self.session = session
+    
+    async def create(self, layer: Layer) -> Layer:
+        """创建图层"""
+        # TODO: 根据实际表结构实现
+        raise NotImplementedError("需要根据实际表结构实现")
+    
+    async def get_by_id(self, layer_id: UUID) -> Optional[Layer]:
+        """根据ID获取图层"""
+        # TODO: 根据实际表结构实现
+        raise NotImplementedError("需要根据实际表结构实现")
+    
+    async def get_by_name(self, name: str) -> Optional[Layer]:
+        """根据名称获取图层"""
+        # TODO: 根据实际表结构实现
+        raise NotImplementedError("需要根据实际表结构实现")
+    
+    async def get_all(self, skip: int = 0, limit: int = 100) -> List[Layer]:
+        """获取所有图层"""
+        # TODO: 根据实际表结构实现
+        raise NotImplementedError("需要根据实际表结构实现")
+    
+    async def update(self, layer: Layer) -> Layer:
+        """更新图层"""
+        # TODO: 根据实际表结构实现
+        raise NotImplementedError("需要根据实际表结构实现")
+    
+    async def delete(self, layer_id: UUID) -> bool:
+        """删除图层"""
+        # TODO: 根据实际表结构实现
+        raise NotImplementedError("需要根据实际表结构实现")
+    
+    async def update_extent(self, layer_id: UUID, extent: SpatialExtent) -> bool:
+        """更新图层空间范围"""
+        # TODO: 根据实际表结构实现
+        raise NotImplementedError("需要根据实际表结构实现")
+    
+    async def update_feature_count(self, layer_id: UUID, count: int) -> bool:
+        """更新图层要素数量"""
+        # TODO: 根据实际表结构实现
+        raise NotImplementedError("需要根据实际表结构实现")
+
+
+class PostgreSQLSpatialFeatureRepository(SpatialFeatureRepository):
+    """PostgreSQL空间要素(spatial_features)仓储实现
+    
+    注意: 此实现需要根据您实际制作的表结构进行调整
+    当前为占位实现，等待表结构完成后进行完善
+    """
+    
+    def __init__(self, session: AsyncSession):
+        self.session = session
+    
+    async def create(self, feature: SpatialFeature) -> SpatialFeature:
+        """创建空间要素"""
+        # TODO: 根据实际表结构实现
+        raise NotImplementedError("需要根据实际表结构实现")
+    
+    async def get_by_id(self, feature_id: UUID) -> Optional[SpatialFeature]:
+        """根据ID获取空间要素"""
+        # TODO: 根据实际表结构实现
+        raise NotImplementedError("需要根据实际表结构实现")
+    
+    async def get_by_layer_id(self, layer_id: UUID, skip: int = 0, limit: int = 1000) -> List[SpatialFeature]:
+        """根据图层ID获取空间要素"""
+        # TODO: 根据实际表结构实现
+        raise NotImplementedError("需要根据实际表结构实现")
+    
+    async def get_by_extent(self, layer_id: UUID, extent: SpatialExtent) -> List[SpatialFeature]:
+        """根据空间范围获取要素"""
+        # TODO: 根据实际表结构实现
+        raise NotImplementedError("需要根据实际表结构实现")
+    
+    async def get_by_geometry_type(self, layer_id: UUID, geometry_type: GeometryType) -> List[SpatialFeature]:
+        """根据几何类型获取要素"""
+        # TODO: 根据实际表结构实现
+        raise NotImplementedError("需要根据实际表结构实现")
+    
+    async def update(self, feature: SpatialFeature) -> SpatialFeature:
+        """更新空间要素"""
+        # TODO: 根据实际表结构实现
+        raise NotImplementedError("需要根据实际表结构实现")
+    
+    async def delete(self, feature_id: UUID) -> bool:
+        """删除空间要素"""
+        # TODO: 根据实际表结构实现
+        raise NotImplementedError("需要根据实际表结构实现")
+    
+    async def delete_by_layer_id(self, layer_id: UUID) -> bool:
+        """删除图层的所有要素"""
+        # TODO: 根据实际表结构实现
+        raise NotImplementedError("需要根据实际表结构实现")
+    
+    async def count_by_layer_id(self, layer_id: UUID) -> int:
+        """统计图层要素数量"""
+        # TODO: 根据实际表结构实现
+        raise NotImplementedError("需要根据实际表结构实现")
+    
+    async def get_extent_by_layer_id(self, layer_id: UUID) -> Optional[SpatialExtent]:
+        """获取图层空间范围"""
+        # TODO: 根据实际表结构实现
+        raise NotImplementedError("需要根据实际表结构实现")
+
+
+class PostgreSQLAnalysisResultRepository(AnalysisResultRepository):
+    """PostgreSQL分析结果(analysis_results)仓储实现
+    
+    注意: 此实现需要根据您实际制作的表结构进行调整
+    当前为占位实现，等待表结构完成后进行完善
+    """
+    
+    def __init__(self, session: AsyncSession):
+        self.session = session
+    
+    async def create(self, result: AnalysisResult) -> AnalysisResult:
+        """创建分析结果"""
+        # TODO: 根据实际表结构实现
+        raise NotImplementedError("需要根据实际表结构实现")
+    
+    async def get_by_id(self, result_id: UUID) -> Optional[AnalysisResult]:
+        """根据ID获取分析结果"""
+        # TODO: 根据实际表结构实现
+        raise NotImplementedError("需要根据实际表结构实现")
+    
+    async def get_by_analysis_type(self, analysis_type: AnalysisType, skip: int = 0, limit: int = 100) -> List[AnalysisResult]:
+        """根据分析类型获取结果"""
+        # TODO: 根据实际表结构实现
+        raise NotImplementedError("需要根据实际表结构实现")
+    
+    async def get_all(self, skip: int = 0, limit: int = 100) -> List[AnalysisResult]:
+        """获取所有分析结果"""
+        # TODO: 根据实际表结构实现
+        raise NotImplementedError("需要根据实际表结构实现")
+    
+    async def delete(self, result_id: UUID) -> bool:
+        """删除分析结果"""
+        # TODO: 根据实际表结构实现
+        raise NotImplementedError("需要根据实际表结构实现")
+    
+    async def delete_by_analysis_type(self, analysis_type: AnalysisType) -> bool:
+        """删除指定类型的分析结果"""
+        # TODO: 根据实际表结构实现
+        raise NotImplementedError("需要根据实际表结构实现")

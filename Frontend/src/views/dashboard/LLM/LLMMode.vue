@@ -13,11 +13,13 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted } from 'vue'
 import { useMapStore } from '@/stores/mapStore'
+import { useSelectionStore } from '@/stores/selectionStore'
 import { useModeStateStore } from '@/stores/modeStateStore'
 import ChatAssistant from './tools/ChatAssistant.vue'
 import PanelContainer from '@/components/UI/PanelContainer.vue'
 
 const mapStore = useMapStore()
+const selectionStore = useSelectionStore()
 const modeStateStore = useModeStateStore()
 
 const layersStatus = computed(() => {
@@ -26,7 +28,7 @@ const layersStatus = computed(() => {
 
 // 新增：计算选中要素状态
 const selectedFeaturesStatus = computed(() => {
-  const features = mapStore.persistentSelectedFeatures.map(feature => {
+  const features = selectionStore.selectedFeatures.map((feature: any) => {
     // 使用与EditTools.vue完全相同的几何类型获取逻辑
     const geometry = feature.geometry || feature.getGeometry?.();
     let geometryType = '未知';

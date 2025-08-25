@@ -9,6 +9,7 @@ from app.core.config import settings
 
 
 # 数据库引擎
+# 注意: 不包含自动建表功能，表结构由用户手动制作
 engine = create_async_engine(
     settings.database_url,
     echo=settings.debug,

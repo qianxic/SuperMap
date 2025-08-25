@@ -34,7 +34,30 @@
   --popup-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   --field-label-color: #6c757d;
   --field-value-color: #212529;
+  
+  /* Selection colors for light theme */
+  --selection-bg: rgba(0, 123, 255, 0.1);
+  
+  /* Field type colors for light theme */
+  --field-type-text-bg: rgba(52, 152, 219, 0.1);
+  --field-type-text-color: #3498db;
+  --field-type-number-bg: rgba(46, 204, 113, 0.1);
+  --field-type-number-color: #2ecc71;
+  --field-type-boolean-bg: rgba(155, 89, 182, 0.1);
+  --field-type-boolean-color: #9b59b6;
+  --field-type-date-bg: rgba(241, 196, 15, 0.1);
+  --field-type-date-color: #f1c40f;
+  --field-type-array-bg: rgba(230, 126, 34, 0.1);
+  --field-type-array-color: #e67e22;
+  --field-type-object-bg: rgba(231, 76, 60, 0.1);
+  --field-type-object-color: #e74c3c;
+  --field-type-null-bg: rgba(149, 165, 166, 0.1);
+  --field-type-null-color: #95a5a6;
+  --field-type-unknown-bg: rgba(52, 73, 94, 0.1);
+  --field-type-unknown-color: #34495e;
 }
+
+
 
 /* Windows-style dark theme */
 [data-theme="dark"] {
@@ -67,6 +90,24 @@
   
   /* Selection colors for dark theme */
   --selection-bg: rgba(0, 120, 212, 0.4);
+  
+  /* Field type colors for dark theme */
+  --field-type-text-bg: rgba(52, 152, 219, 0.2);
+  --field-type-text-color: #74b9ff;
+  --field-type-number-bg: rgba(46, 204, 113, 0.2);
+  --field-type-number-color: #55a3ff;
+  --field-type-boolean-bg: rgba(155, 89, 182, 0.2);
+  --field-type-boolean-color: #a29bfe;
+  --field-type-date-bg: rgba(241, 196, 15, 0.2);
+  --field-type-date-color: #fdcb6e;
+  --field-type-array-bg: rgba(230, 126, 34, 0.2);
+  --field-type-array-color: #fd79a8;
+  --field-type-object-bg: rgba(231, 76, 60, 0.2);
+  --field-type-object-color: #e17055;
+  --field-type-null-bg: rgba(149, 165, 166, 0.2);
+  --field-type-null-color: #b2bec3;
+  --field-type-unknown-bg: rgba(52, 73, 94, 0.2);
+  --field-type-unknown-color: #636e72;
   
   /* Map highlight colors for dark theme */
   --map-hover-fill: rgba(255, 255, 255, 0.06);
@@ -155,7 +196,6 @@
   border-radius: 6px !important;
   width: 28px !important;
   height: 28px !important;
-  transition: all 0.2s ease;
 }
 
 .ol-control button:hover {

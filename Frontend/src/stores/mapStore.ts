@@ -16,24 +16,8 @@ const useMapStore = defineStore('map', () => {
 
   const customLayers = ref<MapLayer[]>([])
   
-  // 悬停和选中要素
-  const hoveredFeature = ref<any>(null) // ol.Feature
-  const selectedFeature = ref<any>(null) // ol.Feature
-  
-  // 持久化的批量选择状态
-  const persistentSelectedFeatures = ref<any[]>([]) // 保持选择状态的要素数组
-  const selectedFeatureIndex = ref<number>(-1) // 当前选中要素的索引
-  
   // 鼠标坐标
   const currentCoordinate = ref<Coordinate>({ lon: null, lat: null })
-  
-  // 弹窗状态
-  const popupVisible = ref<boolean>(false)
-  const popupPosition = ref<{ x: number, y: number }>({ x: 0, y: 0 })
-  const popupContent = ref<string>('')
-  
-  const popupFeature = ref<any>(null) // ol.Feature
-  const popupCoordinate = ref<number[] | null>(null) // [lon, lat]
   
   // 计算属性
   const formattedCoordinate = computed(() => {
@@ -46,8 +30,7 @@ const useMapStore = defineStore('map', () => {
   const hasMapDiff = computed(() => {
     const hasCustomLayers = customLayers.value.length > 0
     const hasSelections = selectLayer.value && selectLayer.value.getSource() && selectLayer.value.getSource().getFeatures().length > 0
-    const hasPersistentSelections = persistentSelectedFeatures.value.length > 0
-    return hasCustomLayers || !!hasSelections || hasPersistentSelections
+    return hasCustomLayers || !!hasSelections
   })
   
   const createMapConfig = (): MapConfig => {
@@ -143,67 +126,6 @@ const useMapStore = defineStore('map', () => {
     }
   }
   
-  function setHoveredFeature(feature: any | null) { // ol.Feature
-    hoveredFeature.value = feature
-  }
-  
-  function setSelectedFeature(feature: any | null) { // ol.Feature
-    selectedFeature.value = feature
-  }
-  
-  function showPopup(position: {x: number, y: number}, content: string, feature: any | null = null, coordinate: number[] | null = null) {
-    popupPosition.value = position
-    popupContent.value = content
-    popupFeature.value = feature
-    popupCoordinate.value = coordinate
-    popupVisible.value = true
-  }
-  
-  function hidePopup() {
-    popupVisible.value = false
-    popupContent.value = ''
-    popupFeature.value = null
-    popupCoordinate.value = null
-  }
-  
-  function updatePopupPosition() {
-    if (popupVisible.value && popupCoordinate.value && map.value) {
-      const pixel = map.value.getPixelFromCoordinate(popupCoordinate.value)
-      if (pixel) {
-        popupPosition.value = { x: pixel[0], y: pixel[1] }
-      }
-    }
-  }
-  
-  function clearSelection() {
-    selectedFeature.value = null
-    // 普通点击选择：清除所有选择，不保留几何选择
-    if (selectLayer.value && selectLayer.value.getSource()) {
-      const source = selectLayer.value.getSource()
-      source.clear()
-    }
-    hidePopup()
-  }
-
-  // 管理持久化选择状态的函数
-  function setPersistentSelectedFeatures(features: any[]) {
-    persistentSelectedFeatures.value = features
-  }
-
-  function getPersistentSelectedFeatures(): any[] {
-    return persistentSelectedFeatures.value
-  }
-
-  function clearPersistentSelection() {
-    persistentSelectedFeatures.value = []
-    selectedFeatureIndex.value = -1
-    clearSelection()
-  }
-
-  function setSelectedFeatureIndex(index: number) {
-    selectedFeatureIndex.value = index
-  }
-
   function getSelectedFeatures(): any[] { // ol.Feature[]
     if (selectLayer.value && selectLayer.value.getSource) {
       const source = selectLayer.value.getSource()
@@ -226,14 +148,13 @@ const useMapStore = defineStore('map', () => {
     if (selectLayer.value && selectLayer.value.getSource()) {
       selectLayer.value.getSource().clear()
     }
-    hoveredFeature.value = null
-    selectedFeature.value = null
-    hidePopup()
   }
 
   function reloadConfig() {
     mapConfig.value = createMapConfig()
   }
+
+
 
   return {
     map,
@@ -242,38 +163,17 @@ const useMapStore = defineStore('map', () => {
     hoverLayer,
     selectLayer,
     vectorLayers,
-    hoveredFeature,
-    selectedFeature,
     currentCoordinate,
     customLayers,
-    popupVisible,
-    popupPosition,
-    popupContent,
-    popupFeature,
-    popupCoordinate,
     mapConfig,
     formattedCoordinate,
     hasMapDiff,
-    // 持久化选择状态
-    persistentSelectedFeatures,
-    selectedFeatureIndex,
     setMap,
     setLayers,
     updateCoordinate,
-    setHoveredFeature,
-    setSelectedFeature,
-    showPopup,
-    hidePopup,
-    updatePopupPosition,
-    clearSelection,
     getSelectedFeatures,
     clearAllLayers,
-    reloadConfig,
-    // 持久化选择状态管理
-    setPersistentSelectedFeatures,
-    getPersistentSelectedFeatures,
-    clearPersistentSelection,
-    setSelectedFeatureIndex
+    reloadConfig
   }
 })
 

@@ -332,9 +332,7 @@ const sendMessage = () => {
       aiResponse = generateSelectedFeaturesProperties();
     } else if (userInput.includes('选中要素') && userInput.includes('空间分析')) {
       aiResponse = generateSelectedFeaturesSpatialAnalysis();
-    } else if (userInput.includes('选中要素') && userInput.includes('统计')) {
-      aiResponse = generateSelectedFeaturesStatistics();
-    }
+    } 
   }
   
   // 如果没有特定的选中要素处理，使用默认响应
@@ -462,38 +460,6 @@ const generateSelectedFeaturesSpatialAnalysis = (): string => {
   return analysis;
 };
 
-// 新增：生成选中要素统计信息
-const generateSelectedFeaturesStatistics = (): string => {
-  const features = props.selectedFeatures || [];
-  if (features.length === 0) return '当前没有选中的要素。';
-  
-  let stats = `**选中要素统计信息**\n\n`;
-  
-  // 按图层统计
-  const layerStats = features.reduce((stats, feature) => {
-    if (!stats[feature.layerName]) {
-      stats[feature.layerName] = { count: 0, types: {} };
-    }
-    stats[feature.layerName].count++;
-    
-    const type = feature.geometry?.type || '未知';
-    stats[feature.layerName].types[type] = (stats[feature.layerName].types[type] || 0) + 1;
-    
-    return stats;
-  }, {} as Record<string, { count: number; types: Record<string, number> }>);
-  
-  stats += `**总计**: ${features.length} 个要素\n\n`;
-  
-  Object.entries(layerStats).forEach(([layerName, layerStat]) => {
-    stats += `**${layerName}**: ${layerStat.count} 个要素\n`;
-    Object.entries(layerStat.types).forEach(([type, count]) => {
-      stats += `- ${type}: ${count}个\n`;
-    });
-    stats += '\n';
-  });
-  
-  return stats;
-};
 
 // 新增：开启新对话功能
 const startNewConversation = () => {

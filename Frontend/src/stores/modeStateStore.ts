@@ -118,6 +118,21 @@ export const useModeStateStore = defineStore('modeState', () => {
     return modeState.value.traditional.toolStates[toolId] || {}
   }
 
+  // 组件布局持久化（位置/尺寸/滚动等）
+  const LAYOUT_KEY_PREFIX = '__layout__'
+
+  const saveComponentLayout = (componentId: string, layout: Record<string, any>) => {
+    const key = `${LAYOUT_KEY_PREFIX}:${componentId}`
+    const current = modeState.value.traditional.toolStates[key] || {}
+    modeState.value.traditional.toolStates[key] = { ...current, ...layout }
+    saveTraditionalState(modeState.value.traditional)
+  }
+
+  const getComponentLayout = (componentId: string): Record<string, any> => {
+    const key = `${LAYOUT_KEY_PREFIX}:${componentId}`
+    return modeState.value.traditional.toolStates[key] || {}
+  }
+
   // 切换模式
   const switchMode = (targetMode: ModeType) => {
     // 保存当前模式状态
@@ -220,6 +235,8 @@ export const useModeStateStore = defineStore('modeState', () => {
     getTraditionalState,
     saveToolState,
     getToolState,
+    saveComponentLayout,
+    getComponentLayout,
     switchMode,
     restoreModeState,
     clearAllStates,

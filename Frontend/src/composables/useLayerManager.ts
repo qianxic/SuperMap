@@ -1,9 +1,13 @@
 import { computed } from 'vue'
 import { useMapStore } from '@/stores/mapStore'
+import { useSelectionStore } from '@/stores/selectionStore'
+import { usePopupStore } from '@/stores/popupStore'
 import type { MapLayer } from '@/types/map';
 
 export function useLayerManager() {
   const mapStore = useMapStore()
+  const selectionStore = useSelectionStore()
+  const popupStore = usePopupStore()
 
   // 清除特定图层的选择高亮
   const clearLayerSelection = (layerName: string) => {
@@ -20,6 +24,30 @@ export function useLayerManager() {
       const layerId = feature.get('layerName') || 
                      (feature.getProperties ? feature.getProperties().layerName : null) ||
                      (feature.properties ? feature.properties.layerName : null)
+      
+      // 如果没有layerName属性，尝试通过图层ID匹配
+      if (!layerId) {
+        // 检查要素是否来自当前隐藏的图层
+        const layerInfo = mapStore.vectorLayers.find(l => l.name === layerName)
+        if (layerInfo && layerInfo.layer) {
+          const layerSource = layerInfo.layer.getSource()
+          if (layerSource) {
+            const layerFeatures = layerSource.getFeatures()
+            return layerFeatures.some((lf: any) => {
+              // 通过几何坐标比较来判断是否为同一要素
+              const lfGeom = lf.getGeometry()
+              const featureGeom = feature.getGeometry()
+              if (lfGeom && featureGeom) {
+                const lfCoords = JSON.stringify(lfGeom.getCoordinates())
+                const featureCoords = JSON.stringify(featureGeom.getCoordinates())
+                return lfCoords === featureCoords
+              }
+              return false
+            })
+          }
+        }
+      }
+      
       return layerId === layerName
     })
 
@@ -31,7 +59,7 @@ export function useLayerManager() {
     })
 
     // 检查当前选中的要素是否属于被隐藏的图层
-    const currentSelectedFeature = mapStore.selectedFeature
+    const currentSelectedFeature = selectionStore.currentSelectedFeature
     if (currentSelectedFeature) {
       const currentLayerName = currentSelectedFeature.get('layerName') || 
                               (currentSelectedFeature.getProperties ? currentSelectedFeature.getProperties().layerName : null) ||
@@ -39,21 +67,21 @@ export function useLayerManager() {
       if (currentLayerName === layerName) {
         console.log(`当前选中的要素属于被隐藏的图层 ${layerName}，清除选择状态`)
         // 清除当前选中的要素
-        mapStore.setSelectedFeature(null)
+        selectionStore.clearSelection()
         // 隐藏弹窗 - 结束要素信息组件的生命周期
-        mapStore.hidePopup()
+        popupStore.hidePopup()
       }
     }
 
     // 从持久化选择列表中移除相关要素
-    const updatedFeatures = mapStore.persistentSelectedFeatures.filter((feature: any) => {
+    const updatedFeatures = selectionStore.selectedFeatures.filter((feature: any) => {
       return feature.layerName !== layerName
     })
-    mapStore.setPersistentSelectedFeatures(updatedFeatures)
+    selectionStore.setSelectedFeatures(updatedFeatures)
 
     // 如果当前选中的要素被移除，重置选中索引
-    if (mapStore.selectedFeatureIndex >= updatedFeatures.length) {
-      mapStore.setSelectedFeatureIndex(-1)
+    if (selectionStore.selectedFeatureIndex >= updatedFeatures.length) {
+      selectionStore.setSelectedFeatureIndex(-1)
     }
 
     // 强制刷新选择图层以确保高亮效果立即消失
@@ -64,7 +92,7 @@ export function useLayerManager() {
     console.log(`图层 ${layerName} 的选择状态清除完成`)
   }
 
-  const toggleLayerVisibility = (layerId: string) => {
+  const toggleLayerVisibility = async (layerId: string) => {
     const layerInfo = mapStore.vectorLayers.find(l => l.id === layerId)
     if (layerInfo && layerInfo.layer) {
       const currentVisibility = layerInfo.layer.getVisible()
@@ -77,15 +105,22 @@ export function useLayerManager() {
         console.log(`图层 ${layerInfo.name} 被隐藏，立即清除相关选择状态`)
         clearLayerSelection(layerInfo.name)
         
-        // 调用通用清除逻辑，确保完全清除选择状态
+        // 强制清除所有选择状态，确保完全清除
         if (mapStore.selectLayer && mapStore.selectLayer.getSource()) {
           mapStore.selectLayer.getSource().clear()
         }
-        mapStore.setSelectedFeature(null)
+        selectionStore.clearSelection()
         
-        // 调用 clearSelection 方法以确保完整的清除逻辑
-        if (typeof mapStore.clearSelection === 'function') {
-          mapStore.clearSelection()
+        // 清除查询结果（如果当前在查询工具中）
+        const { useFeatureQuery } = await import('@/composables/useFeatureQuery')
+        const featureQuery = useFeatureQuery()
+        if (featureQuery.queryResults && featureQuery.queryResults.value) {
+          featureQuery.queryResults.value = []
+        }
+        
+        // 重置选中要素索引
+        if (featureQuery.selectedFeatureIndex) {
+          featureQuery.selectedFeatureIndex.value = -1
         }
       }
       
