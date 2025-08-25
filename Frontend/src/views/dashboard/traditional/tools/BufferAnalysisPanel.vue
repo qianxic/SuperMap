@@ -67,7 +67,6 @@ const analysisStore = useAnalysisStore()
 const {
   selectedFeature,
   bufferDistance,
-  featureInfo,
   setSelectedFeature,
   selectFeatureFromMap,
   clearMapSelection,

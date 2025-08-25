@@ -5,6 +5,7 @@
     :width="'100%'"
     :height="'100%'"
     class="feature-query-panel"
+    component-id="traditional-query-panel"
   >
     <!-- 图层选择 -->
     <div class="analysis-section">
@@ -120,7 +121,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, watch } from 'vue'
 import { useAnalysisStore } from '@/stores/analysisStore.ts'
-import { useFeatureQuery } from '@/composables/useFeatureQuery.ts'
+import { useFeatureQueryStore } from '@/stores/featureQueryStore.ts'
 import { useModeStateStore } from '@/stores/modeStateStore.ts'
 import DropdownSelect from '@/components/UI/DropdownSelect.vue'
 import SecondaryButton from '@/components/UI/SecondaryButton.vue'
@@ -131,21 +132,21 @@ import type { QueryCondition } from '@/types/query'
 import { useMapStore } from '@/stores/mapStore.ts'
 
 const analysisStore = useAnalysisStore()
-const featureQuery = useFeatureQuery()
+const featureQuery = useFeatureQueryStore()
 const modeStateStore = useModeStateStore()
 const mapStore = useMapStore()
 
 // 状态管理
 const selectedLayerId = computed({
-  get: () => featureQuery.selectedLayerId.value,
-  set: (value) => featureQuery.selectedLayerId.value = value
+  get: () => featureQuery.selectedLayerId,
+  set: (value) => featureQuery.selectedLayerId = value
 })
 
-const queryResults = computed(() => featureQuery.queryResults.value)
-const layerFields = computed(() => featureQuery.layerFields.value)
+const queryResults = computed(() => featureQuery.queryResults)
+const layerFields = computed(() => featureQuery.layerFields)
 const queryConfig = computed(() => featureQuery.queryConfig)
-const isQuerying = computed(() => featureQuery.isQuerying.value)
-const selectedFeatureIndex = computed(() => featureQuery.selectedFeatureIndex.value)
+const isQuerying = computed(() => featureQuery.isQuerying)
+const selectedFeatureIndex = computed(() => featureQuery.selectedFeatureIndex)
 
 // 工具状态管理
 const toolId = 'query'
@@ -174,7 +175,7 @@ const restoreToolState = () => {
     Object.assign(featureQuery.queryConfig, state.queryConfig)
   }
   if (state.queryResults && state.queryResults.length > 0) {
-    featureQuery.queryResults.value = state.queryResults
+    featureQuery.queryResults = state.queryResults
     // 恢复查询结果的高亮显示
     setTimeout(() => {
       featureQuery.highlightQueryResults()
@@ -237,7 +238,7 @@ watch(selectedLayerId, async (newLayerId, oldLayerId) => {
   // 只有在真正切换图层时才清空查询结果
   if (newLayerId && newLayerId !== oldLayerId) {
     // 清空查询结果
-    featureQuery.queryResults.value = []
+    featureQuery.queryResults = []
     
     // 重置查询条件
     Object.assign(featureQuery.queryConfig.condition, createDefaultCondition())
@@ -248,11 +249,17 @@ watch(selectedLayerId, async (newLayerId, oldLayerId) => {
   } else if (newLayerId && newLayerId === oldLayerId) {
     // 如果是恢复状态时的相同图层，只获取字段结构
     await featureQuery.getLayerFields(newLayerId)
+  } else if (!newLayerId) {
+    // 选择“无”时清空字段与结果
+    featureQuery.queryResults = []
+    featureQuery.layerFields = []
+    Object.assign(featureQuery.queryConfig.condition, createDefaultCondition())
+    analysisStore.setAnalysisStatus('未选择查询图层')
   }
 })
 
-// 图层选项
-const layerOptions = computed(() => featureQuery.getLayerOptions())
+// 图层选项（首项为“无”）
+const layerOptions = computed(() => [{ value: '', label: '无', disabled: false }, ...featureQuery.getLayerOptions()])
 
 // 获取选中图层名称
 const getSelectedLayerName = () => {
@@ -423,7 +430,7 @@ const invertSelectedLayer = () => {
 // 清空查询结果
 const clearQueryResults = () => {
   // 清空查询结果数组
-  featureQuery.queryResults.value = []
+  featureQuery.queryResults = []
   
   // 同时清空地图上的高亮显示
   if (mapStore.selectLayer && mapStore.selectLayer.getSource()) {
@@ -434,7 +441,7 @@ const clearQueryResults = () => {
   featureQuery.clearSelectionInteractions()
   
   // 重置选中要素索引
-  featureQuery.selectedFeatureIndex.value = -1
+  featureQuery.selectedFeatureIndex = -1
   
   // 清空选择状态
   if (featureQuery.highlightedFeature) {

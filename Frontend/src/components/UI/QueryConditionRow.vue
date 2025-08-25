@@ -2,13 +2,11 @@
   <div class="query-condition-row">
     <!-- 字段选择 - 改为输入框 -->
     <div class="field-selector">
-      <input
+      <TraditionalInputGroup
         v-model="condition.fieldName"
         type="text"
         :placeholder="getFieldPlaceholder()"
         :disabled="disabled"
-        class="field-input-field"
-        @input="handleFieldInput"
       />
     </div>
     
@@ -24,21 +22,21 @@
     
     <!-- 值输入 -->
     <div class="value-input">
-      <input
+      <TraditionalInputGroup
         v-model="condition.value"
         type="text"
         :placeholder="getValuePlaceholder()"
         :disabled="disabled"
-        class="value-input-field"
-        @input="handleValueInput"
+        @update:modelValue="handleValueInput"
       />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, watch, ref } from 'vue'
+import { watch } from 'vue'
 import DropdownSelect from './DropdownSelect.vue'
+import TraditionalInputGroup from './TraditionalInputGroup.vue'
 import type { QueryCondition, FieldInfo } from '@/types/query'
 
 // 比较操作符选项
@@ -65,14 +63,7 @@ const emit = defineEmits<{
   update: [condition: QueryCondition]
 }>()
 
-// 字段选项（保留用于验证）
-const fieldOptions = computed(() => {
-  return props.fields.map(field => ({
-    value: field.name,
-    label: field.name,
-    disabled: false
-  }))
-})
+// 保留占位，后续如需用于验证可恢复
 
 // 获取字段选择占位符
 const getFieldPlaceholder = () => {
@@ -108,10 +99,7 @@ const getValuePlaceholder = () => {
   }
 }
 
-// 处理字段名输入
-const handleFieldInput = () => {
-  emit('update', props.condition)
-}
+// 处理字段名输入由 v-model 自动触发
 
 // 处理值输入
 const handleValueInput = () => {
@@ -150,7 +138,7 @@ watch(() => props.condition.fieldName, () => {
 })
 
 // 监听操作符变化，更新占位符
-watch(() => props.condition.operator, (newOperator) => {
+watch(() => props.condition.operator, () => {
   emit('update', props.condition)
 })
 </script>

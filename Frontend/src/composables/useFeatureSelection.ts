@@ -1,7 +1,8 @@
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed } from 'vue'
 import { useMapStore } from '@/stores/mapStore'
 import { useAnalysisStore } from '@/stores/analysisStore'
 import { useSelectionStore } from '@/stores/selectionStore'
+import { useFeatureQueryStore } from '@/stores/featureQueryStore'
 import { createAutoScroll } from '@/utils/autoScroll'
 
 const ol = window.ol
@@ -10,6 +11,7 @@ export function useFeatureSelection() {
   const mapStore = useMapStore()
   const analysisStore = useAnalysisStore()
   const selectionStore = useSelectionStore()
+  const featureQueryStore = useFeatureQueryStore()
 
   // 状态管理
   const boxSelectInteraction = ref<any>(null)
@@ -324,82 +326,13 @@ export function useFeatureSelection() {
 
     if (features.length > 0) {
       analysisStore.setAnalysisStatus(`找到 ${features.length} 个要素，正在处理...`)
-      await addFeaturesToSelectionAsync(features)
+      await featureQueryStore.applyUnifiedSelection(features)
     } else {
       analysisStore.setAnalysisStatus('框选范围内没有找到要素')
     }
   }
 
-  // 异步添加要素到选择列表
-  const addFeaturesToSelectionAsync = async (features: any[]) => {
-    let addedCount = 0
-    const batchSize = 50
-    const newFeatures: any[] = []
-    const currentFeatures = [...selectedFeatures.value]
-
-    // 分批处理要素，避免一次性处理太多导致卡顿
-    for (let i = 0; i < features.length; i += batchSize) {
-      const batch = features.slice(i, i + batchSize)
-      const batchNewFeatures: any[] = []
-
-      // 更新进度状态
-      const progress = Math.min(i + batchSize, features.length)
-      analysisStore.setAnalysisStatus(`正在处理要素 ${progress}/${features.length}...`)
-
-      // 处理当前批次
-      batch.forEach(feature => {
-        // 使用更可靠的唯一标识：几何坐标 + 图层名称
-        const geometry = feature.getGeometry ? feature.getGeometry() : feature.geometry
-        const geometryKey = geometry ? JSON.stringify(geometry.getCoordinates?.() || geometry.coordinates) : 'no-geometry'
-        const uniqueKey = `${feature.layerName}_${geometryKey}`
-
-        // 检查是否已经存在
-        const exists = currentFeatures.some(f => {
-          const fGeometry = f.getGeometry ? f.getGeometry() : f.geometry
-          const fGeometryKey = fGeometry ? JSON.stringify(fGeometry.getCoordinates?.() || fGeometry.coordinates) : 'no-geometry'
-          const fUniqueKey = `${f.layerName}_${fGeometryKey}`
-          return fUniqueKey === uniqueKey
-        })
-
-        if (!exists) {
-          // 为要素生成一个稳定的ID（如果没有的话）
-          const originalId = feature.getId?.() || feature.id
-          if (!originalId) {
-            // 使用几何坐标的哈希作为稳定ID
-            const stableId = `${feature.layerName}_${Math.abs(geometryKey.split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a }, 0))}`
-            feature.id = stableId
-          }
-
-          currentFeatures.push(feature)
-          batchNewFeatures.push(feature)
-          newFeatures.push(feature)
-          addedCount++
-        }
-      })
-
-      // 批量更新选中要素列表
-      if (batchNewFeatures.length > 0) {
-        selectedFeatures.value = [...currentFeatures]
-      }
-
-      // 让UI有机会更新
-      if (i + batchSize < features.length) {
-        await new Promise(resolve => setTimeout(resolve, 5))
-      }
-    }
-
-    // 异步高亮显示所有新添加的要素
-    if (newFeatures.length > 0) {
-      await highlightFeaturesAsync(newFeatures)
-    }
-
-    // 完成处理后更新状态
-    if (addedCount > 0) {
-      analysisStore.setAnalysisStatus(`新增 ${addedCount} 个要素，总计 ${selectedFeatures.value.length} 个`)
-    } else {
-      analysisStore.setAnalysisStatus(`框选区域内 ${features.length} 个要素已存在，总计 ${selectedFeatures.value.length} 个`)
-    }
-  }
+  // 统一后不再使用本地批处理添加逻辑，由 featureQueryStore 统一处理
 
   // 异步高亮显示多个要素
   const highlightFeaturesAsync = async (features: any[]) => {
@@ -748,7 +681,7 @@ export function useFeatureSelection() {
 
   // 初始化自动滚动
   const initAutoScroll = () => {
-    const layerList = document.querySelector('.layer-list')
+    const layerList = document.querySelector('.layer-list') as HTMLElement | null
     if (layerList && !autoScrollInstance) {
       autoScrollInstance = createAutoScroll(layerList, {
         scrollBehavior: 'smooth',
@@ -758,9 +691,7 @@ export function useFeatureSelection() {
       
       // 添加滚动监听器
       if (autoScrollInstance) {
-        autoScrollInstance.addScrollListener((scrollInfo: any) => {
-          console.log('滚动信息:', scrollInfo)
-        })
+        autoScrollInstance.addScrollListener(() => {})
       }
     }
   }
