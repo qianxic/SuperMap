@@ -60,10 +60,11 @@ export interface MapLayer {
 }
 
 export interface FeatureInfo {
-  id: string;
-  name: string;
-  type: string;
-  geometry: any; // ol.geom.Geometry
+  id?: string;
+  name?: string;
+  type?: string;
+  coordinates?: string;
+  geometry?: any; // ol.geom.Geometry
 }
 
 export interface ServiceResponse<T = any> {

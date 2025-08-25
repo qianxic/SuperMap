@@ -16,14 +16,14 @@
       />
       
       <!-- 显示选中要素信息 -->
-      <div v-if="featureInfo" class="feature-info">
-        <div class="info-item">
-          <span class="info-label">要素类型:</span>
-          <span class="info-value">{{ featureInfo.type }}</span>
-        </div>
+      <div v-if="selectedFeatureInfo" class="feature-info">
         <div class="info-item">
           <span class="info-label">要素名称:</span>
-          <span class="info-value">{{ featureInfo.name }}</span>
+          <span class="info-value">{{ selectedFeatureInfo?.name }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">坐标:</span>
+          <span class="info-value">{{ selectedFeatureInfo?.coordinates }}</span>
         </div>
       </div>
     </div>
@@ -67,6 +67,7 @@ const analysisStore = useAnalysisStore()
 const {
   selectedFeature,
   bufferDistance,
+  selectedFeatureInfo,
   setSelectedFeature,
   selectFeatureFromMap,
   clearMapSelection,

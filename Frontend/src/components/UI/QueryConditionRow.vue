@@ -23,18 +23,18 @@
     <!-- 值输入 -->
     <div class="value-input">
       <TraditionalInputGroup
-        v-model="condition.value"
+        :model-value="inputValue"
         type="text"
         :placeholder="getValuePlaceholder()"
         :disabled="disabled"
-        @update:modelValue="handleValueInput"
+        @update:modelValue="onValueChange"
       />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { watch } from 'vue'
+import { watch, computed } from 'vue'
 import DropdownSelect from './DropdownSelect.vue'
 import TraditionalInputGroup from './TraditionalInputGroup.vue'
 import type { QueryCondition, FieldInfo } from '@/types/query'
@@ -125,6 +125,20 @@ const handleValueInput = () => {
   
   props.condition.value = convertedValue
   emit('update', props.condition)
+}
+
+// 将可能的 boolean 值转为字符串以满足输入组件类型
+const inputValue = computed(() => {
+  const value = props.condition.value
+  if (typeof value === 'boolean') {
+    return String(value)
+  }
+  return value as string | number | undefined
+})
+
+const onValueChange = (val: string | number | undefined) => {
+  props.condition.value = val as unknown as string | number | boolean
+  handleValueInput()
 }
 
 // 监听条件变化并触发更新

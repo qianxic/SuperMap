@@ -1,6 +1,5 @@
 # 基于LLM的A2A智慧城市管理分析平台
 
-
 基于Vue 3 + TypeScript构建的现代化城市管理平台，集成SuperMap GIS功能和LLM智能助手，提供地图展示、空间分析、智能问答等功能。采用模块化架构设计，支持双模式操作（传统模式/LLM模式），具备完整的主题系统和响应式布局。
 
 ## 🏗️ 项目架构
@@ -95,79 +94,89 @@ npm run preview
 ## 📁 项目结构
 
 ### 整体架构
-```
+
+```text
 src/
 ├── main.js                    # 应用入口文件
 ├── App.vue                    # 根组件
 ├── vite-env.d.ts             # Vite环境类型声明
 ├── views/                     # 页面视图层
 │   ├── Dashboard.vue         # 主仪表板页面
-│   ├── Login.vue             # 登录页面 (10KB, 433行)
-│   └── Register.vue          # 注册页面 (11KB, 458行)
+│   ├── auth/
+│   │   ├── Login.vue         # 登录页面
+│   │   └── Register.vue      # 注册页面
+│   ├── dashboard/
+│   │   ├── LLM/LLMMode.vue   # LLM 模式
+│   │   └── traditional/      # 传统模式
+│   │       ├── TraditionalMode.vue
+│   │       └── tools/        # 二级工具路由组件
+│   │           ├── LayerManager.vue
+│   │           ├── FeatureQueryPanel.vue
+│   │           ├── EditTools.vue
+│   │           ├── BufferAnalysisPanel.vue
+│   │           ├── DistanceAnalysisPanel.vue
+│   │           └── AccessibilityAnalysisPanel.vue
+│   ├── management/AIManagement.vue
+│   └── profile/UserProfile.vue
 ├── router/                    # 路由管理层
-│   └── index.ts              # 路由配置 (1.8KB, 103行)
+│   └── index.ts              # 路由配置
 ├── components/                # 组件层
-│   ├── Layout/               # 布局组件
-│   │   ├── DashboardLayout.vue    # 主布局容器 (2.5KB, 134行)
-│   │   ├── DashboardHeader.vue    # 顶部导航栏 (9.3KB, 420行)
-│   │   └── RightPanel.vue         # 右侧面板容器 (593B, 30行)
-│   ├── Modes/                # 模式组件
-│   │   ├── LLMMode.vue           # LLM模式内容 (833B, 37行)
-│   │   └── TraditionalMode.vue   # 传统模式内容 (5.4KB, 172行)
-│   ├── Map/                  # 地图功能组件
-│   │   ├── SuperMapViewer.vue     # 核心地图视图 (1.2KB, 58行)
-│   │   ├── LayerManager.vue       # 图层管理器 (6.6KB, 283行)
-│   │   ├── EditTools.vue          # 编辑工具 (35KB, 1148行)
-│   │   ├── ChatAssistant.vue      # AI聊天助手 (8.8KB, 396行)
-│   │   ├── FeatureQueryPanel.vue  # 要素查询面板 (6.5KB, 258行)
-│   │   ├── BufferAnalysisPanel.vue # 缓冲区分析 (4.4KB, 192行)
-│   │   ├── DistanceAnalysisPanel.vue # 距离分析 (6.9KB, 291行)
-│   │   ├── AccessibilityAnalysisPanel.vue # 可达性分析 (6.1KB, 261行)
-│   │   ├── FeaturePopup.vue       # 要素弹窗 (4.4KB, 193行)
-│   │   ├── ZoomControls.vue       # 缩放控件 (2.1KB, 106行)
-│   │   ├── ScaleBar.vue          # 比例尺 (3.5KB, 161行)
-│   │   └── CoordinateDisplay.vue  # 坐标显示 (445B, 24行)
-│   └── UI/                   # 可复用UI组件库
-│       ├── NotificationManager.vue # 通知管理器 (2.1KB, 105行)
-│       ├── NotificationToast.vue   # 通知提示 (4.7KB, 215行)
-│       ├── ButtonGroup.vue         # 按钮组 (997B, 59行)
-│       ├── IconButton.vue          # 图标按钮 (2.2KB, 133行)
-│       ├── SplitPanel.vue          # 分割面板 (4.2KB, 192行)
-│       ├── PrimaryButton.vue       # 主要按钮 (1.5KB, 98行)
-│       ├── SecondaryButton.vue     # 次要按钮 (2KB, 106行)
-│       ├── TipWindow.vue           # 提示窗口 (2.2KB, 116行)
-│       ├── PanelWindow.vue         # 面板窗口 (5.6KB, 257行)
-│       ├── LLMInputGroup.vue       # LLM输入组 (2.8KB, 119行)
-│       ├── DropdownSelect.vue      # 下拉选择 (5.2KB, 256行)
-│       ├── TraditionalInputGroup.vue # 传统输入组 (2.5KB, 113行)
-│       └── PanelContainer.vue      # 面板容器 (1KB, 60行)
+│   ├── Layout/
+│   │   ├── DashboardLayout.vue
+│   │   ├── DashboardHeader.vue
+│   │   └── RightPanel.vue
+│   ├── Map/
+│   │   ├── SuperMapViewer.vue
+│   │   ├── FeaturePopup.vue
+│   │   ├── ZoomControls.vue
+│   │   ├── ScaleBar.vue
+│   │   └── CoordinateDisplay.vue
+│   └── UI/
+│       ├── NotificationManager.vue
+│       ├── NotificationToast.vue
+│       ├── ButtonGroup.vue
+│       ├── IconButton.vue
+│       ├── SplitPanel.vue
+│       ├── PrimaryButton.vue
+│       ├── SecondaryButton.vue
+│       ├── TipWindow.vue
+│       ├── PanelWindow.vue
+│       ├── LLMInputGroup.vue
+│       ├── DropdownSelect.vue
+│       ├── TraditionalInputGroup.vue
+│       └── PanelContainer.vue
 ├── stores/                    # 状态管理层
-│   ├── mapStore.ts           # 地图状态管理 (9KB, 294行)
-│   ├── themeStore.ts         # 主题状态管理 (2KB, 72行)
-│   ├── loadingStore.ts       # 加载状态管理 (1.4KB, 54行)
-│   ├── analysisStore.ts      # 分析工具状态 (1.6KB, 71行)
-│   ├── userStore.ts          # 用户状态管理 (1.3KB, 60行)
-│   └── layerStore.ts         # 图层状态管理 (256B, 13行)
+│   ├── analysisStore.ts
+│   ├── featureQueryStore.ts
+│   ├── interactionStore.ts
+│   ├── loadingStore.ts
+│   ├── mapStore.ts
+│   ├── modeStateStore.ts
+│   ├── popupStore.ts
+│   ├── selectionStore.ts
+│   ├── themeStore.ts
+│   └── userStore.ts
 ├── composables/               # 业务逻辑组合函数
-│   ├── useMap.ts             # 地图核心逻辑 (54KB, 1291行)
-│   ├── useLayerManager.ts    # 图层管理逻辑 (2.2KB, 76行)
-│   ├── useFeatureQuery.ts    # 要素查询逻辑 (2.8KB, 105行)
-│   ├── useBufferAnalysis.ts  # 缓冲区分析 (2.2KB, 79行)
-│   ├── useDistanceAnalysis.ts # 距离分析 (4.4KB, 157行)
-│   └── useAccessibilityAnalysis.ts # 可达性分析 (3.2KB, 106行)
+│   ├── useMap.ts
+│   ├── useLayerManager.ts
+│   ├── useFeatureQuery.ts
+│   ├── useBufferAnalysis.ts
+│   ├── useDistanceAnalysis.ts
+│   └── useAccessibilityAnalysis.ts
 ├── api/                       # API接口层
-│   ├── supermap.ts           # SuperMap服务客户端 (6.8KB, 223行)
-│   ├── analysis.ts           # 分析功能API (3.1KB, 131行)
-│   └── config.ts             # API配置 (1KB, 47行)
+│   ├── supermap.ts
+│   ├── analysis.ts
+│   └── config.ts
 ├── types/                     # TypeScript类型定义
-│   ├── map.ts                # 地图相关接口 (1.5KB, 75行)
-│   ├── splitpanes.d.ts       # 分割面板类型声明 (468B, 20行)
-│   └── supermap.d.ts         # SuperMap类型声明 (106B, 10行)
+│   ├── map.ts
+│   ├── query.ts
+│   ├── splitpanes.d.ts
+│   └── supermap.d.ts
 ├── utils/                     # 工具函数
-│   ├── config.ts             # 配置管理工具 (7.6KB, 231行)
-│   └── notification.ts       # 通知系统 (2.5KB, 108行)
+│   ├── config.ts
+│   └── notification.ts
 └── styles/                    # 全局样式
-    └── theme.css             # 主题样式定义 (5.7KB, 249行)
+    └── theme.css
 ```
 
 ## 🏗️ 分层架构设计
@@ -200,12 +209,16 @@ src/
 - **UI组件组**: 可复用UI组件库，提供统一的界面元素
 
 ### 5. **状态管理层 (Stores Layer)**
-- **mapStore.ts**: 地图实例、图层、交互状态管理
+- **mapStore.ts**: 地图实例、图层、交互状态
 - **themeStore.ts**: 主题切换、系统主题检测、主题持久化
-- **loadingStore.ts**: 多任务加载状态、进度跟踪、全局状态
-- **analysisStore.ts**: 分析工具状态、分析结果存储
-- **userStore.ts**: 用户信息、登录状态、权限管理
-- **layerStore.ts**: 图层状态、图层配置存储
+- **loadingStore.ts**: 多任务加载状态与进度
+- **analysisStore.ts**: 空间分析参数与结果
+- **userStore.ts**: 用户信息、登录态、权限
+- **featureQueryStore.ts**: 要素查询条件、结果、分页
+- **selectionStore.ts**: 地图选中要素、集与高亮
+- **interactionStore.ts**: 绘制/修改/选择等交互模式
+- **modeStateStore.ts**: 模式/工具的当前选择与持久化
+- **popupStore.ts**: 要素弹窗内容与显隐
 
 ### 6. **业务逻辑层 (Composables Layer)**
 - **useMap.ts**: 地图初始化、图层管理、交互处理、空间分析
@@ -398,12 +411,18 @@ export function useMap() {
 ### 路由列表
 | 路由路径 | 路由名称 | 组件 | 认证要求 | 标题 | 说明 |
 |----------|----------|------|----------|------|------|
-| `/` | - | - | - | - | 根路径重定向 |
-| `/login` | `login` | `Login.vue` | ❌ 不需要 | 系统登录 | 登录页面 |
-| `/register` | `register` | `Register.vue` | ❌ 不需要 | 用户注册 | 注册页面 |
-| `/dashboard` | `dashboard` | `Dashboard.vue` | ✅ 需要 | 地图系统 | 主应用页面 |
-| `/dashboard/llm` | `llm-mode` | `LLMMode.vue` | ✅ 需要 | AI助手 | LLM模式 |
-| `/dashboard/traditional` | `traditional-mode` | `TraditionalMode.vue` | ✅ 需要 | 传统模式 | 传统模式 |
+| `/` | - | - | - | - | 根路径重定向到 `/login` |
+| `/login` | `login` | `views/auth/Login.vue` | ❌ 不需要 | 系统登录 | 登录页面 |
+| `/register` | `register` | `views/auth/Register.vue` | ❌ 不需要 | 用户注册 | 注册页面 |
+| `/dashboard` | `dashboard` | `views/Dashboard.vue` | ✅ 需要 | 地图系统 | 主应用页面 |
+| `/dashboard/llm` | `llm-mode` | `views/dashboard/LLM/LLMMode.vue` | ✅ 需要 | AI助手 | LLM模式 |
+| `/dashboard/traditional` | `traditional-mode` | `views/dashboard/traditional/TraditionalMode.vue` | ✅ 需要 | 传统模式 | 传统模式主页 |
+| `/dashboard/traditional/layer` | `layer-management` | `.../tools/LayerManager.vue` | ✅ | 图层管理 | 二级工具 |
+| `/dashboard/traditional/query` | `feature-query` | `.../tools/FeatureQueryPanel.vue` | ✅ | 要素查询 | 二级工具 |
+| `/dashboard/traditional/edit` | `edit-tools` | `.../tools/EditTools.vue` | ✅ | 图层编辑 | 二级工具 |
+| `/dashboard/traditional/buffer` | `buffer-analysis` | `.../tools/BufferAnalysisPanel.vue` | ✅ | 缓冲区分析 | 二级工具 |
+| `/dashboard/traditional/distance` | `distance-analysis` | `.../tools/DistanceAnalysisPanel.vue` | ✅ | 距离分析 | 二级工具 |
+| `/dashboard/traditional/accessibility` | `accessibility-analysis` | `.../tools/AccessibilityAnalysisPanel.vue` | ✅ | 可达性分析 | 二级工具 |
 
 ### 路由守卫
 ```typescript
@@ -420,6 +439,10 @@ router.beforeEach((to, from, next) => {
   }
 })
 ```
+
+### 模式与工具的默认还原
+- 访问 `/dashboard` 时，默认根据 `localStorage.currentMode` 重定向到 `/dashboard/llm` 或 `/dashboard/traditional`
+- 访问 `/dashboard/traditional` 时，若存在 `localStorage.traditionalModeState.activeTool`，将重定向到对应二级工具路由
 
 ## 🎨 主题系统
 
@@ -499,6 +522,14 @@ router.beforeEach((to, from, next) => {
 - 错误边界处理
 - 性能监控
 
+### 脚本与测试
+- `npm run dev` 启动开发服务器 (Vite)
+- `npm run build` 构建生产包
+- `npm run preview` 预览生产包
+- `npm run test:routing` 路由配置与重定向检查（见 `scripts/test-routing.js`）
+- `npm run test:build` 构建连通性测试
+- `npm run test:all` 综合测试（路由 + 构建）
+
 ## 📄 许可证
 
 本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情
@@ -524,3 +555,20 @@ router.beforeEach((to, from, next) => {
 ---
 
 **基于LLM的A2A智慧城市管理分析平台** - 让城市管理更智能、更高效！ 🚀
+
+---
+
+## 🛠️ 待办 / 已知问题
+
+### 需更新：状态管理
+- 现状：状态分散于多个 Pinia stores（如 `featureQueryStore`、`selectionStore`、`interactionStore`、`modeStateStore` 等），与路由状态（模式、工具）存在部分重复与耦合。
+- 目标：
+  - 统一模式/工具的单一信息源（建议由路由驱动 + 轻量 store 派生）。
+  - 明确 store 职责边界：查询、选择、交互分别独立，避免交叉写入。
+  - 提供跨模块的只读选择器（selectors）与事件编排，降低组件间耦合。
+- 建议改造方向：
+  1) 建立 `uiStateStore`（仅存 UI 可序列化状态，路由为真源）。
+  2) 将 `modeStateStore` 收敛为路由派生的计算状态，减少冗余持久化。
+  3) 规范 `selectionStore` 与 `featureQueryStore` 的输入输出，副作用沉到 composables。
+  4) 引入统一事件/命令总线以协调地图交互与面板状态（避免组件直接相互依赖）。
+- 影响面：`router/index.ts`、`components/Layout/DashboardLayout.vue`、传统模式工具组件、相关 composables。
