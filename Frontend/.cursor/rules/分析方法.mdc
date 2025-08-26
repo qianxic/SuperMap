@@ -1,15 +1,45 @@
-description:
-globs:
-## 分析项目方法
-当进行vue3项目，在分析某个功能时，严格按以下链路进行分析
-1.数据类型
-2.引用样式
-3.使用组件
-4.面板容器
-5.交互逻辑
-6.状态管理
-7.组件通信
-8.路由管理
-进行逐文件分析---
-alwaysApply: true
----
+# 项目分析方法
+
+## 基本路径
+
+1. 数据类型
+2. 引用样式
+3. 使用组件
+4. 面板容器
+5. 交互逻辑
+6. 状态管理
+7. 组件通信
+8. 路由管理
+
+## 分析点与项目目录映射
+
+1. 数据类型 → `src/types/`、`src/api/` 中类型声明
+   - 主类型定义：`src/types/*.ts`、`src/types/*.d.ts`
+   - SuperMap 相关声明：`src/types/supermap.d.ts`
+   - 接口参数与响应类型：`src/api/*.ts`
+
+2. 引用样式 → `src/styles/`、主题色集中在 `src/styles/theme.css`
+   - 统一从 `theme.css` 引用变量，避免硬编码颜色
+
+3. 使用组件 → `src/components/`、业务页面组件在 `src/views/`
+   - 基础与复合组件：`src/components/**`
+   - 业务页面与工具面板：`src/views/**`
+
+4. 面板容器 → 仪表盘与工具面板所在目录
+   - 传统模式容器：`src/views/dashboard/traditional/TraditionalMode.vue`
+   - 分析工具面板：`src/views/dashboard/traditional/tools/*.vue`
+   - 全局布局容器：`src/components/Layout/**`
+
+5. 交互逻辑 → `src/composables/` 与 `src/utils/`
+   - 分析逻辑与地图交互：`src/composables/*.ts`
+   - 工具函数与封装：`src/utils/*.ts`
+
+6. 状态管理 → `src/stores/`
+   - 地图、分析、选择等 Pinia 仓库：`src/stores/*.ts`
+
+7. 组件通信 → 以 Props/Emits、`composables`、`stores` 协作
+   - 父子通信：组件 `props`/`emits`
+   - 跨组件共享：`src/composables/*.ts`、`src/stores/*.ts`
+
+8. 路由管理 → `src/router/index.ts`
+   - 页面路由与模式切换：`src/router/index.ts`
