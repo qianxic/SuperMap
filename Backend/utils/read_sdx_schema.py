@@ -29,14 +29,15 @@ async def read_sdx_schema():
         
         print(f"✅ 成功连接到数据库: {settings.postgres_db}")
         
-        # 1. 获取sdx schema下的所有表
-        print("\n📋 获取sdx schema下的所有表:")
+        # 1. 获取sdx schema下的非sm开头的表
+        print("\n📋 获取sdx schema下的非sm开头的表:")
         tables = await conn.fetch("""
             SELECT table_name
             FROM information_schema.tables 
             WHERE table_schema = 'sdx'
             AND table_type = 'BASE TABLE'
-            ORDER BY table_name
+            AND table_name NOT LIKE 'sm%'
+            ORDER BY table_name 
         """)
         
         if not tables:

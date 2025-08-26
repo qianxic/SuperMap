@@ -1,372 +1,281 @@
 """
-PostgreSQL仓储实现
+PostgreSQL 仓储实现
 """
-from typing import List, Optional, Dict, Any
+from __future__ import annotations
+
+from typing import Dict, List, Optional, Any, cast
 from uuid import UUID
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, delete, and_, or_
-from sqlalchemy.orm import selectinload
 from datetime import datetime
 
-from .models import UserModel
-from app.domains.user.repositories import UserRepository
+from sqlalchemy import select, update, delete, func
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.domains.user.entities import UserEntity
-from app.domains.gis.repositories import (
-    LayerRepository, SpatialFeatureRepository, AnalysisResultRepository
-)
-from app.domains.gis.entities import (
-    Layer, SpatialFeature, AnalysisResult, SpatialExtent, GeometryType, AnalysisType
-)
+from app.domains.user.repositories import UserRepository
+from app.infrastructure.database.postgres.models import UserModel, BufferResult, RouteResult, AccessibilityResult
+from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Any, Dict, cast
+from shapely.geometry import shape
+from geoalchemy2.shape import from_shape
+
+
+def _model_to_entity(model: UserModel) -> UserEntity:
+    return UserEntity(
+        id=cast(UUID, model.id),
+        email=cast(str, model.email),
+        username=cast(str, model.username),
+        hashed_password=cast(str, model.hashed_password),
+        phone=cast(Optional[str], model.phone),
+        is_active=cast(bool, model.is_active),
+        is_superuser=cast(bool, model.is_superuser),
+        created_at=cast(Optional[datetime], model.created_at),
+        updated_at=cast(Optional[datetime], model.updated_at),
+        last_login=cast(Optional[datetime], model.last_login),
+    )
 
 
 class PostgreSQLUserRepository(UserRepository):
-    """PostgreSQL用户(users)仓储实现"""
-    
+    """基于 SQLAlchemy AsyncSession 的用户仓储实现"""
+
     def __init__(self, session: AsyncSession):
         self.session = session
-    
+
     async def create(self, user: UserEntity) -> UserEntity:
-        """创建用户"""
-        user_model = UserModel(
+        model = UserModel(
+            id=user.id,
             username=user.username,
             email=user.email,
             phone=user.phone,
             hashed_password=user.hashed_password,
             is_active=user.is_active,
-            is_superuser=user.is_superuser
+            is_superuser=user.is_superuser,
         )
-        
-        self.session.add(user_model)
-        await self.session.commit()
-        await self.session.refresh(user_model)
-        
-        return self._model_to_entity(user_model)
-    
+        self.session.add(model)
+        await self.session.flush()
+        await self.session.refresh(model)
+        return _model_to_entity(model)
+
     async def get_by_id(self, user_id: UUID) -> Optional[UserEntity]:
-        """根据ID获取用户"""
         stmt = select(UserModel).where(UserModel.id == user_id)
         result = await self.session.execute(stmt)
-        user_model = result.scalar_one_or_none()
-        
-        if user_model:
-            return self._model_to_entity(user_model)
-        return None
-    
-    async def get_by_username(self, username: str) -> Optional[UserEntity]:
-        """根据用户名获取用户"""
-        stmt = select(UserModel).where(UserModel.username == username)
-        result = await self.session.execute(stmt)
-        user_model = result.scalar_one_or_none()
-        
-        if user_model:
-            return self._model_to_entity(user_model)
-        return None
-    
+        model = result.scalar_one_or_none()
+        return _model_to_entity(model) if model else None
+
     async def get_by_email(self, email: str) -> Optional[UserEntity]:
-        """根据邮箱获取用户"""
-        stmt = select(UserModel).where(UserModel.email == email)
+        stmt = select(UserModel).where(UserModel.email == email.lower().strip())
         result = await self.session.execute(stmt)
-        user_model = result.scalar_one_or_none()
-        
-        if user_model:
-            return self._model_to_entity(user_model)
-        return None
-    
+        model = result.scalar_one_or_none()
+        return _model_to_entity(model) if model else None
+
+    async def get_by_username(self, username: str) -> Optional[UserEntity]:
+        stmt = select(UserModel).where(UserModel.username == username.strip())
+        result = await self.session.execute(stmt)
+        model = result.scalar_one_or_none()
+        return _model_to_entity(model) if model else None
+
     async def get_by_phone(self, phone: str) -> Optional[UserEntity]:
-        """根据手机号获取用户"""
-        stmt = select(UserModel).where(UserModel.phone == phone)
+        if not phone:
+            return None
+        stmt = select(UserModel).where(UserModel.phone == phone.strip())
         result = await self.session.execute(stmt)
-        user_model = result.scalar_one_or_none()
-        
-        if user_model:
-            return self._model_to_entity(user_model)
-        return None
-    
+        model = result.scalar_one_or_none()
+        return _model_to_entity(model) if model else None
+
     async def get_by_login_identifier(self, identifier: str) -> Optional[UserEntity]:
-        """根据登录标识符（用户名/邮箱/手机号）获取用户"""
-        stmt = select(UserModel).where(
-            or_(
-                UserModel.username == identifier,
-                UserModel.email == identifier,
-                UserModel.phone == identifier
-            )
-        )
-        result = await self.session.execute(stmt)
-        user_model = result.scalar_one_or_none()
-        
-        if user_model:
-            return self._model_to_entity(user_model)
-        return None
-    
+        identifier = identifier.strip()
+        # username
+        user = await self.get_by_username(identifier)
+        if user:
+            return user
+        # email
+        user = await self.get_by_email(identifier)
+        if user:
+            return user
+        # phone
+        return await self.get_by_phone(identifier)
+
     async def get_all(self, skip: int = 0, limit: int = 100) -> List[UserEntity]:
-        """获取所有用户（分页）"""
         stmt = select(UserModel).offset(skip).limit(limit)
         result = await self.session.execute(stmt)
-        user_models = result.scalars().all()
-        
-        return [self._model_to_entity(user_model) for user_model in user_models]
-    
+        models = result.scalars().all()
+        return [_model_to_entity(m) for m in models]
+
     async def get_active_users(self) -> List[UserEntity]:
-        """获取所有活跃用户"""
-        stmt = select(UserModel).where(UserModel.is_active == True)
+        stmt = select(UserModel).where(UserModel.is_active.is_(True))
         result = await self.session.execute(stmt)
-        user_models = result.scalars().all()
-        
-        return [self._model_to_entity(user_model) for user_model in user_models]
-    
+        models = result.scalars().all()
+        return [_model_to_entity(m) for m in models]
+
     async def update(self, user_id: UUID, update_data: Dict[str, Any]) -> Optional[UserEntity]:
-        """更新用户信息"""
-        # 移除不允许更新的字段
-        update_data.pop('id', None)
-        update_data.pop('created_at', None)
-        update_data['updated_at'] = datetime.utcnow()
-        
-        stmt = update(UserModel).where(UserModel.id == user_id).values(**update_data)
-        result = await self.session.execute(stmt)
-        await self.session.commit()
-        
-        if result.rowcount > 0:
-            return await self.get_by_id(user_id)
-        return None
-    
-    async def update_last_login(self, user_id: UUID) -> bool:
-        """更新最后登录时间"""
-        stmt = update(UserModel).where(UserModel.id == user_id).values(
-            last_login=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+        # 执行更新
+        stmt = (
+            update(UserModel)
+            .where(UserModel.id == user_id)
+            .values({**update_data, "updated_at": func.now()})
+            .returning(UserModel)
         )
         result = await self.session.execute(stmt)
-        await self.session.commit()
-        
+        model = result.scalar_one_or_none()
+        return _model_to_entity(model) if model else None
+
+    async def update_last_login(self, user_id: UUID) -> bool:
+        stmt = (
+            update(UserModel)
+            .where(UserModel.id == user_id)
+            .values(last_login=func.now(), updated_at=func.now())
+        )
+        result = await self.session.execute(stmt)
         return result.rowcount > 0
-    
+
     async def delete(self, user_id: UUID) -> bool:
-        """删除用户"""
         stmt = delete(UserModel).where(UserModel.id == user_id)
         result = await self.session.execute(stmt)
-        await self.session.commit()
-        
         return result.rowcount > 0
-    
+
     async def soft_delete(self, user_id: UUID) -> bool:
-        """软删除用户（设置is_active为False）"""
-        stmt = update(UserModel).where(UserModel.id == user_id).values(
-            is_active=False,
-            updated_at=datetime.utcnow()
+        stmt = (
+            update(UserModel)
+            .where(UserModel.id == user_id)
+            .values(is_active=False, updated_at=func.now())
         )
         result = await self.session.execute(stmt)
-        await self.session.commit()
-        
         return result.rowcount > 0
-    
+
     async def exists_by_username(self, username: str) -> bool:
-        """检查用户名是否存在"""
-        stmt = select(UserModel.id).where(UserModel.username == username)
+        stmt = select(func.count()).select_from(UserModel).where(UserModel.username == username.strip())
         result = await self.session.execute(stmt)
-        return result.scalar_one_or_none() is not None
-    
+        return (result.scalar_one() or 0) > 0
+
     async def exists_by_email(self, email: str) -> bool:
-        """检查邮箱是否存在"""
-        stmt = select(UserModel.id).where(UserModel.email == email)
+        stmt = select(func.count()).select_from(UserModel).where(UserModel.email == email.lower().strip())
         result = await self.session.execute(stmt)
-        return result.scalar_one_or_none() is not None
-    
+        return (result.scalar_one() or 0) > 0
+
     async def exists_by_phone(self, phone: str) -> bool:
-        """检查手机号是否存在"""
-        stmt = select(UserModel.id).where(UserModel.phone == phone)
+        if not phone:
+            return False
+        stmt = select(func.count()).select_from(UserModel).where(UserModel.phone == phone.strip())
         result = await self.session.execute(stmt)
-        return result.scalar_one_or_none() is not None
-    
+        return (result.scalar_one() or 0) > 0
+
     async def get_user_stats(self) -> Dict[str, int]:
-        """获取用户统计信息"""
-        # 总用户数
-        total_stmt = select(UserModel.id)
-        total_result = await self.session.execute(total_stmt)
-        total_users = len(total_result.scalars().all())
-        
-        # 活跃用户数
-        active_stmt = select(UserModel.id).where(UserModel.is_active == True)
-        active_result = await self.session.execute(active_stmt)
-        active_users = len(active_result.scalars().all())
-        
-        # 今日新增用户数
-        today = datetime.utcnow().date()
-        today_stmt = select(UserModel.id).where(
-            UserModel.created_at >= today
-        )
-        today_result = await self.session.execute(today_stmt)
-        new_users_today = len(today_result.scalars().all())
-        
+        total_stmt = select(func.count()).select_from(UserModel)
+        active_stmt = select(func.count()).select_from(UserModel).where(UserModel.is_active.is_(True))
+        today = func.current_date()
+        new_today_stmt = select(func.count()).select_from(UserModel).where(func.date(UserModel.created_at) == today)
+
+        total = (await self.session.execute(total_stmt)).scalar_one()
+        active = (await self.session.execute(active_stmt)).scalar_one()
+        new_today = (await self.session.execute(new_today_stmt)).scalar_one()
+
         return {
-            "total_users": total_users,
-            "active_users": active_users,
-            "new_users_today": new_users_today
+            "total_users": int(total or 0),
+            "active_users": int(active or 0),
+            "new_users_today": int(new_today or 0),
         }
-    
-    def _model_to_entity(self, user_model: UserModel) -> UserEntity:
-        """将数据库模型转换为领域实体"""
-        return UserEntity(
-            id=user_model.id,  # type: ignore
-            username=user_model.username,  # type: ignore
-            email=user_model.email,  # type: ignore
-            phone=user_model.phone,  # type: ignore
-            hashed_password=user_model.hashed_password,  # type: ignore
-            is_active=user_model.is_active,  # type: ignore
-            is_superuser=user_model.is_superuser,  # type: ignore
-            created_at=user_model.created_at,  # type: ignore
-            updated_at=user_model.updated_at,  # type: ignore
-            last_login=user_model.last_login  # type: ignore
+
+
+
+class AnalysisResultRepository:
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def save_buffer_result(self, req: Any, fc: Dict[str, Any]) -> int:
+        """保存缓冲区分析结果"""
+        area_km2 = 0.0
+        geom_multi = None
+        
+        try:
+            if fc.get("features"):
+                area_km2 = float(fc["features"][0].get("properties", {}).get("area_km2", 0.0))
+                # 转换几何为 PostGIS
+                geom_multi = self._geojson_to_postgis(fc["features"][0]["geometry"])
+        except Exception:
+            area_km2 = 0.0
+            geom_multi = None
+        
+        record = BufferResult(
+            user_id=None,
+            source_tag=None,
+            input_json=getattr(req, "model_dump", lambda: req)(),
+            result_fc_json=fc,
+            buffer_m=getattr(req, "distance_m", None),
+            cap_style=getattr(req, "cap_style", None),
+            dissolved=getattr(req, "dissolve", None),
+            geom=geom_multi,
+            area_km2=area_km2,
         )
+        self.session.add(record)
+        await self.session.flush()
+        await self.session.refresh(record)
+        return cast(int, record.id)
 
+    def _geojson_to_postgis(self, geojson: Dict[str, Any]):
+        """GeoJSON 转 PostGIS 几何"""
+        try:
+            if not geojson or geojson.get("type") == "Point":
+                return None  # 点几何不存储
+            shapely_geom = shape(geojson)
+            return from_shape(shapely_geom, srid=4326)
+        except Exception:
+            return None
 
-class PostgreSQLLayerRepository(LayerRepository):
-    """PostgreSQL图层(layers)仓储实现
-    
-    注意: 此实现需要根据您实际制作的表结构进行调整
-    当前为占位实现，等待表结构完成后进行完善
-    """
-    
-    def __init__(self, session: AsyncSession):
-        self.session = session
-    
-    async def create(self, layer: Layer) -> Layer:
-        """创建图层"""
-        # TODO: 根据实际表结构实现
-        raise NotImplementedError("需要根据实际表结构实现")
-    
-    async def get_by_id(self, layer_id: UUID) -> Optional[Layer]:
-        """根据ID获取图层"""
-        # TODO: 根据实际表结构实现
-        raise NotImplementedError("需要根据实际表结构实现")
-    
-    async def get_by_name(self, name: str) -> Optional[Layer]:
-        """根据名称获取图层"""
-        # TODO: 根据实际表结构实现
-        raise NotImplementedError("需要根据实际表结构实现")
-    
-    async def get_all(self, skip: int = 0, limit: int = 100) -> List[Layer]:
-        """获取所有图层"""
-        # TODO: 根据实际表结构实现
-        raise NotImplementedError("需要根据实际表结构实现")
-    
-    async def update(self, layer: Layer) -> Layer:
-        """更新图层"""
-        # TODO: 根据实际表结构实现
-        raise NotImplementedError("需要根据实际表结构实现")
-    
-    async def delete(self, layer_id: UUID) -> bool:
-        """删除图层"""
-        # TODO: 根据实际表结构实现
-        raise NotImplementedError("需要根据实际表结构实现")
-    
-    async def update_extent(self, layer_id: UUID, extent: SpatialExtent) -> bool:
-        """更新图层空间范围"""
-        # TODO: 根据实际表结构实现
-        raise NotImplementedError("需要根据实际表结构实现")
-    
-    async def update_feature_count(self, layer_id: UUID, count: int) -> bool:
-        """更新图层要素数量"""
-        # TODO: 根据实际表结构实现
-        raise NotImplementedError("需要根据实际表结构实现")
+    async def save_route_result(self, req: Any, feat: Dict[str, Any]) -> int:
+        """保存路径分析结果"""
+        props = feat.get("properties", {})
+        geom_line = None
+        
+        try:
+            if feat.get("geometry"):
+                geom_line = self._geojson_to_postgis(feat["geometry"])
+        except Exception:
+            geom_line = None
+        
+        record = RouteResult(
+            user_id=None,
+            source_tag=props.get("sourceTag"),
+            input_json=getattr(req, "model_dump", lambda: req)(),
+            result_feature_json=feat,
+            profile=str(props.get("profile")) if props.get("profile") is not None else None,
+            weight=str(props.get("weight")) if props.get("weight") is not None else None,
+            length_km=float(props.get("length_km")) if props.get("length_km") is not None else None,
+            duration_min=float(props.get("duration_min")) if props.get("duration_min") is not None else None,
+            geom=geom_line,
+        )
+        self.session.add(record)
+        await self.session.flush()
+        await self.session.refresh(record)
+        return cast(int, record.id)
 
+    async def save_accessibility_result(self, req: Any, fc: Dict[str, Any]) -> int:
+        """保存可达性分析结果"""
+        summary = fc.get("summary", {})
+        geom_multi = None
+        
+        try:
+            if fc.get("features"):
+                # 合并所有等时圈几何
+                from shapely.ops import unary_union
+                polys = [shape(f["geometry"]) for f in fc["features"] if f.get("geometry")]
+                if polys:
+                    union = unary_union(polys)
+                    geom_multi = from_shape(union, srid=4326)
+        except Exception:
+            geom_multi = None
+        
+        record = AccessibilityResult(
+            user_id=None,
+            source_tag=summary.get("sourceTag"),
+            input_json=getattr(req, "model_dump", lambda: req)(),
+            result_fc_json=fc,
+            mode=str(summary.get("mode", getattr(req, "mode", None))) if summary.get("mode", getattr(req, "mode", None)) is not None else None,
+            cutoff_min=int(getattr(req, "cutoff_min", 0)) if getattr(req, "cutoff_min", None) is not None else None,
+            bands=getattr(req, "bands", None),
+            total_area_km2=summary.get("total_area_km2"),
+            geoms=geom_multi,
+        )
+        self.session.add(record)
+        await self.session.flush()
+        await self.session.refresh(record)
+        return cast(int, record.id)
 
-class PostgreSQLSpatialFeatureRepository(SpatialFeatureRepository):
-    """PostgreSQL空间要素(spatial_features)仓储实现
-    
-    注意: 此实现需要根据您实际制作的表结构进行调整
-    当前为占位实现，等待表结构完成后进行完善
-    """
-    
-    def __init__(self, session: AsyncSession):
-        self.session = session
-    
-    async def create(self, feature: SpatialFeature) -> SpatialFeature:
-        """创建空间要素"""
-        # TODO: 根据实际表结构实现
-        raise NotImplementedError("需要根据实际表结构实现")
-    
-    async def get_by_id(self, feature_id: UUID) -> Optional[SpatialFeature]:
-        """根据ID获取空间要素"""
-        # TODO: 根据实际表结构实现
-        raise NotImplementedError("需要根据实际表结构实现")
-    
-    async def get_by_layer_id(self, layer_id: UUID, skip: int = 0, limit: int = 1000) -> List[SpatialFeature]:
-        """根据图层ID获取空间要素"""
-        # TODO: 根据实际表结构实现
-        raise NotImplementedError("需要根据实际表结构实现")
-    
-    async def get_by_extent(self, layer_id: UUID, extent: SpatialExtent) -> List[SpatialFeature]:
-        """根据空间范围获取要素"""
-        # TODO: 根据实际表结构实现
-        raise NotImplementedError("需要根据实际表结构实现")
-    
-    async def get_by_geometry_type(self, layer_id: UUID, geometry_type: GeometryType) -> List[SpatialFeature]:
-        """根据几何类型获取要素"""
-        # TODO: 根据实际表结构实现
-        raise NotImplementedError("需要根据实际表结构实现")
-    
-    async def update(self, feature: SpatialFeature) -> SpatialFeature:
-        """更新空间要素"""
-        # TODO: 根据实际表结构实现
-        raise NotImplementedError("需要根据实际表结构实现")
-    
-    async def delete(self, feature_id: UUID) -> bool:
-        """删除空间要素"""
-        # TODO: 根据实际表结构实现
-        raise NotImplementedError("需要根据实际表结构实现")
-    
-    async def delete_by_layer_id(self, layer_id: UUID) -> bool:
-        """删除图层的所有要素"""
-        # TODO: 根据实际表结构实现
-        raise NotImplementedError("需要根据实际表结构实现")
-    
-    async def count_by_layer_id(self, layer_id: UUID) -> int:
-        """统计图层要素数量"""
-        # TODO: 根据实际表结构实现
-        raise NotImplementedError("需要根据实际表结构实现")
-    
-    async def get_extent_by_layer_id(self, layer_id: UUID) -> Optional[SpatialExtent]:
-        """获取图层空间范围"""
-        # TODO: 根据实际表结构实现
-        raise NotImplementedError("需要根据实际表结构实现")
-
-
-class PostgreSQLAnalysisResultRepository(AnalysisResultRepository):
-    """PostgreSQL分析结果(analysis_results)仓储实现
-    
-    注意: 此实现需要根据您实际制作的表结构进行调整
-    当前为占位实现，等待表结构完成后进行完善
-    """
-    
-    def __init__(self, session: AsyncSession):
-        self.session = session
-    
-    async def create(self, result: AnalysisResult) -> AnalysisResult:
-        """创建分析结果"""
-        # TODO: 根据实际表结构实现
-        raise NotImplementedError("需要根据实际表结构实现")
-    
-    async def get_by_id(self, result_id: UUID) -> Optional[AnalysisResult]:
-        """根据ID获取分析结果"""
-        # TODO: 根据实际表结构实现
-        raise NotImplementedError("需要根据实际表结构实现")
-    
-    async def get_by_analysis_type(self, analysis_type: AnalysisType, skip: int = 0, limit: int = 100) -> List[AnalysisResult]:
-        """根据分析类型获取结果"""
-        # TODO: 根据实际表结构实现
-        raise NotImplementedError("需要根据实际表结构实现")
-    
-    async def get_all(self, skip: int = 0, limit: int = 100) -> List[AnalysisResult]:
-        """获取所有分析结果"""
-        # TODO: 根据实际表结构实现
-        raise NotImplementedError("需要根据实际表结构实现")
-    
-    async def delete(self, result_id: UUID) -> bool:
-        """删除分析结果"""
-        # TODO: 根据实际表结构实现
-        raise NotImplementedError("需要根据实际表结构实现")
-    
-    async def delete_by_analysis_type(self, analysis_type: AnalysisType) -> bool:
-        """删除指定类型的分析结果"""
-        # TODO: 根据实际表结构实现
-        raise NotImplementedError("需要根据实际表结构实现")

@@ -73,6 +73,16 @@ class Settings(BaseSettings):
     supermap_username: str = "admin"
     supermap_password: str = "admin"
     
+    # SuperMap 分析服务配置
+    supermap_iserver_url: str = "https://iserver.supermap.io/iserver"
+    supermap_network_service: str = "services/networkanalyst-changchun/restjsr/networkanalyst"
+    supermap_spatial_service: str = "services/spatialanalyst-changchun/restjsr/spatialanalyst"
+    
+    # SuperMap 数据集配置
+    supermap_default_dataset: str = "RoadLine2@Changchun"
+    supermap_buffer_dataset: str = "RoadLine2@Changchun"
+    supermap_network_dataset: str = "RoadLine2@Changchun"
+    
     # JWT 配置
     secret_key: str = "your-super-secret-key-change-this-in-production"
     algorithm: str = "HS256"

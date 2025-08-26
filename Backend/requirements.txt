@@ -36,3 +36,9 @@ pytest-asyncio==0.21.1
 
 # Environment
 python-dotenv==1.0.0
+
+# 空间分析相关依赖
+shapely>=2.0.0
+geoalchemy2>=0.14.0
+pyproj>=3.6.0
+requests>=2.31.0

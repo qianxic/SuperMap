@@ -144,5 +144,3 @@ class ProfileUseCase:
         
         return None
 
-
-# 用例实例将由依赖注入容器管理

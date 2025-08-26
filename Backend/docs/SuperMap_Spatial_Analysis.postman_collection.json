@@ -1,0 +1,221 @@
+{
+	"info": {
+		"_postman_id": "supermap-spatial-analysis",
+		"name": "SuperMap 空间分析 API",
+		"description": "三大空间分析功能的 API 测试集合",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "缓冲区分析",
+			"item": [
+				{
+					"name": "点要素缓冲区 (500米)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"input\": {\n    \"type\": \"Feature\",\n    \"geometry\": {\n      \"type\": \"Point\",\n      \"coordinates\": [125.3245, 43.8868]\n    },\n    \"properties\": {\n      \"name\": \"长春市中心\",\n      \"type\": \"city_center\"\n    }\n  },\n  \"distance_m\": 500.0,\n  \"cap_style\": \"round\",\n  \"dissolve\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/gis/buffer",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "gis", "buffer"]
+						}
+					}
+				},
+				{
+					"name": "线要素缓冲区 (200米)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"input\": {\n    \"type\": \"Feature\",\n    \"geometry\": {\n      \"type\": \"LineString\",\n      \"coordinates\": [\n        [125.3245, 43.8868],\n        [125.3345, 43.8968],\n        [125.3445, 43.9068]\n      ]\n    },\n    \"properties\": {\n      \"name\": \"测试道路\",\n      \"type\": \"road\"\n    }\n  },\n  \"distance_m\": 200.0,\n  \"cap_style\": \"flat\",\n  \"dissolve\": false\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/gis/buffer",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "gis", "buffer"]
+						}
+					}
+				},
+				{
+					"name": "面要素缓冲区 (300米)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"input\": {\n    \"type\": \"Feature\",\n    \"geometry\": {\n      \"type\": \"Polygon\",\n      \"coordinates\": [[\n        [125.3145, 43.8768],\n        [125.3345, 43.8768],\n        [125.3345, 43.8968],\n        [125.3145, 43.8968],\n        [125.3145, 43.8768]\n      ]]\n    },\n    \"properties\": {\n      \"name\": \"测试区域\",\n      \"type\": \"district\"\n    }\n  },\n  \"distance_m\": 300.0,\n  \"cap_style\": \"square\",\n  \"dissolve\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/gis/buffer",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "gis", "buffer"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "最短路径分析",
+			"item": [
+				{
+					"name": "步行最短路径",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"start\": {\n    \"type\": \"Feature\",\n    \"geometry\": {\n      \"type\": \"Point\",\n      \"coordinates\": [125.3245, 43.8868]\n    },\n    \"properties\": {\n      \"name\": \"起点\"\n    }\n  },\n  \"end\": {\n    \"type\": \"Feature\",\n    \"geometry\": {\n      \"type\": \"Point\",\n      \"coordinates\": [125.3445, 43.9068]\n    },\n    \"properties\": {\n      \"name\": \"终点\"\n    }\n  },\n  \"profile\": \"walk\",\n  \"weight\": \"time\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/gis/shortest-path",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "gis", "shortest-path"]
+						}
+					}
+				},
+				{
+					"name": "驾车最短路径",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"start\": {\n    \"type\": \"Feature\",\n    \"geometry\": {\n      \"type\": \"Point\",\n      \"coordinates\": [125.3145, 43.8768]\n    },\n    \"properties\": {\n      \"name\": \"起点\"\n    }\n  },\n  \"end\": {\n    \"type\": \"Feature\",\n    \"geometry\": {\n      \"type\": \"Point\",\n      \"coordinates\": [125.3545, 43.9168]\n    },\n    \"properties\": {\n      \"name\": \"终点\"\n    }\n  },\n  \"profile\": \"drive\",\n  \"weight\": \"distance\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/gis/shortest-path",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "gis", "shortest-path"]
+						}
+					}
+				},
+				{
+					"name": "骑行最短路径",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"start\": {\n    \"type\": \"Feature\",\n    \"geometry\": {\n      \"type\": \"Point\",\n      \"coordinates\": [125.3245, 43.8868]\n    },\n    \"properties\": {\n      \"name\": \"起点\"\n    }\n  },\n  \"end\": {\n    \"type\": \"Feature\",\n    \"geometry\": {\n      \"type\": \"Point\",\n      \"coordinates\": [125.3345, 43.8968]\n    },\n    \"properties\": {\n      \"name\": \"终点\"\n    }\n  },\n  \"profile\": \"bike\",\n  \"weight\": \"time\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/gis/shortest-path",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "gis", "shortest-path"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "可达性分析",
+			"item": [
+				{
+					"name": "步行可达性 (5分钟)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"origin\": {\n    \"type\": \"Feature\",\n    \"geometry\": {\n      \"type\": \"Point\",\n      \"coordinates\": [125.3245, 43.8868]\n    },\n    \"properties\": {\n      \"name\": \"长春市中心\"\n    }\n  },\n  \"mode\": \"walk\",\n  \"cutoff_min\": 5,\n  \"bands\": [1, 3, 5]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/gis/accessibility",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "gis", "accessibility"]
+						}
+					}
+				},
+				{
+					"name": "驾车可达性 (15分钟)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"origin\": {\n    \"type\": \"Feature\",\n    \"geometry\": {\n      \"type\": \"Point\",\n      \"coordinates\": [125.3245, 43.8868]\n    },\n    \"properties\": {\n      \"name\": \"长春市中心\"\n    }\n  },\n  \"mode\": \"drive\",\n  \"cutoff_min\": 15,\n  \"bands\": [5, 10, 15]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/gis/accessibility",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "gis", "accessibility"]
+						}
+					}
+				},
+				{
+					"name": "骑行可达性 (10分钟)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"origin\": {\n    \"type\": \"Feature\",\n    \"geometry\": {\n      \"type\": \"Point\",\n      \"coordinates\": [125.3245, 43.8868]\n    },\n    \"properties\": {\n      \"name\": \"长春市中心\"\n    }\n  },\n  \"mode\": \"bike\",\n  \"cutoff_min\": 10,\n  \"bands\": [3, 6, 10]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/gis/accessibility",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "gis", "accessibility"]
+						}
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		}
+	]
+}

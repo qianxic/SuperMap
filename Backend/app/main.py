@@ -10,6 +10,10 @@ import uvicorn
 from app.core.config import settings
 from app.api.v1 import api_v1_router
 
+'''
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+'''
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -71,29 +75,13 @@ async def general_exception_handler(request: Request, exc: Exception):
     )
 
 
-# 根路径
-@app.get("/", tags=["系统"])
-async def root():
-    """系统根路径"""
-    return {
-        "success": True,
-        "message": "欢迎使用 SuperMap GIS + AI 智能分析系统",
-        "version": settings.app_version,
-        "docs": "/docs",
-        "environment": settings.environment
-    }
+# 保留最小接口集：仅通过统一路由器暴露API
 
 
-# 健康检查
-@app.get("/health", tags=["系统"])
-async def health_check():
-    """健康检查接口"""
-    return {
-        "success": True,
-        "status": "healthy",
-        "version": settings.app_version,
-        "environment": settings.environment
-    }
+# 根级健康检查（便于外部探活 /health）
+@app.get("/health")
+async def root_health() -> dict:
+    return {"status": "ok"}
 
 
 # 注册API路由 - 使用统一的路由管理器
@@ -101,6 +89,11 @@ app.include_router(
     api_v1_router,
     prefix=settings.api_v1_prefix
 )
+
+# 调试：打印所有注册的路由
+print("🔍 已注册的路由:")
+for route in app.routes:
+    print(f"  {type(route).__name__}: {str(route)}")
 
 
 # 开发环境启动

@@ -6,7 +6,6 @@ from uuid import UUID
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
 from jose import JWTError, jwt
-
 from app.domains.user.entities import UserEntity
 from app.domains.user.repositories import UserRepository
 from app.application.dto.user_dto import (
