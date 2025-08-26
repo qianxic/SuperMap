@@ -12,9 +12,10 @@ from datetime import datetime
 
 # 添加项目根目录到 Python 路径（确保可导入 app 包）
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT_DIR = os.path.dirname(CURRENT_DIR)
-if ROOT_DIR not in sys.path:
-    sys.path.insert(0, ROOT_DIR)
+# 项目根目录位于当前文件上两级目录
+PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, "..", ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 
 # API基础URL
 BASE_URL = "http://localhost:8000"

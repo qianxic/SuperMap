@@ -63,6 +63,10 @@ class UserService:
     async def get_user_by_phone(self, phone: str) -> Optional[UserEntity]:
         """根据手机号获取用户"""
         return await self.user_repository.get_by_phone(phone)
+
+    async def get_user_by_login_identifier(self, identifier: str) -> Optional[UserEntity]:
+        """根据登录标识符获取用户（用户名/邮箱/手机号）。"""
+        return await self.user_repository.get_by_login_identifier(identifier)
     
     async def update_user_profile(
         self,
@@ -125,6 +129,10 @@ class UserService:
     async def get_user_stats(self) -> Dict:
         """获取用户统计信息"""
         return await self.user_repository.get_user_stats()
+
+    async def update_last_login(self, user_id: UUID) -> bool:
+        """更新最后登录时间。"""
+        return await self.user_repository.update_last_login(user_id)
     
     async def deactivate_user(self, user_id: UUID) -> UserEntity:
         """停用用户"""
@@ -147,3 +155,22 @@ class UserService:
         if not result:
             raise ValueError("用户激活失败")
         return result
+
+    async def exists_by_username(self, username: str) -> bool:
+        """检查用户名是否存在。"""
+        return await self.user_repository.exists_by_username(username)
+
+    async def exists_by_email(self, email: str) -> bool:
+        """检查邮箱是否存在。"""
+        return await self.user_repository.exists_by_email(email)
+
+    async def exists_by_phone(self, phone: str) -> bool:
+        """检查手机号是否存在。"""
+        return await self.user_repository.exists_by_phone(phone)
+
+    async def change_password_hashed(self, user_id: UUID, hashed_new_password: str) -> UserEntity:
+        """直接以哈希后的新密码更新用户密码。"""
+        updated = await self.user_repository.update(user_id, {"hashed_password": hashed_new_password})
+        if not updated:
+            raise ValueError("密码修改失败")
+        return updated

@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from app.domains.user.entities import UserEntity
-from app.domains.user.repositories import UserRepository
+from app.domains.user.services import UserService
 from app.application.dto.user_dto import (
     UserRegisterDTO, UserLoginDTO, UserProfileDTO, 
     UserUpdateDTO, PasswordChangeDTO
@@ -21,8 +21,8 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 class AuthUseCase:
     """用户认证用例"""
     
-    def __init__(self, user_repository: UserRepository):
-        self.user_repository = user_repository
+    def __init__(self, user_service: UserService):
+        self.user_service = user_service
     
     def _verify_password(self, plain_password: str, hashed_password: str) -> bool:
         """验证密码"""
@@ -50,29 +50,14 @@ class AuthUseCase:
         if user_data.password != user_data.confirm_password:
             raise ValueError("密码和确认密码不匹配")
         
-        # 检查用户名是否已存在
-        if await self.user_repository.exists_by_username(user_data.username):
-            raise ValueError("用户名已存在")
-        
-        # 检查邮箱是否已存在
-        if await self.user_repository.exists_by_email(user_data.email):
-            raise ValueError("邮箱已存在")
-        
-        # 检查手机号是否已存在
-        if user_data.phone and await self.user_repository.exists_by_phone(user_data.phone):
-            raise ValueError("手机号已存在")
-        
-        # 创建用户实体
+        # 创建用户（内部包含唯一性检查）
         hashed_password = self._get_password_hash(user_data.password)
-        user = UserEntity.create_new(
+        created_user = await self.user_service.create_user(
             email=user_data.email,
             username=user_data.username,
             hashed_password=hashed_password,
-            phone=user_data.phone
+            phone=user_data.phone,
         )
-        
-        # 保存到数据库
-        created_user = await self.user_repository.create(user)
         
         return {
             "success": True,
@@ -85,7 +70,7 @@ class AuthUseCase:
     async def login_user(self, login_data: UserLoginDTO) -> Dict[str, Any]:
         """用户登录"""
         # 根据登录标识符获取用户
-        user = await self.user_repository.get_by_login_identifier(login_data.login_identifier)
+        user = await self.user_service.get_user_by_login_identifier(login_data.login_identifier)
         
         if not user:
             raise ValueError("用户名、邮箱或手机号不存在")
@@ -98,7 +83,7 @@ class AuthUseCase:
             raise ValueError("密码错误")
         
         # 更新最后登录时间
-        await self.user_repository.update_last_login(user.id)
+        await self.user_service.update_last_login(user.id)
         
         # 创建访问令牌
         access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
@@ -118,7 +103,7 @@ class AuthUseCase:
     
     async def get_user_profile(self, user_id: UUID) -> Dict[str, Any]:
         """获取用户资料"""
-        user = await self.user_repository.get_by_id(user_id)
+        user = await self.user_service.get_user_by_id(user_id)
         
         if not user:
             raise ValueError("用户不存在")
@@ -131,7 +116,7 @@ class AuthUseCase:
     
     async def update_user_profile(self, user_id: UUID, update_data: UserUpdateDTO) -> Dict[str, Any]:
         """更新用户资料"""
-        user = await self.user_repository.get_by_id(user_id)
+        user = await self.user_service.get_user_by_id(user_id)
         
         if not user:
             raise ValueError("用户不存在")
@@ -141,36 +126,28 @@ class AuthUseCase:
         old_info = {}
         new_info = {}
         
-        # 检查并更新用户名
-        if update_data.new_username and update_data.new_username != update_data.old_username:
-            if await self.user_repository.exists_by_username(update_data.new_username):
-                raise ValueError("新用户名已存在")
-            update_dict["username"] = update_data.new_username
-            old_info["username"] = update_data.old_username
-            new_info["username"] = update_data.new_username
-        
-        # 检查并更新邮箱
-        if update_data.new_email and update_data.new_email != update_data.old_email:
-            if await self.user_repository.exists_by_email(update_data.new_email):
-                raise ValueError("新邮箱已存在")
-            update_dict["email"] = update_data.new_email
-            old_info["email"] = update_data.old_email
-            new_info["email"] = update_data.new_email
-        
-        # 检查并更新手机号
-        if update_data.new_phone and update_data.new_phone != update_data.old_phone:
-            if await self.user_repository.exists_by_phone(update_data.new_phone):
-                raise ValueError("新手机号已存在")
-            update_dict["phone"] = update_data.new_phone
-            old_info["phone"] = update_data.old_phone
-            new_info["phone"] = update_data.new_phone
-        
-        # 执行更新
-        if update_dict:
-            updated_user = await self.user_repository.update(user_id, update_dict)
-            if not updated_user:
-                raise ValueError("用户信息更新失败")
-            
+        # 计算差异并更新
+        new_username = update_data.new_username if update_data.new_username and update_data.new_username != update_data.old_username else None
+        new_email = update_data.new_email if update_data.new_email and update_data.new_email != update_data.old_email else None
+        new_phone = update_data.new_phone if update_data.new_phone and update_data.new_phone != update_data.old_phone else None
+
+        if new_username or new_email or new_phone:
+            updated_user = await self.user_service.update_user_profile(
+                user_id,
+                username=new_username,
+                email=new_email,
+                phone=new_phone,
+            )
+            if new_username:
+                old_info["username"] = update_data.old_username
+                new_info["username"] = new_username
+            if new_email:
+                old_info["email"] = update_data.old_email
+                new_info["email"] = new_email
+            if new_phone:
+                old_info["phone"] = update_data.old_phone
+                new_info["phone"] = new_phone
+
             return {
                 "success": True,
                 "message": "用户信息修改成功",
@@ -179,16 +156,15 @@ class AuthUseCase:
                     "new_info": new_info
                 }
             }
-        else:
-            return {
-                "success": True,
-                "message": "用户信息未发生变化",
-                "data": {}
-            }
+        return {
+            "success": True,
+            "message": "用户信息未发生变化",
+            "data": {}
+        }
     
     async def change_password(self, user_id: UUID, password_data: PasswordChangeDTO) -> Dict[str, Any]:
         """修改密码"""
-        user = await self.user_repository.get_by_id(user_id)
+        user = await self.user_service.get_user_by_id(user_id)
         
         if not user:
             raise ValueError("用户不存在")
@@ -207,12 +183,7 @@ class AuthUseCase:
         
         # 更新密码
         hashed_new_password = self._get_password_hash(password_data.new_password)
-        updated_user = await self.user_repository.update(user_id, {
-            "hashed_password": hashed_new_password
-        })
-        
-        if not updated_user:
-            raise ValueError("密码修改失败")
+        updated_user = await self.user_service.change_password_hashed(user_id, hashed_new_password)
         
         return {
             "success": True,
@@ -225,7 +196,7 @@ class AuthUseCase:
     
     async def get_user_stats(self) -> Dict[str, Any]:
         """获取用户统计信息"""
-        stats = await self.user_repository.get_user_stats()
+        stats = await self.user_service.get_user_stats()
         
         return {
             "success": True,

@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.user.entities import UserEntity
 from app.domains.user.repositories import UserRepository
-from app.infrastructure.database.postgres.models import UserModel, BufferResult, RouteResult, AccessibilityResult
+from app.infrastructure.database.postgres.models import UserModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Any, Dict, cast
 from shapely.geometry import shape
@@ -174,108 +174,4 @@ class PostgreSQLUserRepository(UserRepository):
             "new_users_today": int(new_today or 0),
         }
 
-
-
-class AnalysisResultRepository:
-    def __init__(self, session: AsyncSession):
-        self.session = session
-
-    async def save_buffer_result(self, req: Any, fc: Dict[str, Any]) -> int:
-        """保存缓冲区分析结果"""
-        area_km2 = 0.0
-        geom_multi = None
-        
-        try:
-            if fc.get("features"):
-                area_km2 = float(fc["features"][0].get("properties", {}).get("area_km2", 0.0))
-                # 转换几何为 PostGIS
-                geom_multi = self._geojson_to_postgis(fc["features"][0]["geometry"])
-        except Exception:
-            area_km2 = 0.0
-            geom_multi = None
-        
-        record = BufferResult(
-            user_id=None,
-            source_tag=None,
-            input_json=getattr(req, "model_dump", lambda: req)(),
-            result_fc_json=fc,
-            buffer_m=getattr(req, "distance_m", None),
-            cap_style=getattr(req, "cap_style", None),
-            dissolved=getattr(req, "dissolve", None),
-            geom=geom_multi,
-            area_km2=area_km2,
-        )
-        self.session.add(record)
-        await self.session.flush()
-        await self.session.refresh(record)
-        return cast(int, record.id)
-
-    def _geojson_to_postgis(self, geojson: Dict[str, Any]):
-        """GeoJSON 转 PostGIS 几何"""
-        try:
-            if not geojson or geojson.get("type") == "Point":
-                return None  # 点几何不存储
-            shapely_geom = shape(geojson)
-            return from_shape(shapely_geom, srid=4326)
-        except Exception:
-            return None
-
-    async def save_route_result(self, req: Any, feat: Dict[str, Any]) -> int:
-        """保存路径分析结果"""
-        props = feat.get("properties", {})
-        geom_line = None
-        
-        try:
-            if feat.get("geometry"):
-                geom_line = self._geojson_to_postgis(feat["geometry"])
-        except Exception:
-            geom_line = None
-        
-        record = RouteResult(
-            user_id=None,
-            source_tag=props.get("sourceTag"),
-            input_json=getattr(req, "model_dump", lambda: req)(),
-            result_feature_json=feat,
-            profile=str(props.get("profile")) if props.get("profile") is not None else None,
-            weight=str(props.get("weight")) if props.get("weight") is not None else None,
-            length_km=float(props.get("length_km")) if props.get("length_km") is not None else None,
-            duration_min=float(props.get("duration_min")) if props.get("duration_min") is not None else None,
-            geom=geom_line,
-        )
-        self.session.add(record)
-        await self.session.flush()
-        await self.session.refresh(record)
-        return cast(int, record.id)
-
-    async def save_accessibility_result(self, req: Any, fc: Dict[str, Any]) -> int:
-        """保存可达性分析结果"""
-        summary = fc.get("summary", {})
-        geom_multi = None
-        
-        try:
-            if fc.get("features"):
-                # 合并所有等时圈几何
-                from shapely.ops import unary_union
-                polys = [shape(f["geometry"]) for f in fc["features"] if f.get("geometry")]
-                if polys:
-                    union = unary_union(polys)
-                    geom_multi = from_shape(union, srid=4326)
-        except Exception:
-            geom_multi = None
-        
-        record = AccessibilityResult(
-            user_id=None,
-            source_tag=summary.get("sourceTag"),
-            input_json=getattr(req, "model_dump", lambda: req)(),
-            result_fc_json=fc,
-            mode=str(summary.get("mode", getattr(req, "mode", None))) if summary.get("mode", getattr(req, "mode", None)) is not None else None,
-            cutoff_min=int(getattr(req, "cutoff_min", 0)) if getattr(req, "cutoff_min", None) is not None else None,
-            bands=getattr(req, "bands", None),
-            total_area_km2=summary.get("total_area_km2"),
-            geoms=geom_multi,
-        )
-        self.session.add(record)
-        await self.session.flush()
-        await self.session.refresh(record)
-        return cast(int, record.id)
 

@@ -6,7 +6,9 @@ from typing import Dict, Any
 from app.domains.user.repositories import UserRepository, MockUserRepository
 from app.domains.user.services import UserService
 from app.application.use_cases.user.auth_use_case import AuthUseCase
-from app.application.use_cases.user.profile_use_case import ProfileUseCase
+from app.infrastructure.database.postgres.repositories import PostgreSQLUserRepository
+from sqlalchemy.ext.asyncio import AsyncSession
+# ProfileUseCase 已废弃，移除导入与注册
 
 
 class Container:
@@ -28,12 +30,10 @@ class Container:
         
         # 用例层
         self._services['auth_use_case'] = AuthUseCase(
-            user_repository=self._services['user_repository']
+            user_service=self._services['user_service']
         )
         
-        self._services['profile_use_case'] = ProfileUseCase(
-            user_repository=self._services['user_repository']
-        )
+        # note: profile_use_case 已移除
     
     def get(self, service_name: str) -> Any:
         """获取服务实例"""
@@ -59,10 +59,7 @@ class Container:
                 user_repository=repository_instance
             )
             self._services['auth_use_case'] = AuthUseCase(
-                user_repository=repository_instance
-            )
-            self._services['profile_use_case'] = ProfileUseCase(
-                user_repository=repository_instance
+                user_service=self._services['user_service']
             )
 
 
@@ -86,6 +83,24 @@ def get_auth_use_case() -> AuthUseCase:
     return container.get('auth_use_case')
 
 
-def get_profile_use_case() -> ProfileUseCase:
-    """获取资料管理用例"""
-    return container.get('profile_use_case')
+def build_user_repository(session: AsyncSession) -> UserRepository:
+    """基于给定数据库会话创建用户仓储实现（PostgreSQL）。"""
+    return PostgreSQLUserRepository(session)
+
+
+def build_user_service(session: AsyncSession) -> UserService:
+    """基于给定数据库会话创建用户服务。"""
+    repository = build_user_repository(session)
+    return UserService(user_repository=repository)
+
+
+def build_auth_use_case(session: AsyncSession) -> AuthUseCase:
+    """基于给定数据库会话创建认证用例。"""
+    user_service = build_user_service(session)
+    # AuthUseCase 构造函数将在后续重构为依赖 UserService
+    return AuthUseCase(user_service)  # type: ignore[arg-type]
+
+
+# def get_profile_use_case() -> ProfileUseCase:
+#     """获取资料管理用例"""
+#     return container.get('profile_use_case')

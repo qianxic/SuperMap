@@ -6,7 +6,6 @@ from fastapi import APIRouter
 
 from app.api.v1.user.auth import router as user_auth_router
 from app.api.v1.health import router as health_router
-from app.api.v1.gis import gis_router
 
 # 创建主路由
 api_v1_router = APIRouter()
@@ -19,8 +18,7 @@ api_v1_router.include_router(user_router)
 # 健康检查
 api_v1_router.include_router(health_router)
 
-# GIS 模块
-api_v1_router.include_router(gis_router, prefix="/gis")
+# GIS 模块已移除
 
 # TODO: 后续添加其他模块路由
 # agent_router = APIRouter(prefix="/agent", tags=["智能体"])

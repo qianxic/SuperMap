@@ -10,9 +10,9 @@ from app.application.dto.user_dto import (
     PasswordChangeDTO, AuthResponseDTO
 )
 from app.application.use_cases.user.auth_use_case import AuthUseCase
-from app.infrastructure.database.postgres.repositories import PostgreSQLUserRepository
 from app.core.database import get_db
 from app.core.security import get_current_user_id
+from app.core.container import build_auth_use_case
 
 router = APIRouter()
 security = HTTPBearer()
@@ -25,8 +25,7 @@ async def register_user(
 ) -> Dict[str, Any]:
     """用户注册"""
     try:
-        user_repository = PostgreSQLUserRepository(session)
-        auth_use_case = AuthUseCase(user_repository)
+        auth_use_case = build_auth_use_case(session)
         
         result = await auth_use_case.register_user(user_data)
         return result
@@ -49,8 +48,7 @@ async def login_user(
 ) -> Dict[str, Any]:
     """用户登录"""
     try:
-        user_repository = PostgreSQLUserRepository(session)
-        auth_use_case = AuthUseCase(user_repository)
+        auth_use_case = build_auth_use_case(session)
         
         result = await auth_use_case.login_user(login_data)
         return result
@@ -76,8 +74,7 @@ async def get_user_profile(
         from uuid import UUID
         user_id = UUID(current_user_id)
         
-        user_repository = PostgreSQLUserRepository(session)
-        auth_use_case = AuthUseCase(user_repository)
+        auth_use_case = build_auth_use_case(session)
         
         result = await auth_use_case.get_user_profile(user_id)
         return result
@@ -103,8 +100,7 @@ async def get_current_user(
         from uuid import UUID
         user_id = UUID(current_user_id)
         
-        user_repository = PostgreSQLUserRepository(session)
-        auth_use_case = AuthUseCase(user_repository)
+        auth_use_case = build_auth_use_case(session)
         
         result = await auth_use_case.get_user_profile(user_id)
         return result
@@ -126,8 +122,7 @@ async def get_user_stats(
 ) -> Dict[str, Any]:
     """获取用户统计信息"""
     try:
-        user_repository = PostgreSQLUserRepository(session)
-        auth_use_case = AuthUseCase(user_repository)
+        auth_use_case = build_auth_use_case(session)
         
         result = await auth_use_case.get_user_stats()
         return result
@@ -165,8 +160,7 @@ async def update_user_profile(
         from uuid import UUID
         user_id = UUID(current_user_id)
         
-        user_repository = PostgreSQLUserRepository(session)
-        auth_use_case = AuthUseCase(user_repository)
+        auth_use_case = build_auth_use_case(session)
         
         result = await auth_use_case.update_user_profile(user_id, update_data)
         return result
@@ -193,8 +187,7 @@ async def change_password(
         from uuid import UUID
         user_id = UUID(current_user_id)
         
-        user_repository = PostgreSQLUserRepository(session)
-        auth_use_case = AuthUseCase(user_repository)
+        auth_use_case = build_auth_use_case(session)
         
         result = await auth_use_case.change_password(user_id, password_data)
         return result

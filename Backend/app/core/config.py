@@ -57,32 +57,12 @@ class Settings(BaseSettings):
             return f"redis://:{self.redis_password}@{self.redis_host}:{self.redis_port}/{self.redis_db}"
         return f"redis://{self.redis_host}:{self.redis_port}/{self.redis_db}"
     
-    # 向量数据库配置
-    vector_db_host: str = "localhost"
-    vector_db_port: int = 6333
-    vector_db_api_key: Optional[str] = None
-    
-    # OpenAI 配置
-    openai_api_key: str = "your-openai-api-key"
-    openai_model: str = "gpt-4"
-    openai_embedding_model: str = "text-embedding-ada-002"
-    
     # SuperMap 配置
     supermap_base_url: str = "http://localhost:8090"
     supermap_server_url: str = "http://localhost:8090"
     supermap_username: str = "admin"
     supermap_password: str = "admin"
-    
-    # SuperMap 分析服务配置
-    supermap_iserver_url: str = "https://iserver.supermap.io/iserver"
-    supermap_network_service: str = "services/networkanalyst-changchun/restjsr/networkanalyst"
-    supermap_spatial_service: str = "services/spatialanalyst-changchun/restjsr/spatialanalyst"
-    
-    # SuperMap 数据集配置
-    supermap_default_dataset: str = "RoadLine2@Changchun"
-    supermap_buffer_dataset: str = "RoadLine2@Changchun"
-    supermap_network_dataset: str = "RoadLine2@Changchun"
-    
+
     # JWT 配置
     secret_key: str = "your-super-secret-key-change-this-in-production"
     algorithm: str = "HS256"
