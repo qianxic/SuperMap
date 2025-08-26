@@ -39,6 +39,17 @@ export interface AnalysisResult {
   error?: string
 }
 
+// 泰森多边形（Thiessen/Voronoi）分析参数
+export interface ThiessenParams {
+  points: Array<{
+    type: string
+    coordinates: number[]
+    properties?: Record<string, any>
+  }>
+  extent?: [number, number, number, number]
+  crs?: string
+}
+
 export class AnalysisAPI {
   private baseUrl: string
   private apiKey?: string
@@ -91,6 +102,14 @@ export class AnalysisAPI {
   // 可达性分析API
   async accessibilityAnalysis(params: AccessibilityParams): Promise<ServiceResponse<any>> {
     return this.request('/analysis/accessibility', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    })
+  }
+
+  // 泰森多边形分析API
+  async thiessenAnalysis(params: ThiessenParams): Promise<ServiceResponse<any>> {
+    return this.request('/analysis/thiessen', {
       method: 'POST',
       body: JSON.stringify(params),
     })

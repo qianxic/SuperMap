@@ -1,135 +1,71 @@
+---
+alwaysApply: true
+description: Global conventions for the SuperMap frontend (architecture, API style, selection formats, geometry units, theme usage)
+---
 # SuperMap Frontend Project Rules
 
 ## Project Structure
-- **Entry Point**: [src/main.js](mdc:src/main.js) - Vue application bootstrap
-- **Main App**: [src/App.vue](mdc:src/App.vue) - Root Vue component
-- **Router**: [src/router/index.ts](mdc:src/router/index.ts) - Vue Router configuration
-- **Stores**: [src/stores/](mdc:src/stores/) - Pinia stores for state management
-- **Composables**: [src/composables/](mdc:src/composables/) - Vue composables for reusable logic
-- **Components**: [src/components/](mdc:src/components/) - Vue components organized by feature
-- **Views**: [src/views/](mdc:src/views/) - Page-level Vue components
-- **Types**: [src/types/](mdc:src/types/) - TypeScript type definitions
+- **Entry Point**: [src/main.js](mdc:src/main.js)
+- **Root App**: [src/App.vue](mdc:src/App.vue)
+- **Router**: [src/router/index.ts](mdc:src/router/index.ts)
+- **Stores**: [src/stores/](mdc:src/stores/)
+- **Composables**: [src/composables/](mdc:src/composables/)
+- **Components**: [src/components/](mdc:src/components/)
+- **Views**: [src/views/](mdc:src/views/)
+- **Types**: [src/types/](mdc:src/types/)
 
-## Core Technologies
-- **Vue.js 3** with Composition API
-- **OpenLayers (ol)** for map functionality
-- **Pinia** for state management
-- **TypeScript** for type safety
-- **Vite** for build tooling
+## Tech Stack
+- Vue 3 (Composition API), OpenLayers (ol), Pinia, TypeScript, Vite
 
-## Map Interaction Patterns
+## Global Conventions
+- **API 风格**: 每个功能遵循“输入数据格式 / 数据处理方法 / 输出数据格式”三段式说明与实现
+- **无回退/无校验**: 功能实现中不编写回退方法或输入校验逻辑（由上层流程保证）
+- **主题色**: 颜色统一引用 [src/styles/theme.css](mdc:src/styles/theme.css) 中的 CSS 变量，禁止硬编码颜色
+- **单位**: 面积统一为“平方千米”，距离为“千米”，坐标以度表示并保留 6 位小数
 
-### Feature Selection
-- **Location**: [src/composables/useMap.ts](mdc:src/composables/useMap.ts) - `handleNormalClick` function
-- **Pattern**: Check `analysisStore.drawMode` and `analysisStore.isDistanceMeasureMode` before enabling feature selection
-- **Rule**: Disable feature selection in drawing mode and distance measurement mode
+## Selection and IO
+- 三类选择：
+  - 点击选择: `selectionStore.selectedFeatures`（`sourceTag='click'`）
+  - 区域选择: `areaSelectionStore.selectedFeatures`（`sourceTag='area'`）
+  - 属性选择: `featureQueryStore.queryResults`（`sourceTag='query'`）
+- 地图高亮：统一通过 `mapStore.selectLayer` 渲染
+- 序列化：使用 `ol.format.GeoJSON().writeFeatureObject` 输出 GeoJSON；单个为 Feature，多项为 FeatureCollection
+- 保存/读取实用工具：[`src/utils/selectionIO.ts`](mdc:src/utils/selectionIO.ts)（详见 [`selection-io.mdc`](mdc:.cursor/rules/selection-io.mdc)）
+  - `saveSelectedFeatures(key)` → 写入 `localStorage[key]`
+  - `readSelectedAsGeoJSON(key)` / `readSelectedAsFeatures(key)`
 
-### Drawing Mode
-- **Location**: [src/components/Map/LayerAssistant.vue](mdc:src/components/Map/LayerAssistant.vue)
-- **State Management**: Use `analysisStore.drawMode` to track current drawing type
-- **Pattern**: Set `isDrawLayer: true` on drawing layers for identification
+## Map Interaction
+- 选择入口：见 [src/composables/useMap.ts](mdc:src/composables/useMap.ts) 的交互逻辑
+- 绘制或量测模式下不启用常规要素选择（根据工具状态切换）
 
-### Layer Management
-- **Location**: [src/composables/useLayerManager.ts](mdc:src/composables/useLayerManager.ts)
-- **Pattern**: Use `mapStore.vectorLayers` array for layer tracking
-- **Rule**: Force reactive updates with `mapStore.vectorLayers = [...mapStore.vectorLayers]`
+## Drawing and Geometry
+- 绘制图层识别：在用户绘制图层上设置 `isDrawLayer: true`，已保存的绘制图层可设置 `isSavedDrawLayer: true`
+- 距离计算：哈弗辛公式（千米）；面积：球面多边形面积（平方千米）
+- 常用属性：
+  - 点：`longitude`, `latitude`, `coordinateUnit: '度'`
+  - 线：`length`, `lengthUnit: '千米'`
+  - 面：`area`, `areaUnit: '平方千米'`
 
-## State Management Patterns
+## Stores
+- Map Store: [src/stores/mapStore.ts](mdc:src/stores/mapStore.ts)
+- Analysis Store: [src/stores/analysisStore.ts](mdc:src/stores/analysisStore.ts)
+- Selection Store: [src/stores/selectionStore.ts](mdc:src/stores/selectionStore.ts)
+- Area Selection Store: [src/stores/areaSelectionStore.ts](mdc:src/stores/areaSelectionStore.ts)
+- Feature Query Store: [src/stores/featureQueryStore.ts](mdc:src/stores/featureQueryStore.ts)
 
-### Store Structure
-- **Map Store**: [src/stores/mapStore.ts](mdc:src/stores/mapStore.ts) - Map instance and layers
-- **Analysis Store**: [src/stores/analysisStore.ts](mdc:src/stores/analysisStore.ts) - Tool states (drawMode, isDistanceMeasureMode)
-- **Selection Store**: [src/stores/selectionStore.ts](mdc:src/stores/selectionStore.ts) - Feature selection state
-- **Popup Store**: [src/stores/popupStore.ts](mdc:src/stores/popupStore.ts) - Popup management
+## Composables Pattern
+- 结构、响应式、Store 使用规范参见 [`vue-composables.mdc`](mdc:.cursor/rules/vue-composables.mdc)
+- 图层管理：使用 `mapStore.vectorLayers` 管理；必要时通过展开运算符触发响应（`mapStore.vectorLayers = [...mapStore.vectorLayers]`）
 
-### Store Usage
-- Always import stores at the top of composables
-- Use destructuring for store access: `const { useMapStore } = await import('@/stores/mapStore')`
-- Access store state directly: `mapStore.map`, `analysisStore.drawMode`
+## File & Import Rules
+- 组件命名使用 PascalCase；按职责分组（`Map/`, `UI/`, `Layout/`）
+- 使用 `@/` 作为 `src` 目录别名；导入顺序：Vue → 外部库 → 内部模块 → 类型
+- 大型依赖按需动态导入
 
-## Drawing and Geometry Patterns
+## Performance & Maintenance
+- 清理未使用的要素与图层；组件卸载时移除事件监听
+- 避免在长流程中残留引用导致内存泄漏
 
-### Drawing Layer Identification
-- Set `isDrawLayer: true` on drawing layers
-- Set `isSavedDrawLayer: true` on saved drawing layers
-- Use `source: 'local'` for user-created layers
+## Logging & Debugging
+- 调试时输出有信息量的日志（要素数量、坐标、计算结果），并保持上下文
 
-### Geometry Calculations
-- **Distance**: Use Haversine formula for geographic distance (kilometers)
-- **Area**: Use spherical polygon area formula (square kilometers)
-- **Coordinates**: Store in degrees with 6 decimal places precision
-
-### Feature Properties
-- **elementId**: Sequential ID based on drawing order (1, 2, 3...)
-- **Point**: `longitude`, `latitude`, `coordinateUnit: '度'`
-- **Line**: `length`, `lengthUnit: '千米'`
-- **Polygon**: `area`, `areaUnit: '平方千米'`
-
-## UI Component Patterns
-
-### Confirmation Dialogs
-- **Component**: [src/components/UI/ConfirmDialog.vue](mdc:src/components/UI/ConfirmDialog.vue)
-- **Usage**: Bind to `layerManager.confirmDialogVisible.value` and related functions
-- **Pattern**: Use `showConfirmDialog()` with title, message, and callback functions
-
-### Notifications
-- **Pattern**: Use `window.dispatchEvent(new CustomEvent('showNotifiation', { detail: {...} }))`
-- **Types**: 'success', 'error', 'info'
-- **Duration**: 2000-5000ms based on importance
-
-## Error Handling Patterns
-
-### Try-Catch Blocks
-- Always wrap OpenLayers operations in try-catch
-- Log detailed error information: `error.message`, `error.stack`
-- Show user-friendly notifications for errors
-
-### Validation
-- Check for `window.ol` availability before OpenLayers operations
-- Validate geometry existence before calculations
-- Check array lengths before processing coordinates
-
-## File Organization Rules
-
-### Component Structure
-- Use PascalCase for component names
-- Group related components in subdirectories (Map/, UI/, Layout/)
-- Keep components focused on single responsibility
-
-### TypeScript Usage
-- Use `as const` for literal types: `type: 'vector' as const`
-- Define interfaces in [src/types/](mdc:src/types/) directory
-- Use proper typing for OpenLayers objects: `feature: any`
-
-### Import Patterns
-- Use `@/` alias for src directory imports
-- Group imports: Vue, external libraries, internal modules, types
-- Use dynamic imports for large dependencies: `await import('@/stores/featureQueryStore')`
-
-## Testing and Debugging
-
-### Console Logging
-- Use descriptive console messages for debugging
-- Log feature counts, coordinates, and calculation results
-- Include context in error messages
-
-### Reactive Updates
-- Force Vue reactivity with array spread: `array = [...array]`
-- Use `ref()` and `computed()` for reactive state
-- Ensure proper `.value` access for refs in templates
-
-## Performance Considerations
-
-### Layer Management
-- Clear unused features from sources
-- Remove layers from map when no longer needed
-- Use efficient coordinate comparison for feature matching
-
-### Memory Management
-- Clear drawing sources after saving
-- Remove event listeners when components unmount
-- Avoid memory leaks in long-running operations
-description:
-globs:
-alwaysApply: true
----

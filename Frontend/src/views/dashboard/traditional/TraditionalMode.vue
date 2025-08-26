@@ -11,7 +11,7 @@
         <div class="button-row">
           <PrimaryButton text="缓冲区分析" :active="isBufferOpen" @click="toggleBuffer" />
           <PrimaryButton text="最优路径分析" :active="isDistanceOpen" @click="toggleDistance" />
-          <PrimaryButton text="可达性分析" :active="isGotowhereOpen" @click="toggleGotowhere" />
+          <PrimaryButton text="泰森多边形" :active="isGotowhereOpen" @click="toggleGotowhere" />
         </div>
       </div>
     </div>
@@ -23,7 +23,7 @@
       <EditTools v-if="analysisStore.toolPanel.activeTool === 'bianji'" />
       <BufferAnalysisPanel v-if="analysisStore.toolPanel.activeTool === 'buffer'" />
       <DistanceAnalysisPanel v-if="analysisStore.toolPanel.activeTool === 'distance'" />
-      <AccessibilityAnalysisPanel v-if="analysisStore.toolPanel.activeTool === 'gotowhere'" />
+      <ThiessenAnalysisPanel v-if="analysisStore.toolPanel.activeTool === 'gotowhere'" />
       <LayerManager v-if="analysisStore.toolPanel.activeTool === 'layer'" />
       
       <!-- 新增：路由视图（不影响现有逻辑） -->
@@ -47,7 +47,7 @@ import FeatureQueryPanel from '@/views/dashboard/traditional/tools/FeatureQueryP
 import EditTools from '@/views/dashboard/traditional/tools/EditTools.vue'
 import BufferAnalysisPanel from '@/views/dashboard/traditional/tools/BufferAnalysisPanel.vue'
 import DistanceAnalysisPanel from '@/views/dashboard/traditional/tools/DistanceAnalysisPanel.vue'
-import AccessibilityAnalysisPanel from '@/views/dashboard/traditional/tools/AccessibilityAnalysisPanel.vue'
+import ThiessenAnalysisPanel from '@/views/dashboard/traditional/tools/ThiessenAnalysisPanel.vue'
 import LayerManager from '@/views/dashboard/traditional/tools/LayerManager.vue'
 import PrimaryButton from '@/components/UI/PrimaryButton.vue'
 import PanelContainer from '@/components/UI/PanelContainer.vue'
@@ -63,7 +63,7 @@ const toolConfigs = {
   buffer: { id: 'buffer', title: '缓冲区分析', path: 'buffer' },
   layer: { id: 'layer', title: '图层管理', path: 'layer' },
   distance: { id: 'distance', title: '最优路径分析', path: 'distance' },
-  gotowhere: { id: 'gotowhere', title: '可达性分析', path: 'accessibility' },
+  gotowhere: { id: 'gotowhere', title: '泰森多边形', path: 'thiessen' },
   query: { id: 'query', title: '要素查询', path: 'query' }
 } as const
 
@@ -121,7 +121,7 @@ watch(() => route.path, (newPath) => {
   if (toolMatch) {
     const pathSegment = toolMatch[1]
     // 根据路径找到对应的工具key
-    const toolKey = Object.entries(toolConfigs).find(([key, config]) => config.path === pathSegment)?.[0] as keyof typeof toolConfigs
+    const toolKey = Object.entries(toolConfigs).find(([, config]) => config.path === pathSegment)?.[0] as keyof typeof toolConfigs
     if (toolKey) {
       const config = toolConfigs[toolKey]
       analysisStore.openTool(config.id, config.title)
@@ -137,7 +137,7 @@ watch(() => route.path, (newPath) => {
 // 监听状态变化，同步到路由
 watch(() => analysisStore.toolPanel.activeTool, (newTool) => {
   if (newTool && !isRouteMode.value) {
-    const toolKey = Object.entries(toolConfigs).find(([key, config]) => config.id === newTool)?.[0] as keyof typeof toolConfigs
+    const toolKey = Object.entries(toolConfigs).find(([, config]) => config.id === newTool)?.[0] as keyof typeof toolConfigs
     if (toolKey) {
       router.push(`/dashboard/traditional/${toolConfigs[toolKey].path}`)
       
@@ -166,7 +166,7 @@ onMounted(() => {
         'bianji': '图层编辑',
         'buffer': '缓冲区分析',
         'distance': '距离分析',
-        'gotowhere': '可达性分析'
+        'gotowhere': '泰森多边形'
       }
       analysisStore.openTool(activeTool as any, toolTitleMap[activeTool] || '图层管理')
     }

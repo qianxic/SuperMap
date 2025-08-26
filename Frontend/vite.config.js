@@ -7,7 +7,7 @@ import vue from '@vitejs/plugin-vue'
 export default defineConfig({
   plugins: [
     vue(),
-    // vueDevTools() - 已禁用，避免与浏览器扩展冲突
+    vueDevTools() // 已禁用，避免与浏览器扩展冲突
   ],
   resolve: {
     alias: {

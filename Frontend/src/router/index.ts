@@ -113,7 +113,7 @@ const router = createRouter({
                           'bianji': 'edit',
                           'buffer': 'buffer',
                           'distance': 'distance',
-                          'gotowhere': 'accessibility'
+                          'gotowhere': 'thiessen'
                         }
                         const path = toolPathMap[state.activeTool]
                         if (path) {
@@ -182,13 +182,13 @@ const router = createRouter({
                 requiresAuth: true
               }
             },
-            // 可达性分析
+            // 泰森多边形
             {
-              path: 'accessibility',
-              name: 'accessibility-analysis',
-              component: () => import('@/views/dashboard/traditional/tools/AccessibilityAnalysisPanel.vue'),
+              path: 'thiessen',
+              name: 'thiessen-analysis',
+              component: () => import('@/views/dashboard/traditional/tools/ThiessenAnalysisPanel.vue'),
               meta: {
-                title: '可达性分析',
+                title: '泰森多边形',
                 tool: 'gotowhere',
                 requiresAuth: true
               }
