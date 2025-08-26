@@ -8,7 +8,7 @@ import { useThemeStore } from '@/stores/themeStore'
 import { useLayerManager } from '@/composables/useLayerManager'
 import { superMapClient } from '@/api/supermap'
 import { handleError, notificationManager } from '@/utils/notification'
-import { createAPIConfig, testLayerConfig, getCurrentBaseMapUrl } from '@/utils/config'
+import { createAPIConfig, getCurrentBaseMapUrl } from '@/utils/config'
 
 const ol = window.ol;
 
@@ -23,6 +23,7 @@ export function useMap() {
   const mapContainer = ref<HTMLElement | null>(null)
   const hoverTimer = ref<number | null>(null)
   const selectSourceRef = ref<any>(null) // ol.source.Vector
+  const disposers: Array<() => void> = []
 
   // 前置声明所有函数
   const createLayerStyle = (layerConfig: any, layerName: string): any => {
@@ -243,13 +244,14 @@ export function useMap() {
       subtree: false
     });
     
-    watch(() => themeStore.theme, (newTheme) => {
+    const stopThemeWatch = watch(() => themeStore.theme, () => {
       updateBaseMap();
     });
     
-    onUnmounted(() => {
-      observer.disconnect();
-    });
+    return () => {
+      try { observer.disconnect(); } catch (_) {}
+      try { stopThemeWatch(); } catch (_) {}
+    }
   }
 
   const loadVectorLayer = async (map: any, layerConfig: any, visibleOverride?: boolean): Promise<void> => {
@@ -261,12 +263,7 @@ export function useMap() {
       if (parts.length >= 1) {
         layerName = parts[0] // 取第一部分作为图层名称
       }
-    }
-    
-    // 如果图层名称仍然为空或无效，使用配置中的 datasetName 作为备选
-    if (!layerName || layerName === '未知' || layerName === 'unknown') {
-      layerName = layerConfig.datasetName || layerConfig.name || '未知图层'
-    }
+    } 
     const style = createLayerStyle(layerConfig, layerName);
     
     const vectorLayer = new ol.layer.Vector({
@@ -429,7 +426,6 @@ export function useMap() {
 
   const handleNormalClick = async (evt: any, selectSource: any): Promise<void> => {
     const map = evt.map;
-    const coordinate = evt.coordinate;
     
     const isEditToolActive = analysisStore.toolPanel?.activeTool === 'bianji';
     const isQueryToolActive = analysisStore.toolPanel?.activeTool === 'query';
@@ -500,19 +496,6 @@ export function useMap() {
         }
       } else {
 
-        
-        // 找到要素所属的图层
-        let layerInfo = null;
-        for (const layer of mapStore.vectorLayers) {
-          if (layer.layer && layer.layer.getSource()) {
-            const source = layer.layer.getSource();
-            const features = source.getFeatures();
-            if (features.includes(feature)) {
-              layerInfo = layer;
-              break;
-            }
-          }
-        }
         
         // 清除之前的点击选择
         const source = mapStore.selectLayer?.getSource()
@@ -693,7 +676,7 @@ export function useMap() {
     }
   }
 
-  const setupMapEvents = (map: any, hoverSource: any, selectSource: any): void => {
+  const setupMapEvents = (map: any, hoverSource: any, selectSource: any): (() => void) => {
     const view = map.getView()
     view.on('change:center', () => {
       popupStore.updatePosition(popupStore.position)
@@ -717,24 +700,14 @@ export function useMap() {
     const resizeHandler = () => map.updateSize()
     window.addEventListener('resize', resizeHandler)
     
-    onUnmounted(() => {
-      window.removeEventListener('resize', resizeHandler)
-    })
+    return () => {
+      try { window.removeEventListener('resize', resizeHandler) } catch (_) {}
+    }
   }
 
   const initMap = async (): Promise<void> => {
     mapStore = useMapStore()
     
-    testLayerConfig()
-    
-    // 测试图层名称解析逻辑
-    try {
-      const { testLayerNameParsing, testLayerNameMatching } = await import('@/utils/layerNameTest')
-      testLayerNameParsing()
-      testLayerNameMatching()
-    } catch (error) {
-      console.warn('图层名称测试模块加载失败:', error)
-    }
     
     try {
       if (!window.ol || !mapContainer.value) {
@@ -909,8 +882,10 @@ export function useMap() {
         select: selectLayer
       })
         
-      setupMapEvents(map, hoverSource, selectSource)
-      observeThemeChanges()
+      const disposeEvents = setupMapEvents(map, hoverSource, selectSource)
+      if (disposeEvents) disposers.push(disposeEvents)
+      const disposeTheme = observeThemeChanges()
+      if (disposeTheme) disposers.push(disposeTheme)
         
       setTimeout(() => {
         map.updateSize()
@@ -932,6 +907,10 @@ export function useMap() {
   const cleanup = (): void => {
     if (hoverTimer.value) {
       clearTimeout(hoverTimer.value)
+    }
+    while (disposers.length) {
+      const dispose = disposers.pop()
+      try { dispose && dispose() } catch (_) {}
     }
   }
   

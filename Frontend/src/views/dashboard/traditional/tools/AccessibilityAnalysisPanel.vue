@@ -6,9 +6,9 @@
     :height="'100%'"
     class="accessibility-analysis-panel"
   >
-    <!-- 选择分析中心点 -->
+    <!--  选择分析要素 -->
     <div class="analysis-section">
-      <div class="section-title">选择分析中心点</div>
+      <div class="section-title"> 选择分析要素</div>
       <SecondaryButton 
         text="选择分析位置"
         @click="selectCenterPoint"

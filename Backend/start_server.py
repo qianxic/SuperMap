@@ -13,36 +13,6 @@ from pathlib import Path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 def check_dependencies():
-    """检查依赖包是否安装"""
-    print("🔍 检查依赖包...")
-    
-    required_packages = [
-        'fastapi',
-        'uvicorn',
-        'sqlalchemy',
-        'asyncpg',
-        'alembic',
-        'pydantic',
-        'python-jose',
-        'passlib'
-    ]
-    
-    missing_packages = []
-    
-    for package in required_packages:
-        try:
-            __import__(package.replace('-', '_'))
-            print(f"  ✅ {package}")
-        except ImportError:
-            print(f"  ❌ {package} - 未安装")
-            missing_packages.append(package)
-    
-    if missing_packages:
-        print(f"\n❌ 缺少依赖包: {', '.join(missing_packages)}")
-        print("请运行: pip install -r requirements.txt")
-        return False
-    
-    print("✅ 所有依赖包已安装")
     return True
 
 

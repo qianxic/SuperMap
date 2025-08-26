@@ -200,6 +200,23 @@ const toggleOverview = () => {
   isCollapsed.value = !isCollapsed.value
 }
 
+// 首次展开时再初始化，避免 0 尺寸容器报错
+watch(isCollapsed, (collapsed) => {
+  if (!collapsed) {
+    if (!overviewMap.value) {
+      nextTick(() => {
+        initOverviewMap()
+      })
+    } else {
+      nextTick(() => {
+        try { overviewMap.value.updateSize() } catch (e) {}
+        // 展开后立即同步一次视口
+        syncViews()
+      })
+    }
+  }
+})
+
 // 重建鹰眼图图层的函数
 const rebuildOverviewLayer = () => {
   if (!overviewMap.value) return
@@ -273,7 +290,7 @@ watch(() => themeStore.theme, () => {
 
 // 监听地图就绪状态
 watch(() => mapStore.isMapReady, (ready) => {
-  if (ready && !overviewMap.value) {
+  if (ready && !overviewMap.value && !isCollapsed.value) {
     nextTick(() => {
       initOverviewMap()
     })
@@ -282,7 +299,7 @@ watch(() => mapStore.isMapReady, (ready) => {
 
 // 生命周期
 onMounted(() => {
-  if (mapStore.isMapReady) {
+  if (mapStore.isMapReady && !isCollapsed.value) {
     nextTick(() => {
       initOverviewMap()
     })

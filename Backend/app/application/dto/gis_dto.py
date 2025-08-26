@@ -99,7 +99,7 @@ class IntersectionAnalysisDTO(BaseModel):
 class UnionAnalysisDTO(BaseModel):
     """合并分析DTO"""
     layer_id: str = Field(..., description="图层ID")
-    geometry_ids: List[str] = Field(..., min_items=2, description="几何要素ID列表")
+    geometry_ids: List[str] = Field(..., min_length=2, description="几何要素ID列表")
 
 
 class AccessibilityAnalysisDTO(BaseModel):
@@ -189,13 +189,13 @@ class LayerStatisticsDTO(BaseModel):
 class BatchFeatureCreateDTO(BaseModel):
     """批量创建要素DTO"""
     layer_id: str = Field(..., description="图层ID")
-    features: List[SpatialFeatureCreateDTO] = Field(..., min_items=1, description="要素列表")
+    features: List[SpatialFeatureCreateDTO] = Field(..., min_length=1, description="要素列表")
 
 
 class BatchFeatureUpdateDTO(BaseModel):
     """批量更新要素DTO"""
     layer_id: str = Field(..., description="图层ID")
-    features: List[Dict[str, Any]] = Field(..., min_items=1, description="要素更新数据")
+    features: List[Dict[str, Any]] = Field(..., min_length=1, description="要素更新数据")
 
 
 class BatchOperationResultDTO(BaseModel):
@@ -210,7 +210,7 @@ class BatchOperationResultDTO(BaseModel):
 class DataImportDTO(BaseModel):
     """数据导入DTO"""
     layer_id: str = Field(..., description="图层ID")
-    file_format: str = Field(..., description="文件格式", regex="^(geojson|shapefile|csv)$")
+    file_format: str = Field(..., description="文件格式", pattern="^(geojson|shapefile|csv)$")
     file_content: str = Field(..., description="文件内容或路径")
     encoding: str = Field(default="utf-8", description="文件编码")
 
@@ -218,7 +218,7 @@ class DataImportDTO(BaseModel):
 class DataExportDTO(BaseModel):
     """数据导出DTO"""
     layer_id: str = Field(..., description="图层ID")
-    format: str = Field(..., description="导出格式", regex="^(geojson|shapefile|csv)$")
+    format: str = Field(..., description="导出格式", pattern="^(geojson|shapefile|csv)$")
     extent: Optional[SpatialExtentDTO] = Field(None, description="导出范围")
     attributes: Optional[List[str]] = Field(None, description="导出属性字段")
 

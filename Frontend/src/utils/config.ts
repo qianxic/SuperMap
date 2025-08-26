@@ -202,12 +202,6 @@ export const getAllMapServiceUrls = (): Record<string, string> => {
 // 测试函数：验证图层配置
 export const testLayerConfig = () => {
   const config = createAPIConfig()
-  console.log('=== 图层配置测试 ===')
-  console.log('基础URL:', config.baseUrl)
-  console.log('地图服务:', config.mapService)
-  console.log('数据服务:', config.dataService)
-  console.log('默认数据集:', config.datasetName)
-  
   console.log('\n=== 图层列表 ===')
   config.wuhanLayers.forEach((layer, index) => {
     console.log(`${index + 1}. ${layer.name}`)
