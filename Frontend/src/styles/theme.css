@@ -286,3 +286,56 @@
   flex-direction: column;
   gap: 6px;
 }
+
+/* 全局防闪烁样式 - 防止主题切换时的颜色闪烁 */
+.no-theme-flicker,
+.no-theme-flicker *,
+.no-theme-flicker *::before,
+.no-theme-flicker *::after {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* 特定组件的防闪烁样式 */
+.overview-map-container,
+.layer-item,
+.analysis-section,
+.feature-query-panel,
+.layer-manager-panel {
+  transition: none !important;
+}
+
+.overview-map-container *,
+.layer-item *,
+.analysis-section *,
+.feature-query-panel *,
+.layer-manager-panel * {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* 确保OpenLayers地图在主题切换时不闪烁 */
+.ol-viewport,
+.ol-canvas,
+.ol-control {
+  transition: none !important;
+}
+
+/* 按钮和交互元素的防闪烁 */
+button,
+.btn,
+.overview-toggle-btn {
+  transition: none !important;
+}
+
+/* 面板和容器的防闪烁 */
+.panel-window,
+.panel-container {
+  transition: none !important;
+}
+
+.panel-window *,
+.panel-container * {
+  transition: none !important;
+  animation: none !important;
+}

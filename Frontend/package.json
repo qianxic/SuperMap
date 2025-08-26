@@ -16,6 +16,7 @@
     "test:watch": "node scripts/test-routing.js --watch"
   },
   "dependencies": {
+    "@supermapgis/iclient-leaflet": "^12.0.0-r",
     "ant-design-vue": "^4.2.6",
     "ol": "^10.6.1",
     "pinia": "^3.0.3",

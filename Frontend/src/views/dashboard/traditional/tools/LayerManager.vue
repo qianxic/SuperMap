@@ -74,20 +74,65 @@ const groupedLayers = computed(() => {
     { name: '公共服务', layers: ['医院', '学校'] }
   ]
 
-  return groups
-    .map(group => {
-      const items = mapStore.vectorLayers
-        .filter(vl => group.layers.includes(vl.name))
-        .map(vl => ({
-          key: vl.id,
-          name: vl.name,
-          displayName: `${group.name} - ${vl.name}`,
-          desc: inferDesc(vl.name, vl.type),
-          visible: vl.layer.getVisible()
-        }))
-      return { name: group.name, items }
+  // 获取所有图层
+  const allLayers = mapStore.vectorLayers
+
+  // 分类处理图层
+  const groupedItems = groups.map(group => {
+    const items = allLayers
+      .filter(vl => group.layers.includes(vl.name))
+      .map(vl => ({
+        key: vl.id,
+        name: vl.name,
+        displayName: `${group.name} - ${vl.name}`,
+        desc: inferDesc(vl.name, vl.type),
+        visible: vl.layer.getVisible(),
+        source: vl.source
+      }))
+    return { name: group.name, items }
+  }).filter(group => group.items.length > 0)
+
+  // 添加绘制图层组
+  const drawLayers = allLayers.filter(vl => vl.source === 'local' || vl.layer.get('isSavedDrawLayer'))
+  if (drawLayers.length > 0) {
+    const drawItems = drawLayers.map(vl => ({
+      key: vl.id,
+      name: vl.name,
+      displayName: vl.name,
+      desc: '用户绘制的图层',
+      visible: vl.layer.getVisible(),
+      source: vl.source
+    }))
+    groupedItems.push({ name: '绘制图层', items: drawItems })
+  }
+
+  // 添加其他未分类的图层
+  const categorizedLayers = new Set()
+  groups.forEach(group => {
+    group.layers.forEach(layerName => {
+      categorizedLayers.add(layerName)
     })
-    .filter(group => group.items.length > 0) // 只显示有图层的分类组
+  })
+  
+  const uncategorizedLayers = allLayers.filter(vl => 
+    !categorizedLayers.has(vl.name) && 
+    vl.source !== 'local' && 
+    !vl.layer.get('isSavedDrawLayer')
+  )
+  
+  if (uncategorizedLayers.length > 0) {
+    const otherItems = uncategorizedLayers.map(vl => ({
+      key: vl.id,
+      name: vl.name,
+      displayName: vl.name,
+      desc: inferDesc(vl.name, vl.type),
+      visible: vl.layer.getVisible(),
+      source: vl.source
+    }))
+    groupedItems.push({ name: '其他图层', items: otherItems })
+  }
+
+  return groupedItems
 })
 
 function inferDesc(name: string, type: string): string {
@@ -127,12 +172,12 @@ const handleRemove = (item: MapLayerItem) => {
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 16px;
-  animation: fadeIn 0.3s ease-out;
+  /* 禁用动画，防止主题切换闪烁 */
+  animation: none !important;
   margin-bottom: 16px;
 }
 
-
-
+/* 保留fadeIn动画定义但不使用 */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -162,6 +207,8 @@ const handleRemove = (item: MapLayerItem) => {
   padding: 40px 20px;
   text-align: center;
   color: var(--sub);
+  /* 禁用动画，防止主题切换闪烁 */
+  animation: none !important;
 }
 
 .empty-icon {
@@ -185,12 +232,17 @@ const handleRemove = (item: MapLayerItem) => {
 .layer-container { display: flex; flex-direction: column; }
 
 .layer-item {
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between;
   background: var(--btn-secondary-bg);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 10px 14px;
-  animation: fadeIn 0.3s ease-out;
+  /* 禁用动画，防止主题切换闪烁 */
+  animation: none !important;
+  /* 禁用过渡动画 */
+  transition: none !important;
 }
 .layer-info { display: flex; flex-direction: column; }
 .layer-name { font-size: 13px; color: var(--text); font-weight: 500; }

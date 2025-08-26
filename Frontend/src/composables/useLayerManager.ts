@@ -1,13 +1,24 @@
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useMapStore } from '@/stores/mapStore'
 import { useSelectionStore } from '@/stores/selectionStore'
 import { usePopupStore } from '@/stores/popupStore'
+import { useAnalysisStore } from '@/stores/analysisStore'
 import type { MapLayer } from '@/types/map';
 
 export function useLayerManager() {
   const mapStore = useMapStore()
   const selectionStore = useSelectionStore()
   const popupStore = usePopupStore()
+  const analysisStore = useAnalysisStore()
+  
+  // 确认对话框状态
+  const confirmDialogVisible = ref(false)
+  const confirmDialogConfig = ref({
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    onCancel: () => {}
+  })
 
   // 清除特定图层的选择高亮
   const clearLayerSelection = (layerName: string) => {
@@ -228,11 +239,358 @@ export function useLayerManager() {
     return false
   }
 
+  // 显示确认对话框
+  const showConfirmDialog = (title: string, message: string, onConfirm: () => void, onCancel?: () => void) => {
+    confirmDialogConfig.value = {
+      title,
+      message,
+      onConfirm,
+      onCancel: onCancel || (() => {})
+    }
+    confirmDialogVisible.value = true
+  }
+
+  // 处理确认对话框确认
+  const handleConfirmDialogConfirm = () => {
+    confirmDialogConfig.value.onConfirm()
+    confirmDialogVisible.value = false
+  }
+
+  // 处理确认对话框取消
+  const handleConfirmDialogCancel = () => {
+    confirmDialogConfig.value.onCancel()
+    confirmDialogVisible.value = false
+  }
+
+  // 处理确认对话框关闭
+  const handleConfirmDialogClose = () => {
+    confirmDialogVisible.value = false
+  }
+
+  // 检查是否处于绘制模式
+  const isDrawingMode = () => {
+    return analysisStore.drawMode !== ''
+  }
+
+  // 获取绘制图层的数据源
+  const getDrawLayerSource = () => {
+    console.log('开始查找绘制图层...')
+    
+    // 从地图中查找绘制图层
+    if (!mapStore.map) {
+      console.warn('地图实例不存在')
+      return null
+    }
+    
+    const layers = mapStore.map.getLayers()
+    console.log('地图图层总数:', layers.getLength())
+    
+    for (let i = 0; i < layers.getLength(); i++) {
+      const layer = layers.item(i)
+      const isDrawLayer = layer.get('isDrawLayer')
+      console.log(`图层 ${i}: isDrawLayer = ${isDrawLayer}`)
+      
+      // 检查是否是绘制图层（通过样式或其他特征识别）
+      if (isDrawLayer) {
+        const source = layer.getSource()
+        console.log('找到绘制图层，数据源:', source)
+        return source
+      }
+    }
+    
+    console.warn('未找到绘制图层')
+    return null
+  }
+
+  // 计算两点间距离（千米）
+  const calculateDistance = (coord1: number[], coord2: number[]): number => {
+    const R = 6371 // 地球半径（千米）
+    const lat1 = coord1[1] * Math.PI / 180
+    const lat2 = coord2[1] * Math.PI / 180
+    const deltaLat = (coord2[1] - coord1[1]) * Math.PI / 180
+    const deltaLon = (coord2[0] - coord1[0]) * Math.PI / 180
+
+    const a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+              Math.cos(lat1) * Math.cos(lat2) *
+              Math.sin(deltaLon / 2) * Math.sin(deltaLon / 2)
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+
+    return R * c
+  }
+
+  // 计算线要素长度（千米）
+  const calculateLineLength = (coordinates: number[][]): number => {
+    if (coordinates.length < 2) return 0
+    
+    let totalLength = 0
+    for (let i = 1; i < coordinates.length; i++) {
+      totalLength += calculateDistance(coordinates[i - 1], coordinates[i])
+    }
+    return totalLength
+  }
+
+  // 计算多边形面积（平方千米）
+  const calculatePolygonArea = (coordinates: number[][]): number => {
+    if (coordinates.length < 3) return 0
+    
+    // 使用球面多边形面积公式
+    const R = 6371 // 地球半径（千米）
+    let area = 0
+    
+    for (let i = 0; i < coordinates.length; i++) {
+      const j = (i + 1) % coordinates.length
+      const lat1 = coordinates[i][1] * Math.PI / 180
+      const lat2 = coordinates[j][1] * Math.PI / 180
+      const deltaLon = (coordinates[j][0] - coordinates[i][0]) * Math.PI / 180
+      
+      area += deltaLon * Math.sin((lat1 + lat2) / 2)
+    }
+    
+    return Math.abs(area * R * R)
+  }
+
+
+
+  // 将绘制内容保存为GeoJSON图层
+  const saveDrawAsLayer = async () => {
+    console.log('开始保存绘制内容...')
+    
+    const drawSource = getDrawLayerSource()
+    if (!drawSource) {
+      console.warn('未找到绘制图层数据源')
+      return false
+    }
+
+    const features = drawSource.getFeatures()
+    console.log('绘制要素数量:', features.length)
+    
+    if (features.length === 0) {
+      console.warn('绘制图层中没有要素')
+      return false
+    }
+
+    try {
+      // 检查OpenLayers是否可用
+      if (!window.ol) {
+        throw new Error('OpenLayers库未加载')
+      }
+
+      // 创建GeoJSON格式的数据
+      const geoJsonData = {
+        type: 'FeatureCollection',
+        features: features.map((feature: any, index: number) => {
+          const geometry = feature.getGeometry()
+          if (!geometry) {
+            console.warn(`要素 ${index} 没有几何信息`)
+            return null
+          }
+          
+          const properties = feature.getProperties() || {}
+          const geometryType = geometry.getType()
+          const coordinates = geometry.getCoordinates()
+          
+          console.log(`要素 ${index}: 类型=${geometryType}, 坐标=${JSON.stringify(coordinates)}`)
+          
+          // 计算几何属性
+          let geometricProperties = {}
+          
+          if (geometryType === 'Point') {
+            // 点要素：添加经纬度
+            geometricProperties = {
+              elementId: index + 1,
+              longitude: parseFloat(coordinates[0].toFixed(6)), // 经度，保留6位小数
+              latitude: parseFloat(coordinates[1].toFixed(6)),  // 纬度，保留6位小数
+              coordinateUnit: '度'
+            }
+          } else if (geometryType === 'LineString') {
+            // 线要素：添加长度
+            const length = calculateLineLength(coordinates)
+            geometricProperties = {
+              elementId: index + 1,
+              length: parseFloat(length.toFixed(3)), // 长度，保留3位小数
+              lengthUnit: '千米'
+            }
+          } else if (geometryType === 'Polygon') {
+            // 面要素：添加面积
+            const area = calculatePolygonArea(coordinates[0]) // 外环坐标
+            geometricProperties = {
+              elementId: index + 1,
+              area: parseFloat(area.toFixed(3)), // 面积，保留3位小数
+              areaUnit: '平方千米'
+            }
+          }
+          
+          return {
+            type: 'Feature',
+            id: `draw_${Date.now()}_${index}`,
+            geometry: {
+              type: geometryType,
+              coordinates: coordinates
+            },
+            properties: {
+              ...properties,
+              ...geometricProperties,
+              drawType: analysisStore.drawMode,
+              drawTime: new Date().toISOString(),
+              layerName: `绘制图层_${new Date().toLocaleString()}`
+            }
+          }
+        }).filter(Boolean) // 过滤掉null值
+      }
+
+      console.log('GeoJSON数据:', JSON.stringify(geoJsonData, null, 2))
+
+      // 创建新的图层
+      const ol = window.ol
+      const newSource = new ol.source.Vector({
+        features: new ol.format.GeoJSON().readFeatures(geoJsonData, {
+          featureProjection: mapStore.map.getView().getProjection()
+        })
+      })
+
+      const newLayer = new ol.layer.Vector({
+        source: newSource,
+        style: new ol.style.Style({
+          stroke: new ol.style.Stroke({
+            color: '#ff0000',
+            width: 2
+          }),
+          fill: new ol.style.Fill({
+            color: 'rgba(255, 0, 0, 0.1)'
+          }),
+          image: new ol.style.Circle({
+            radius: 6,
+            fill: new ol.style.Fill({
+              color: '#ff0000'
+            }),
+            stroke: new ol.style.Stroke({
+              color: '#ffffff',
+              width: 2
+            })
+          })
+        })
+      })
+
+      // 设置图层标识
+      newLayer.set('isDrawLayer', false)
+      newLayer.set('isSavedDrawLayer', true)
+      newLayer.set('layerName', geoJsonData.features[0]?.properties?.layerName || '绘制图层')
+
+      // 添加到地图
+      mapStore.map.addLayer(newLayer)
+
+      // 添加到图层管理列表
+      const layerId = `draw_${Date.now()}`
+      const layerName = geoJsonData.features[0]?.properties?.layerName || '绘制图层'
+      
+      const layerInfo = {
+        id: layerId,
+        name: layerName,
+        layer: newLayer,
+        visible: true,
+        type: 'vector' as const,
+        source: 'local' as const
+      }
+      
+      console.log('添加图层到管理列表:', layerInfo)
+      mapStore.vectorLayers.push(layerInfo)
+      
+      // 强制触发响应式更新
+      mapStore.vectorLayers = [...mapStore.vectorLayers]
+
+      // 清除原始绘制内容
+      drawSource.clear()
+
+      console.log('绘制内容保存成功')
+
+      // 显示成功通知
+      window.dispatchEvent(new CustomEvent('showNotification', {
+        detail: {
+          title: '保存成功',
+          message: `已保存 ${features.length} 个绘制要素为新图层`,
+          type: 'success',
+          duration: 3000
+        }
+      }))
+
+      return true
+    } catch (error: any) {
+      console.error('保存绘制内容失败:', error)
+      console.error('错误详情:', error?.message || '未知错误')
+      console.error('错误堆栈:', error?.stack || '无堆栈信息')
+      
+      // 显示错误通知
+      window.dispatchEvent(new CustomEvent('showNotification', {
+        detail: {
+          title: '保存失败',
+          message: `保存绘制内容时发生错误: ${error?.message || '未知错误'}`,
+          type: 'error',
+          duration: 5000
+        }
+      }))
+      
+      return false
+    }
+  }
+
+  // 处理绘制模式下的清除操作
+  const handleDrawClear = () => {
+    if (!isDrawingMode()) {
+      return
+    }
+
+    const drawSource = getDrawLayerSource()
+    if (!drawSource) {
+      return
+    }
+
+    const features = drawSource.getFeatures()
+    if (features.length === 0) {
+      return
+    }
+
+    // 显示确认对话框
+    showConfirmDialog(
+      '保存绘制内容',
+      `检测到您有 ${features.length} 个绘制要素，是否要保存为新的图层？`,
+      () => {
+        // 用户选择保存
+        saveDrawAsLayer()
+      },
+      () => {
+        // 用户选择放弃，直接清除
+        drawSource.clear()
+        
+        // 显示通知
+        window.dispatchEvent(new CustomEvent('showNotification', {
+          detail: {
+            title: '已清除',
+            message: '绘制内容已清除',
+            type: 'info',
+            duration: 2000
+          }
+        }))
+      }
+    )
+  }
+
   return {
     // 激活新功能
     toggleLayerVisibility,
     removeLayer,
     clearLayerSelection,
+
+    // 绘制相关功能
+    isDrawingMode,
+    handleDrawClear,
+    saveDrawAsLayer,
+
+    // 确认对话框相关
+    confirmDialogVisible,
+    confirmDialogConfig,
+    handleConfirmDialogConfirm,
+    handleConfirmDialogCancel,
+    handleConfirmDialogClose,
 
     // 旧的禁用功能
     managedDrawLayers: computed(() => []),

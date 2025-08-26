@@ -433,6 +433,15 @@ export function useMap() {
     
     const isEditToolActive = analysisStore.toolPanel?.activeTool === 'bianji';
     const isQueryToolActive = analysisStore.toolPanel?.activeTool === 'query';
+    const isDistanceMeasureMode = analysisStore.isDistanceMeasureMode;
+    
+    // 检查是否处于绘制模式
+    const isDrawingMode = analysisStore.drawMode !== '';
+    
+    // 如果处于距离量测模式或绘制模式，禁用要素点击选择功能
+    if (isDistanceMeasureMode || isDrawingMode) {
+      return;
+    }
     
     const feature = map.forEachFeatureAtPixel(
       evt.pixel,

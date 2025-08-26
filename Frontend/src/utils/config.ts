@@ -15,6 +15,11 @@ export const createAPIConfig = (): APIConfig => {
       light: 'https://www.supermapol.com/proxy/gqzvimgx/iserver/services/map_china-1-_331nhzuk/rest/maps/China_Light?prjCoordSys=%7B%22epsgCode%22:4326%7D',
       dark: 'https://www.supermapol.com/proxy/dd2z0vuq/iserver/services/map_china-1-_hl5n2ma6/rest/maps/China_Dark'
     },
+    // 备用底图配置
+    fallbackBaseMaps: {
+      light: 'https://www.supermapol.com/proxy/gqzvimgx/iserver/services/map_china-1-_331nhzuk/rest/maps/China_Light?prjCoordSys=%7B%22epsgCode%22:4326%7D',
+      dark: 'https://www.supermapol.com/proxy/dd2z0vuq/iserver/services/map_china-1-_hl5n2ma6/rest/maps/China_Dark'
+    },
     // 武汉工作空间的所有子图层配置 - 根据实际SuperMap服务结构
     wuhanLayers: [
       // 武汉市县级图层

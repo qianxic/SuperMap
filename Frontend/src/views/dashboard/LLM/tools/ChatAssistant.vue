@@ -376,7 +376,7 @@ const startNewConversation = () => {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  animation: fadeIn 0.3s ease-out;
+  animation: none; /* 禁用动画，防止主题切换闪烁 */
   min-height: 120px;
   margin-bottom: 8px;
   user-select: text;
@@ -433,7 +433,7 @@ const startNewConversation = () => {
   border-radius: var(--radius);
   position: relative;
   z-index: 1;
-  animation: fadeIn 0.3s ease-out;
+  animation: none; /* 禁用动画，防止主题切换闪烁 */
   margin-top: 8px;
 }
 
@@ -466,7 +466,7 @@ const startNewConversation = () => {
   align-items: flex-start;
   gap: 6px;
   margin: 0;
-  animation: fadeIn 0.3s ease-out;
+  animation: none; /* 禁用动画，防止主题切换闪烁 */
   user-select: text;
   -webkit-user-select: text;
   -moz-user-select: text;
@@ -513,6 +513,7 @@ const startNewConversation = () => {
   opacity: 0.8;
 }
 
+/* 保留fadeIn动画定义但不使用 */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -522,6 +523,30 @@ const startNewConversation = () => {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.chat-message {
+  margin-bottom: 16px;
+  padding: 12px;
+  border-radius: 8px;
+  /* 禁用动画，防止主题切换闪烁 */
+  animation: none !important;
+}
+
+.user-message {
+  background: var(--accent);
+  color: white;
+  margin-left: 20%;
+  /* 禁用动画，防止主题切换闪烁 */
+  animation: none !important;
+}
+
+.assistant-message {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  margin-right: 20%;
+  /* 禁用动画，防止主题切换闪烁 */
+  animation: none !important;
 }
 
 .message-wrapper.user .message-bubble {

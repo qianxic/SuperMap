@@ -982,7 +982,7 @@ const deleteAgent = (id: number) => {
   padding: 40px 20px;
   text-align: center;
   cursor: pointer;
-  transition: all 0.3s ease;
+   
   background: var(--surface);
 }
 

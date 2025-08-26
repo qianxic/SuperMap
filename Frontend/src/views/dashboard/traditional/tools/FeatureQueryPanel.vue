@@ -67,7 +67,7 @@
     </div>
 
     <!-- 查询结果 -->
-    <div class="analysis-section" v-if="queryResults.length > 0">
+    <div class="analysis-section no-theme-flicker" v-if="queryResults.length > 0">
       <div class="section-title">
         查询结果 ({{ queryResults.length }}个要素)
       </div>
@@ -467,7 +467,8 @@ const clearQueryResults = () => {
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 16px;
-  animation: fadeIn 0.3s ease-out;
+  /* 禁用动画，防止主题切换闪烁 */
+  animation: none !important;
   margin-bottom: 16px;
 }
 
@@ -480,8 +481,10 @@ const clearQueryResults = () => {
 .no-theme-flicker *::before,
 .no-theme-flicker *::after {
   transition: none !important;
+  animation: none !important;
 }
 
+/* 保留fadeIn动画定义但不使用 */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -535,9 +538,11 @@ const clearQueryResults = () => {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 10px 14px;
-  animation: fadeIn 0.3s ease-out;
+  /* 禁用动画，防止主题切换闪烁 */
+  animation: none !important;
   cursor: pointer;
-  transition: all 0.2s ease;
+  /* 禁用过渡动画 */
+  transition: none !important;
 }
 
 .layer-item:hover {
@@ -611,7 +616,8 @@ const clearQueryResults = () => {
   cursor: pointer;
   font-size: 12px;
   background: var(--panel);
-  transition: background-color 0.2s ease;
+  /* 禁用过渡动画，防止主题切换闪烁 */
+  transition: none !important;
 }
 
 .field-item.active {

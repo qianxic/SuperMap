@@ -49,10 +49,10 @@ const tipClass = computed(() => {
   background: rgba(66, 165, 245, 0.08);
   border-radius: 12px;
   border-left: 4px solid var(--accent);
-  animation: fadeIn 0.3s ease-out;
-  opacity: 0;
-  transform: translateY(-10px);
-  transition: all 0.3s ease-out;
+  /* 禁用动画，防止主题切换闪烁 */
+  animation: none !important;
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .tip-window.tip-visible {
@@ -102,6 +102,7 @@ const tipClass = computed(() => {
   color: #dc3545;
 }
 
+/* 保留fadeIn动画定义但不使用 */
 @keyframes fadeIn {
   from {
     opacity: 0;

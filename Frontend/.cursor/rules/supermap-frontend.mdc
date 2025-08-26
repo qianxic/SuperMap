@@ -1,0 +1,135 @@
+# SuperMap Frontend Project Rules
+
+## Project Structure
+- **Entry Point**: [src/main.js](mdc:src/main.js) - Vue application bootstrap
+- **Main App**: [src/App.vue](mdc:src/App.vue) - Root Vue component
+- **Router**: [src/router/index.ts](mdc:src/router/index.ts) - Vue Router configuration
+- **Stores**: [src/stores/](mdc:src/stores/) - Pinia stores for state management
+- **Composables**: [src/composables/](mdc:src/composables/) - Vue composables for reusable logic
+- **Components**: [src/components/](mdc:src/components/) - Vue components organized by feature
+- **Views**: [src/views/](mdc:src/views/) - Page-level Vue components
+- **Types**: [src/types/](mdc:src/types/) - TypeScript type definitions
+
+## Core Technologies
+- **Vue.js 3** with Composition API
+- **OpenLayers (ol)** for map functionality
+- **Pinia** for state management
+- **TypeScript** for type safety
+- **Vite** for build tooling
+
+## Map Interaction Patterns
+
+### Feature Selection
+- **Location**: [src/composables/useMap.ts](mdc:src/composables/useMap.ts) - `handleNormalClick` function
+- **Pattern**: Check `analysisStore.drawMode` and `analysisStore.isDistanceMeasureMode` before enabling feature selection
+- **Rule**: Disable feature selection in drawing mode and distance measurement mode
+
+### Drawing Mode
+- **Location**: [src/components/Map/LayerAssistant.vue](mdc:src/components/Map/LayerAssistant.vue)
+- **State Management**: Use `analysisStore.drawMode` to track current drawing type
+- **Pattern**: Set `isDrawLayer: true` on drawing layers for identification
+
+### Layer Management
+- **Location**: [src/composables/useLayerManager.ts](mdc:src/composables/useLayerManager.ts)
+- **Pattern**: Use `mapStore.vectorLayers` array for layer tracking
+- **Rule**: Force reactive updates with `mapStore.vectorLayers = [...mapStore.vectorLayers]`
+
+## State Management Patterns
+
+### Store Structure
+- **Map Store**: [src/stores/mapStore.ts](mdc:src/stores/mapStore.ts) - Map instance and layers
+- **Analysis Store**: [src/stores/analysisStore.ts](mdc:src/stores/analysisStore.ts) - Tool states (drawMode, isDistanceMeasureMode)
+- **Selection Store**: [src/stores/selectionStore.ts](mdc:src/stores/selectionStore.ts) - Feature selection state
+- **Popup Store**: [src/stores/popupStore.ts](mdc:src/stores/popupStore.ts) - Popup management
+
+### Store Usage
+- Always import stores at the top of composables
+- Use destructuring for store access: `const { useMapStore } = await import('@/stores/mapStore')`
+- Access store state directly: `mapStore.map`, `analysisStore.drawMode`
+
+## Drawing and Geometry Patterns
+
+### Drawing Layer Identification
+- Set `isDrawLayer: true` on drawing layers
+- Set `isSavedDrawLayer: true` on saved drawing layers
+- Use `source: 'local'` for user-created layers
+
+### Geometry Calculations
+- **Distance**: Use Haversine formula for geographic distance (kilometers)
+- **Area**: Use spherical polygon area formula (square kilometers)
+- **Coordinates**: Store in degrees with 6 decimal places precision
+
+### Feature Properties
+- **elementId**: Sequential ID based on drawing order (1, 2, 3...)
+- **Point**: `longitude`, `latitude`, `coordinateUnit: '度'`
+- **Line**: `length`, `lengthUnit: '千米'`
+- **Polygon**: `area`, `areaUnit: '平方千米'`
+
+## UI Component Patterns
+
+### Confirmation Dialogs
+- **Component**: [src/components/UI/ConfirmDialog.vue](mdc:src/components/UI/ConfirmDialog.vue)
+- **Usage**: Bind to `layerManager.confirmDialogVisible.value` and related functions
+- **Pattern**: Use `showConfirmDialog()` with title, message, and callback functions
+
+### Notifications
+- **Pattern**: Use `window.dispatchEvent(new CustomEvent('showNotifiation', { detail: {...} }))`
+- **Types**: 'success', 'error', 'info'
+- **Duration**: 2000-5000ms based on importance
+
+## Error Handling Patterns
+
+### Try-Catch Blocks
+- Always wrap OpenLayers operations in try-catch
+- Log detailed error information: `error.message`, `error.stack`
+- Show user-friendly notifications for errors
+
+### Validation
+- Check for `window.ol` availability before OpenLayers operations
+- Validate geometry existence before calculations
+- Check array lengths before processing coordinates
+
+## File Organization Rules
+
+### Component Structure
+- Use PascalCase for component names
+- Group related components in subdirectories (Map/, UI/, Layout/)
+- Keep components focused on single responsibility
+
+### TypeScript Usage
+- Use `as const` for literal types: `type: 'vector' as const`
+- Define interfaces in [src/types/](mdc:src/types/) directory
+- Use proper typing for OpenLayers objects: `feature: any`
+
+### Import Patterns
+- Use `@/` alias for src directory imports
+- Group imports: Vue, external libraries, internal modules, types
+- Use dynamic imports for large dependencies: `await import('@/stores/featureQueryStore')`
+
+## Testing and Debugging
+
+### Console Logging
+- Use descriptive console messages for debugging
+- Log feature counts, coordinates, and calculation results
+- Include context in error messages
+
+### Reactive Updates
+- Force Vue reactivity with array spread: `array = [...array]`
+- Use `ref()` and `computed()` for reactive state
+- Ensure proper `.value` access for refs in templates
+
+## Performance Considerations
+
+### Layer Management
+- Clear unused features from sources
+- Remove layers from map when no longer needed
+- Use efficient coordinate comparison for feature matching
+
+### Memory Management
+- Clear drawing sources after saving
+- Remove event listeners when components unmount
+- Avoid memory leaks in long-running operations
+description:
+globs:
+alwaysApply: true
+---

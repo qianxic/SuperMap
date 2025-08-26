@@ -6,7 +6,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onUnmounted, watch } from 'vue'
 import { useMapStore } from '@/stores/mapStore'
 
 const mapStore = useMapStore()

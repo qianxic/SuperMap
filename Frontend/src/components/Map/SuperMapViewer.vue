@@ -1,15 +1,18 @@
 <template>
   <div class="map-container">
     <div ref="mapContainer" class="map-view"></div>
-    <!-- 缩放控件（左上角） -->
-    <ZoomControls />
+    <!-- 图层辅助控件（左上角） -->
+    <LayerAssistant />
     <!-- 要素弹窗 -->
     <FeaturePopup />
     <!-- 坐标显示（左下角） -->
     <CoordinateDisplay />
     <!-- 比例尺显示（右下角） -->
     <ScaleBar />
-
+    <!-- 鹰眼图（右下角） -->
+    <OverviewMap />
+    <!-- 距离量算面板 -->
+    <DistanceMeasurePanel />
   </div>
 </template>
 
@@ -19,7 +22,9 @@ import { useMap } from '@/composables/useMap'
 import FeaturePopup from './FeaturePopup.vue'
 import CoordinateDisplay from './CoordinateDisplay.vue'
 import ScaleBar from './ScaleBar.vue'
-import ZoomControls from './ZoomControls.vue'
+import LayerAssistant from './LayerAssistant.vue'
+import OverviewMap from './OverviewMap.vue'
+import DistanceMeasurePanel from './DistanceMeasurePanel.vue'
 
 
 // 组合式函数

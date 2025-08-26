@@ -238,6 +238,7 @@ onMounted(() => {
 }
 
 .content-section > * {
-  animation: fadeIn 0.3s ease-out;
+  /* 禁用动画，防止主题切换闪烁 */
+  animation: none !important;
 }
 </style>

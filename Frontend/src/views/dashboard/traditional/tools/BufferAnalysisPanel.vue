@@ -120,12 +120,12 @@ watch(() => analysisStore.toolPanel.activeTool, (tool) => {
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 16px;
-  animation: fadeIn 0.3s ease-out;
+  /* 禁用动画，防止主题切换闪烁 */
+  animation: none !important;
   margin-bottom: 16px;
 }
 
-
-
+/* 保留fadeIn动画定义但不使用 */
 @keyframes fadeIn {
   from {
     opacity: 0;

@@ -176,8 +176,6 @@ onUnmounted(() => {
   opacity: 0.7;
 }
 
-
-
 .dropdown-options {
   position: absolute;
   top: 100%;
@@ -186,18 +184,20 @@ onUnmounted(() => {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 8px;
-  margin-top: 4px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
-  max-height: 160px;
+  box-shadow: var(--glow);
+  max-height: 200px;
   overflow-y: auto;
-  animation: dropdownFadeIn 0.2s ease;
+  z-index: 1000;
+  margin-top: 4px;
+  /* 禁用动画，防止主题切换闪烁 */
+  animation: none !important;
 }
 
+/* 保留dropdownFadeIn动画定义但不使用 */
 @keyframes dropdownFadeIn {
   from {
     opacity: 0;
-    transform: translateY(-8px);
+    transform: translateY(-10px);
   }
   to {
     opacity: 1;
