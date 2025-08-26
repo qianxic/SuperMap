@@ -188,6 +188,17 @@ const saveToolState = () => {
   modeStateStore.saveToolState(toolId, stateToSave)
 }
 
+// 保存状态（防抖）
+let saveTimer: any = null
+const saveToolStateDebounced = () => {
+  if (saveTimer) {
+    clearTimeout(saveTimer)
+  }
+  saveTimer = setTimeout(() => {
+    saveToolState()
+  }, 300)
+}
+
 // 恢复工具状态
 const restoreToolState = () => {
   const state = modeStateStore.getToolState(toolId)
@@ -218,24 +229,27 @@ const restoreToolState = () => {
 
 // 组件生命周期管理
 onMounted(() => {
-  // 立即恢复基本状态
+  // 恢复状态（仅一次）
   restoreToolState()
-  
-  // 延迟恢复完整状态，确保所有依赖都已准备好
-  setTimeout(() => {
-    restoreToolState()
-  }, 200)
 })
 
 onUnmounted(() => {
   console.log('查询工具组件卸载，保存状态')
   saveToolState()
+  if (saveTimer) {
+    clearTimeout(saveTimer)
+    saveTimer = null
+  }
 })
 
-// 监听状态变化，自动保存
-watch([selectedLayerId, queryConfig, queryResults], () => {
-  saveToolState()
-}, { deep: true })
+// 监听状态变化，自动保存（防抖，并缩小监听范围）
+watch([
+  selectedLayerId,
+  () => queryConfig.value.condition,
+  () => queryResults.value.length
+], () => {
+  saveToolStateDebounced()
+})
 
 // 监听工具面板状态变化，在面板关闭时保存状态
 watch(() => analysisStore.toolPanel.visible, (newVisible, oldVisible) => {

@@ -1,7 +1,7 @@
 <template>
   <div class="overview-map-container no-theme-flicker" v-if="isVisible">
     <div class="overview-map-header">
-      <span class="overview-title">鹰眼图</span>
+      <span class="overview-title">鹰眼</span>
       <button 
         class="overview-toggle-btn"
         @click="toggleOverview"
@@ -53,7 +53,7 @@ const updateExtentBox = () => {
   // 获取主地图的当前范围
   const mainExtent = mainView.calculateExtent(mapStore.map.getSize())
   
-  // 将主地图范围转换到鹰眼图坐标系
+  // 将主地图范围转换到鹰眼坐标系
   const overviewExtent = ol.proj.transformExtent(mainExtent, mainView.getProjection(), overviewView.getProjection())
   
   // 创建视口框要素
@@ -64,7 +64,7 @@ const updateExtentBox = () => {
   extentSource.addFeature(extentFeature)
 }
 
-// 同步主地图和鹰眼图的视图
+// 同步主地图和鹰眼的视图
 const syncViews = () => {
   if (overviewMap.value && mapStore.map) {
     const mainView = mapStore.map.getView()
@@ -79,14 +79,14 @@ const syncViews = () => {
   }
 }
 
-// 初始化鹰眼图
+// 初始化鹰眼
 const initOverviewMap = async () => {
   if (!mapStore.map || !overviewMapElement.value) return
 
   try {
     const ol = window.ol
     
-    // 创建鹰眼图的地图实例
+    // 创建鹰眼的地图实例
     const currentBaseMapUrl = getCurrentBaseMapUrl(themeStore.theme)
     
     const sourceConfig: any = {
@@ -103,23 +103,23 @@ const initOverviewMap = async () => {
       visible: true
     })
     
-    // 创建鹰眼图视图
+    // 创建鹰眼视图
     const overviewView = new ol.View({
       projection: mapStore.mapConfig.projection,
       center: mapStore.mapConfig.center,
-      zoom: 6, // 鹰眼图显示更大范围
+      zoom: 6, // 鹰眼显示更大范围
       maxZoom: 10
     })
     
-    // 创建鹰眼图
+    // 创建鹰眼
     overviewMap.value = new ol.Map({
       target: overviewMapElement.value,
       layers: [overviewLayer],
       view: overviewView,
-      controls: [], // 鹰眼图不需要控件
+      controls: [], // 鹰眼不需要控件
     })
     
-    // 添加主地图视口框图层到鹰眼图
+    // 添加主地图视口框图层到鹰眼
     extentLayer.value = new ol.layer.Vector({
       source: new ol.source.Vector(),
       style: new ol.style.Style({
@@ -138,7 +138,7 @@ const initOverviewMap = async () => {
     mapStore.map.getView().on('change:center', syncViews)
     mapStore.map.getView().on('change:resolution', syncViews)
     
-    // 添加鹰眼图点击导航功能
+    // 添加鹰眼点击导航功能
     overviewMap.value.on('click', (event: any) => {
       if (!mapStore.map) return
       
@@ -146,7 +146,7 @@ const initOverviewMap = async () => {
       const mainView = mapStore.map.getView()
       const overviewView = overviewMap.value.getView()
       
-      // 将鹰眼图坐标转换到主地图坐标系
+      // 将鹰眼坐标转换到主地图坐标系
       const mainCoordinate = ol.proj.transform(coordinate, overviewView.getProjection(), mainView.getProjection())
       
       // 导航到点击位置
@@ -156,10 +156,10 @@ const initOverviewMap = async () => {
       })
       
       // 显示提示信息
-      console.log('鹰眼图导航: 已跳转到点击位置')
+      console.log('鹰眼导航: 已跳转到点击位置')
     })
     
-    // 添加鹰眼图拖拽导航功能
+    // 添加鹰眼拖拽导航功能
     const dragPan = new ol.interaction.DragPan({
       condition: ol.events.condition.always
     })
@@ -170,7 +170,7 @@ const initOverviewMap = async () => {
       const overviewView = overviewMap.value.getView()
       const mainView = mapStore.map.getView()
       
-      // 获取鹰眼图中心点
+      // 获取鹰眼中心点
       const overviewCenter = overviewView.getCenter()
       
       // 转换到主地图坐标系
@@ -191,11 +191,11 @@ const initOverviewMap = async () => {
     })
     
   } catch (error) {
-    console.error('鹰眼图初始化失败:', error)
+    console.error('鹰眼初始化失败:', error)
   }
 }
 
-// 切换鹰眼图显示/隐藏
+// 切换鹰眼显示/隐藏
 const toggleOverview = () => {
   isCollapsed.value = !isCollapsed.value
 }
@@ -217,7 +217,7 @@ watch(isCollapsed, (collapsed) => {
   }
 })
 
-// 重建鹰眼图图层的函数
+// 重建鹰眼图层的函数
 const rebuildOverviewLayer = () => {
   if (!overviewMap.value) return
   
@@ -276,14 +276,14 @@ const rebuildOverviewLayer = () => {
     setTimeout(syncViews, 100)
     
   } catch (error) {
-    console.error('重建鹰眼图图层失败:', error)
+    console.error('重建鹰眼图层失败:', error)
   }
 }
 
 // 监听主题变化
 watch(() => themeStore.theme, () => {
   if (overviewMap.value) {
-    // 直接重建鹰眼图图层，这是最可靠的方式
+    // 直接重建鹰眼图层，这是最可靠的方式
     rebuildOverviewLayer()
   }
 }, { immediate: false })
@@ -392,7 +392,7 @@ onUnmounted(() => {
   box-shadow: inset 0 0 0 2px var(--accent);
 }
 
-/* OpenLayers 鹰眼图样式覆盖 */
+/* OpenLayers 鹰眼样式覆盖 */
 .overview-map :deep(.ol-viewport) {
   border-radius: 4px;
 }

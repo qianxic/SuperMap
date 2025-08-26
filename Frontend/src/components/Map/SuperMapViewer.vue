@@ -9,7 +9,7 @@
     <CoordinateDisplay />
     <!-- 比例尺显示（右下角） -->
     <ScaleBar />
-    <!-- 鹰眼图（右下角） -->
+    <!-- 鹰眼（右下角） -->
     <OverviewMap />
     <!-- 距离量算面板 -->
     <DistanceMeasurePanel />
@@ -17,8 +17,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 import { useMap } from '@/composables/useMap'
+import { useMapStore } from '@/stores/mapStore'
 import FeaturePopup from './FeaturePopup.vue'
 import CoordinateDisplay from './CoordinateDisplay.vue'
 import ScaleBar from './ScaleBar.vue'
@@ -29,6 +30,8 @@ import DistanceMeasurePanel from './DistanceMeasurePanel.vue'
 
 // 组合式函数
 const { mapContainer, initMap } = useMap()
+const mapStore = useMapStore()
+let resizeObserver: ResizeObserver | null = null
 
 // 生命周期
 onMounted(() => {
@@ -39,6 +42,22 @@ onMounted(() => {
     // 如果库还未加载，等待一下再初始化
     setTimeout(initMap, 500)
   }
+
+  // 当容器尺寸变化时，强制更新地图尺寸，避免容器初始为0导致“无地图可见”
+  const el = mapContainer.value
+  if (el && 'ResizeObserver' in window) {
+    resizeObserver = new ResizeObserver(() => {
+      try { mapStore.map?.updateSize?.() } catch (_) {}
+    })
+    resizeObserver.observe(el)
+  }
+})
+
+onUnmounted(() => {
+  if (resizeObserver) {
+    try { resizeObserver.disconnect() } catch (_) {}
+    resizeObserver = null
+  }
 })
 </script>
 
@@ -47,6 +66,7 @@ onMounted(() => {
   position: relative;
   width: 100%;
   height: 100%;
+  min-height: 300px; /* 兜底，防止父级高度为0时地图不可见 */
 }
 
 .map-view {

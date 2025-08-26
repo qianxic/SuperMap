@@ -5,7 +5,6 @@ API v1 版本路由管理器
 from fastapi import APIRouter
 
 from app.api.v1.user.auth import router as user_auth_router
-from app.api.v1.health import router as health_router
 
 # 创建主路由
 api_v1_router = APIRouter()
@@ -15,8 +14,7 @@ user_router = APIRouter(prefix="/user", tags=["用户认证"])
 user_router.include_router(user_auth_router)
 api_v1_router.include_router(user_router)
 
-# 健康检查
-api_v1_router.include_router(health_router)
+# 健康检查路由仅保留根级 `/health`（见 app/main.py）
 
 # GIS 模块已移除
 

@@ -77,6 +77,11 @@ import 'splitpanes/dist/splitpanes.css'
   padding: 0;
 }
 
+/* 确保分割面板充满可用高度，避免子容器高度为0 */
+.screen-main > .default-theme {
+  height: 100%;
+}
+
 .map-container {
   width: 100%;
   height: 100%;

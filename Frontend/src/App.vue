@@ -49,8 +49,8 @@ html, body {
 }
 
 #app {
-  height: 100vh;
-  width: 100vw;
+  height: 100%;
+  width: 100%;
 }
 
 /* 滚动条样式 - 支持主题切换 */
