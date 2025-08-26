@@ -46,7 +46,17 @@ export const useFeatureQueryStore = defineStore('featureQuery', () => {
 
   const getSelectedLayerName = (layerId: string) => {
     const layer = mapStore.vectorLayers.find(l => l.id === layerId)
-    return layer ? layer.name : ''
+    // 改进图层名称获取逻辑，确保返回有效的图层名称
+    if (layer && layer.name) {
+      return layer.name
+    }
+    // 如果通过 id 找不到，尝试通过名称查找
+    const layerByName = mapStore.vectorLayers.find(l => l.name === layerId)
+    if (layerByName && layerByName.name) {
+      return layerByName.name
+    }
+    // 如果都找不到，返回默认值
+    return '未知图层'
   }
 
   const getLayerFeatureCount = (layerId: string) => {
@@ -105,6 +115,7 @@ export const useFeatureQueryStore = defineStore('featureQuery', () => {
         const features = source.getFeatures()
         if (features.length > 0) {
           const first = features[0]
+          // 获取属性字段信息（不包含几何信息）
           const properties = first.getProperties()
           const fields: FieldInfo[] = []
           Object.keys(properties).forEach(key => {
@@ -141,14 +152,13 @@ export const useFeatureQueryStore = defineStore('featureQuery', () => {
     const id1 = f1.getId?.() || f1.id
     const id2 = f2.getId?.() || f2.id
     if (id1 && id2 && id1 === id2) return true
-    const g1 = f1.getGeometry?.() || f1.geometry
-    const g2 = f2.getGeometry?.() || f2.geometry
+    const g1 = f1.getGeometry?.()
+    const g2 = f2.getGeometry?.()
     if (g1 && g2) {
-      const c1 = g1.getCoordinates?.() || g1.coordinates
-      const c2 = g2.getCoordinates?.() || g2.coordinates
+      const c1 = g1.getCoordinates?.()
+      const c2 = g2.getCoordinates?.()
       if (c1 && c2) return JSON.stringify(c1) === JSON.stringify(c2)
     }
-    if (f1._originalFeature && f2._originalFeature) return f1._originalFeature === f2._originalFeature
     return false
   }
 
@@ -192,39 +202,31 @@ export const useFeatureQueryStore = defineStore('featureQuery', () => {
     const layer = mapStore.vectorLayers.find(l => l.id === selectedLayerId.value)
     if (!layer || !layer.layer) return []
     
-    // 使用统一的要素数据结构
-    const { getNormalizedFeaturesFromLayer, filterFeatures } = await import('@/utils/featureUtils')
-    const normalizedFeatures = getNormalizedFeaturesFromLayer(layer)
-    const matched = filterFeatures(normalizedFeatures, (f: any) => executeSingleCondition(f, condition))
+    // 直接从图层获取原始要素
+    const source = layer.layer.getSource()
+    if (!source) return []
+    
+    const features = source.getFeatures()
+    const matched = features.filter((f: any) => executeSingleCondition(f, condition))
     return matched
   }
 
-  // 归一化并应用到查询结果（仅限查询模块内部）
+  // 应用查询结果（仅限查询模块内部）
   const applyQuerySelection = async (features: any[]) => {
     if (!Array.isArray(features)) {
       return
     }
 
-    // 去重并标准化
+    // 去重
     const unique: any[] = []
     const seen = new Set<string>()
     features.forEach((f: any) => {
-      const original = f._originalFeature || f
-      const geometry = original?.getGeometry?.() || f.geometry
-      const coordinates = geometry?.getCoordinates?.() || geometry?.coordinates
-      const layerName = f.layerName || original?.get?.('layerName') || ''
-      const key = `${layerName}::${coordinates ? JSON.stringify(coordinates) : 'no-geom'}`
+      const geometry = f.getGeometry?.()
+      const coordinates = geometry?.getCoordinates?.()
+      const key = coordinates ? JSON.stringify(coordinates) : 'no-geom'
       if (!seen.has(key)) {
         seen.add(key)
-        // 标准化结构
-        const normalized = {
-          id: original?.getId?.() || f.id || null,
-          properties: original?.getProperties?.() || f.properties || {},
-          geometry: geometry || null,
-          layerName,
-          _originalFeature: original
-        }
-        unique.push(normalized)
+        unique.push(f)
       }
     })
 
@@ -247,20 +249,18 @@ export const useFeatureQueryStore = defineStore('featureQuery', () => {
 
   const highlightFeatureOnMap = (feature: any) => {
     if (!mapStore.map || !feature) return
-    const original = feature._originalFeature || feature
     if (mapStore.selectLayer && mapStore.selectLayer.getSource) {
       const source = mapStore.selectLayer.getSource()
       if (source) {
         const exists = source.getFeatures().some((f: any) => {
-          const fGeom = f.getGeometry(); const oGeom = original.getGeometry()
+          const fGeom = f.getGeometry(); const oGeom = feature.getGeometry()
           if (!fGeom || !oGeom) return false
           return JSON.stringify(fGeom.getCoordinates()) === JSON.stringify(oGeom.getCoordinates())
         })
         if (!exists) {
-          if (feature.layerName) original.set('layerName', feature.layerName)
           // 标记来源为查询
-          try { original.set('sourceTag', 'query') } catch (_) {}
-          source.addFeature(original)
+          try { feature.set('sourceTag', 'query') } catch (_) {}
+          source.addFeature(feature)
         }
       }
     }
@@ -351,7 +351,7 @@ export const useFeatureQueryStore = defineStore('featureQuery', () => {
     const featuresOnLayer = source.getFeatures?.() || []
     featuresOnLayer.forEach((f: any) => {
       const isTagMatch = f?.get && f.get('sourceTag') === tag
-      const isGeomMatch = candidates.some((c: any) => isSameFeature(c._originalFeature || c, f))
+      const isGeomMatch = candidates.some((c: any) => isSameFeature(c, f))
       if (isTagMatch || isGeomMatch) {
         source.removeFeature(f)
       }
@@ -365,10 +365,8 @@ export const useFeatureQueryStore = defineStore('featureQuery', () => {
       const selectSource = mapStore.selectLayer?.getSource()
       if (selectSource) {
         queryResults.value.forEach((r: any) => {
-          if (r._originalFeature) {
-            try { r._originalFeature.set('sourceTag', 'query') } catch (_) {}
-            selectSource.addFeature(r._originalFeature)
-          }
+          try { r.set('sourceTag', 'query') } catch (_) {}
+          selectSource.addFeature(r)
         })
       }
       analysisStore.setAnalysisStatus(`已高亮显示 ${queryResults.value.length} 个查询结果`)
@@ -403,7 +401,7 @@ export const useFeatureQueryStore = defineStore('featureQuery', () => {
     const selectSource = mapStore.selectLayer?.getSource(); if (!selectSource) return
     // 仅清除查询侧高亮，避免影响区域侧
     removeFeaturesByTagOrMatch('query')
-    const currentSelected = queryResults.value.map((r: any) => r._originalFeature || r)
+    const currentSelected = queryResults.value
     const unselected: any[] = []
     all.forEach((f: any) => {
       const isSelected = currentSelected.some((sf: any) => {
@@ -415,23 +413,15 @@ export const useFeatureQueryStore = defineStore('featureQuery', () => {
     })
     unselected.forEach(f => {
       try { f.set('sourceTag', 'query') } catch (_) {}
-      try { f.set('layerName', layer.name) } catch (_) {}
       selectSource.addFeature(f)
     })
-    const inverted = unselected.map((f: any) => ({
-      id: f.getId?.() || null,
-      properties: f.getProperties ? f.getProperties() : {},
-      geometry: f.getGeometry ? f.getGeometry() : null,
-      layerName: layer.name,
-      _originalFeature: f
-    }))
-    queryResults.value = inverted
+    queryResults.value = unselected
     selectedFeatureIndex.value = -1
     
     // 自动选中第一个要素并触发高亮效果
-    if (inverted.length > 0) {
+    if (unselected.length > 0) {
       selectedFeatureIndex.value = 0
-      const firstFeature = inverted[0]
+      const firstFeature = unselected[0]
       if (firstFeature) {
         highlightFeatureOnMap(firstFeature)
         triggerMapFeatureHighlight(firstFeature)
@@ -493,22 +483,11 @@ export const useFeatureQueryStore = defineStore('featureQuery', () => {
     analysisStore.setAnalysisStatus('正在执行前端查询...')
     try {
       const results = await executeFrontendQuery(condition)
-      const formatted = results.map((feature: any) => {
-        const original = (feature as any)._originalFeature || feature
-        if (original && typeof original.set === 'function') original.set('layerName', layer.name)
-        return {
-          id: original?.getId?.() || feature.id || null,
-          properties: original?.getProperties?.() || feature.getProperties?.() || {},
-          geometry: original?.getGeometry?.() || feature.getGeometry?.() || null,
-          layerName: layer.name,
-          _originalFeature: original
-        }
-      })
-      await applyQuerySelection(formatted)
+      await applyQuerySelection(results)
       const queryDesc = `${condition.fieldName} ${condition.operator} ${condition.value}`
       lastExecutedQuery.value = `前端查询: ${queryDesc}`
-      analysisStore.setAnalysisStatus(`前端查询完成，找到 ${formatted.length} 个匹配要素`)
-      return { success: true, data: formatted, totalCount: formatted.length, queryType: 'frontend' as const }
+      analysisStore.setAnalysisStatus(`前端查询完成，找到 ${results.length} 个匹配要素`)
+      return { success: true, data: results, totalCount: results.length, queryType: 'frontend' as const }
     } catch (e: any) {
       analysisStore.setAnalysisStatus('查询执行失败，请重试')
       return { success: false, data: [], totalCount: 0, queryType: 'frontend' as const, error: e?.message || '查询执行失败' }

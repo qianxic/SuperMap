@@ -20,35 +20,26 @@ export function useLayerManager() {
     
     // 找出属于该图层的选择要素并移除
     const featuresToRemove = features.filter((feature: any) => {
-      // 通过多种方式判断要素是否属于该图层
-      const layerId = feature.get('layerName') || 
-                     (feature.getProperties ? feature.getProperties().layerName : null) ||
-                     (feature.properties ? feature.properties.layerName : null)
-      
-      // 如果没有layerName属性，尝试通过图层ID匹配
-      if (!layerId) {
-        // 检查要素是否来自当前隐藏的图层
-        const layerInfo = mapStore.vectorLayers.find(l => l.name === layerName)
-        if (layerInfo && layerInfo.layer) {
-          const layerSource = layerInfo.layer.getSource()
-          if (layerSource) {
-            const layerFeatures = layerSource.getFeatures()
-            return layerFeatures.some((lf: any) => {
-              // 通过几何坐标比较来判断是否为同一要素
-              const lfGeom = lf.getGeometry()
-              const featureGeom = feature.getGeometry()
-              if (lfGeom && featureGeom) {
-                const lfCoords = JSON.stringify(lfGeom.getCoordinates())
-                const featureCoords = JSON.stringify(featureGeom.getCoordinates())
-                return lfCoords === featureCoords
-              }
-              return false
-            })
-          }
+      // 通过几何坐标比较来判断要素是否属于该图层
+      const layerInfo = mapStore.vectorLayers.find(l => l.name === layerName)
+      if (layerInfo && layerInfo.layer) {
+        const layerSource = layerInfo.layer.getSource()
+        if (layerSource) {
+          const layerFeatures = layerSource.getFeatures()
+          return layerFeatures.some((lf: any) => {
+            // 通过几何坐标比较来判断是否为同一要素
+            const lfGeom = lf.getGeometry()
+            const featureGeom = feature.getGeometry()
+            if (lfGeom && featureGeom) {
+              const lfCoords = JSON.stringify(lfGeom.getCoordinates())
+              const featureCoords = JSON.stringify(featureGeom.getCoordinates())
+              return lfCoords === featureCoords
+            }
+            return false
+          })
         }
       }
-      
-      return layerId === layerName
+      return false
     })
 
     console.log(`找到 ${featuresToRemove.length} 个属于图层 ${layerName} 的选择要素，准备移除`)
@@ -74,19 +65,51 @@ export function useLayerManager() {
     // 检查当前选中的要素是否属于被隐藏的图层
     const currentSelectedFeature = selectionStore.currentSelectedFeature
     if (currentSelectedFeature) {
-      const currentLayerName = currentSelectedFeature.get('layerName') || 
-                              (currentSelectedFeature.getProperties ? currentSelectedFeature.getProperties().layerName : null) ||
-                              (currentSelectedFeature.properties ? currentSelectedFeature.properties.layerName : null)
-      if (currentLayerName === layerName) {
-        console.log(`当前选中的要素属于被隐藏的图层 ${layerName}，清除选择状态`)
-        // 清除当前选中的要素
-        selectionStore.clearSelection()
+      // 通过几何坐标比较来判断当前选中要素是否属于被隐藏的图层
+      const layerInfo = mapStore.vectorLayers.find(l => l.name === layerName)
+      if (layerInfo && layerInfo.layer) {
+        const layerSource = layerInfo.layer.getSource()
+        if (layerSource) {
+          const layerFeatures = layerSource.getFeatures()
+          const isFromHiddenLayer = layerFeatures.some((lf: any) => {
+            const lfGeom = lf.getGeometry()
+            const currentGeom = currentSelectedFeature.getGeometry()
+            if (lfGeom && currentGeom) {
+              const lfCoords = JSON.stringify(lfGeom.getCoordinates())
+              const currentCoords = JSON.stringify(currentGeom.getCoordinates())
+              return lfCoords === currentCoords
+            }
+            return false
+          })
+          
+          if (isFromHiddenLayer) {
+            console.log(`当前选中的要素属于被隐藏的图层 ${layerName}，清除选择状态`)
+            selectionStore.clearSelection()
+          }
+        }
       }
     }
 
-    // 从持久化选择列表中移除相关要素
+    // 从持久化选择列表中移除相关要素（通过几何坐标比较）
     const updatedFeatures = selectionStore.selectedFeatures.filter((feature: any) => {
-      return feature.layerName !== layerName
+      const layerInfo = mapStore.vectorLayers.find(l => l.name === layerName)
+      if (layerInfo && layerInfo.layer) {
+        const layerSource = layerInfo.layer.getSource()
+        if (layerSource) {
+          const layerFeatures = layerSource.getFeatures()
+          return !layerFeatures.some((lf: any) => {
+            const lfGeom = lf.getGeometry()
+            const featureGeom = feature.getGeometry?.() || feature.geometry
+            if (lfGeom && featureGeom) {
+              const lfCoords = JSON.stringify(lfGeom.getCoordinates())
+              const featureCoords = JSON.stringify(featureGeom.getCoordinates?.() || featureGeom.coordinates)
+              return lfCoords === featureCoords
+            }
+            return false
+          })
+        }
+      }
+      return true
     })
     selectionStore.setSelectedFeatures(updatedFeatures)
 

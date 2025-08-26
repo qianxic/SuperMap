@@ -38,12 +38,12 @@ const isSameFeature = (feature1: any, feature2: any): boolean => {
   if (id1 && id2 && id1 === id2) return true
   
   // 通过几何坐标匹配
-  const geom1 = feature1.getGeometry?.() || feature1.geometry
-  const geom2 = feature2.getGeometry?.() || feature2.geometry
+  const geom1 = feature1.getGeometry?.()
+  const geom2 = feature2.getGeometry?.()
   
   if (geom1 && geom2) {
-    const coords1 = geom1.getCoordinates?.() || geom1.coordinates
-    const coords2 = geom2.getCoordinates?.() || geom2.coordinates
+    const coords1 = geom1.getCoordinates?.()
+    const coords2 = geom2.getCoordinates?.()
     
     if (coords1 && coords2) {
       return JSON.stringify(coords1) === JSON.stringify(coords2)

@@ -2,55 +2,21 @@
   <PanelContainer class="llm-panel">
     <div class="chat-container">
       <ChatAssistant 
-        :initial-layers="layersStatus" 
         :map-ready="mapStore.isMapReady"
-        :selected-features="selectedFeaturesStatus"
       />
     </div>
   </PanelContainer>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 import { useMapStore } from '@/stores/mapStore'
-import { useSelectionStore } from '@/stores/selectionStore'
 import { useModeStateStore } from '@/stores/modeStateStore'
 import ChatAssistant from './tools/ChatAssistant.vue'
 import PanelContainer from '@/components/UI/PanelContainer.vue'
 
 const mapStore = useMapStore()
-const selectionStore = useSelectionStore()
 const modeStateStore = useModeStateStore()
-
-const layersStatus = computed(() => {
-  return mapStore.vectorLayers.map(l => ({ name: l.name, visible: l.visible }))
-})
-
-// 新增：计算选中要素状态
-const selectedFeaturesStatus = computed(() => {
-  const features = selectionStore.selectedFeatures.map((feature: any) => {
-    // 使用与EditTools.vue完全相同的几何类型获取逻辑
-    const geometry = feature.geometry || feature.getGeometry?.();
-    let geometryType = '未知';
-    
-    if (geometry) {
-      // 直接返回几何类型，不进行映射 - 与EditTools.vue的getFeatureType函数保持一致
-      geometryType = geometry.getType?.() || geometry.type || '未知';
-    }
-    
-    return {
-      id: feature.id || feature.getId?.() || null,
-      properties: feature.properties || feature.getProperties?.() || {},
-      geometry: {
-        ...(feature.geometry || feature.getGeometry?.() || {}),
-        type: geometryType // 确保几何类型正确传递
-      },
-      layerName: feature.layerName || '未知图层'
-    };
-  });
-  
-  return features;
-})
 
 // 组件生命周期管理
 onMounted(() => {

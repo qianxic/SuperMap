@@ -3,6 +3,7 @@ import { useMapStore } from '@/stores/mapStore'
 import { useAnalysisStore } from '@/stores/analysisStore'
 import { useAreaSelectionStore } from '@/stores/areaSelectionStore'
 import { usePopupStore } from '@/stores/popupStore'
+import { getFeatureGeometryType, getFeatureGeometryDescription } from '@/utils/featureUtils'
 
 const ol = window.ol
 
@@ -75,99 +76,15 @@ export function useFeatureSelection() {
 
   // 要素信息处理函数
   const getFeatureType = (feature: any): string => {
-    const geometry = feature.geometry || feature.getGeometry?.()
-    if (!geometry) return '未知'
-    
-    // 直接返回几何类型，不进行映射
-    const geometryType = geometry.getType?.() || geometry.type
-    return geometryType || '未知'
+    return getFeatureGeometryType(feature)
   }
 
   const getFeatureCoords = (feature: any): string => {
-    const geometry = feature.geometry || feature.getGeometry?.()
-    if (!geometry) return '未知坐标'
-    
-    try {
-      const geometryType = geometry.getType?.() || geometry.type
-      const coords = geometry.getCoordinates?.() || geometry.coordinates
-      
-      if (!coords) return '坐标解析失败'
-      
-      switch (geometryType) {
-        case 'Point':
-          // 点要素显示坐标
-          if (Array.isArray(coords) && coords.length >= 2) {
-            return `${coords[0].toFixed(6)}, ${coords[1].toFixed(6)}`
-          }
-          return '点坐标解析失败'
-        
-        case 'LineString':
-          // 线要素显示长度
-          if (Array.isArray(coords) && coords.length >= 2) {
-            const length = calculateLineLength(coords)
-            return `长度: ${length.toFixed(4)}千米`
-          }
-          return '线长度计算失败'
-        
-        case 'Polygon':
-          // 面要素显示面积
-          if (Array.isArray(coords) && coords.length > 0) {
-            const area = calculatePolygonArea(coords[0]) // 使用外环计算面积
-            return `面积: ${area.toFixed(4)}平方千米`
-          }
-          return '面积计算失败'
-        
-        case 'MultiPoint':
-          // 多点显示点数和第一个点的坐标
-          if (Array.isArray(coords) && coords.length > 0) {
-            const firstPoint = coords[0]
-            if (Array.isArray(firstPoint) && firstPoint.length >= 2) {
-              return `${coords.length}个点, 起始: ${firstPoint[0].toFixed(6)}, ${firstPoint[1].toFixed(6)}`
-            }
-          }
-          return '多点坐标解析失败'
-        
-        case 'MultiLineString':
-          // 多线显示总长度
-          if (Array.isArray(coords) && coords.length > 0) {
-            let totalLength = 0
-            coords.forEach((lineCoords: number[][]) => {
-              if (Array.isArray(lineCoords)) {
-                totalLength += calculateLineLength(lineCoords)
-              }
-            })
-            return `总长度: ${totalLength.toFixed(4)}千米`
-          }
-          return '多线长度计算失败'
-        
-        case 'MultiPolygon':
-          // 多面显示总面积
-          if (Array.isArray(coords) && coords.length > 0) {
-            let totalArea = 0
-            coords.forEach((polygonCoords: number[][][]) => {
-              if (Array.isArray(polygonCoords) && polygonCoords.length > 0) {
-                totalArea += calculatePolygonArea(polygonCoords[0]) // 使用外环
-              }
-            })
-            return `总面积: ${totalArea.toFixed(4)}平方千米`
-          }
-          return '多面面积计算失败'
-        
-        default:
-          // 未知类型，尝试显示第一个坐标
-          if (Array.isArray(coords) && coords.length >= 2 && typeof coords[0] === 'number') {
-            return `${coords[0].toFixed(6)}, ${coords[1].toFixed(6)}`
-          }
-          return `${geometryType || '未知类型'}`
-      }
-    } catch (error) {
-      console.error('几何信息解析错误:', error)
-      return '几何信息解析失败'
-    }
+    return getFeatureGeometryDescription(feature)
   }
 
   const getFeatureGeometryInfo = (feature: any): string => {
-    return getFeatureCoords(feature)
+    return getFeatureGeometryDescription(feature)
   }
 
   // 创建框选交互
@@ -220,21 +137,12 @@ export function useFeatureSelection() {
     // 使用 setTimeout 让UI有机会更新
     await new Promise(resolve => setTimeout(resolve, 10))
 
-    // 使用统一的要素数据结构
-    const { getNormalizedFeaturesFromLayer } = await import('@/utils/featureUtils')
-    
     mapStore.vectorLayers.forEach(layerInfo => {
       if (layerInfo.visible && layerInfo.layer) {
         const source = layerInfo.layer.getSource()
         if (source && source.forEachFeatureInExtent) {
           source.forEachFeatureInExtent(extent, (feature: any) => {
-            // 使用统一的要素数据结构
-            const normalizedFeature = getNormalizedFeaturesFromLayer(layerInfo).find(f => 
-              f._originalFeature === feature
-            )
-            if (normalizedFeature) {
-              features.push(normalizedFeature)
-            }
+            features.push(feature)
           })
         }
       }
@@ -247,8 +155,8 @@ export function useFeatureSelection() {
       selectionStore.setSelectedFeatureIndex(-1)
       // 在地图上高亮并标记来源为 area
       await highlightFeaturesAsync(features.map(f => {
-        if (f._originalFeature && typeof f._originalFeature.set === 'function') {
-          try { f._originalFeature.set('sourceTag', 'area') } catch (_) {}
+        if (typeof f.set === 'function') {
+          try { f.set('sourceTag', 'area') } catch (_) {}
         }
         return f
       }))
@@ -276,9 +184,8 @@ export function useFeatureSelection() {
       const batch = features.slice(i, i + batchSize)
 
       batch.forEach(feature => {
-        const originalFeature = feature._originalFeature || feature
-        if (originalFeature) {
-          source.addFeature(originalFeature)
+        if (feature) {
+          source.addFeature(feature)
         }
       })
 
@@ -306,9 +213,6 @@ export function useFeatureSelection() {
   const highlightFeatureOnMap = (feature: any) => {
     if (!mapStore.map || !feature) return
 
-    // 使用原始要素对象进行高亮显示
-    const originalFeature = feature._originalFeature || feature
-
     // 确保选择图层中包含当前要素
     if (mapStore.selectLayer && mapStore.selectLayer.getSource) {
       const source = mapStore.selectLayer.getSource()
@@ -317,7 +221,7 @@ export function useFeatureSelection() {
         const features = source.getFeatures()
         const exists = features.some((f: any) => {
           const fGeometry = f.getGeometry()
-          const originalGeometry = originalFeature.getGeometry()
+          const originalGeometry = feature.getGeometry()
           if (!fGeometry || !originalGeometry) return false
 
           const fCoords = JSON.stringify(fGeometry.getCoordinates())
@@ -326,8 +230,8 @@ export function useFeatureSelection() {
         })
 
         if (!exists) {
-          try { originalFeature.set('sourceTag', 'area') } catch (_) {}
-          source.addFeature(originalFeature)
+          try { feature.set('sourceTag', 'area') } catch (_) {}
+          source.addFeature(feature)
         }
       }
     }
@@ -532,23 +436,18 @@ export function useFeatureSelection() {
     if (id1 && id2 && id1 === id2) return true
 
     // 比较几何坐标
-    const geom1 = feature1.getGeometry?.() || feature1.geometry
-    const geom2 = feature2.getGeometry?.() || feature2.geometry
+    const geom1 = feature1.getGeometry?.()
+    const geom2 = feature2.getGeometry?.()
 
     if (geom1 && geom2) {
-      const coords1 = geom1.getCoordinates?.() || geom1.coordinates
-      const coords2 = geom2.getCoordinates?.() || geom2.coordinates
+      const coords1 = geom1.getCoordinates?.()
+      const coords2 = geom2.getCoordinates?.()
 
       if (coords1 && coords2) {
         const coordStr1 = JSON.stringify(coords1)
         const coordStr2 = JSON.stringify(coords2)
         return coordStr1 === coordStr2
       }
-    }
-
-    // 比较原始要素引用
-    if (feature1._originalFeature && feature2._originalFeature) {
-      return feature1._originalFeature === feature2._originalFeature
     }
 
     return false
@@ -571,15 +470,38 @@ export function useFeatureSelection() {
 
   // 反选：基于当前已选要素所在图层进行反选
   const invertSelectedLayer = () => {
-    // 推断目标图层：优先使用当前选择的首个要素的 layerName
+    // 推断目标图层：通过几何坐标匹配找到要素所属的图层
     const first = selectedFeatures.value[0]
-    const targetLayerName = first?.layerName
-    if (!targetLayerName) {
+    if (!first) {
       analysisStore.setAnalysisStatus('请先选择要操作的数据')
       return
     }
 
-    const layerInfo = mapStore.vectorLayers.find(l => l.name === targetLayerName)
+    // 通过几何坐标匹配找到要素所属的图层
+    let layerInfo = null
+    for (const layer of mapStore.vectorLayers) {
+      if (layer.visible && layer.layer) {
+        const source = layer.layer.getSource()
+        if (source) {
+          const features = source.getFeatures()
+          const found = features.some((f: any) => {
+            const fGeom = f.getGeometry()
+            const firstGeom = first.getGeometry()
+            if (fGeom && firstGeom) {
+              const fCoords = JSON.stringify(fGeom.getCoordinates())
+              const firstCoords = JSON.stringify(firstGeom.getCoordinates())
+              return fCoords === firstCoords
+            }
+            return false
+          })
+          if (found) {
+            layerInfo = layer
+            break
+          }
+        }
+      }
+    }
+
     if (!layerInfo || !layerInfo.layer) {
       analysisStore.setAnalysisStatus('图层不存在或不可用')
       return
@@ -597,7 +519,7 @@ export function useFeatureSelection() {
 
     // 计算未被选择的要素集合
     const all = source.getFeatures?.() || []
-    const currentSelectedOriginals = selectedFeatures.value.map((r: any) => r._originalFeature || r)
+    const currentSelectedOriginals = selectedFeatures.value
     const unselected: any[] = []
     all.forEach((f: any) => {
       const isSelected = currentSelectedOriginals.some((sf: any) => {
@@ -611,32 +533,24 @@ export function useFeatureSelection() {
     // 高亮未选中的要素并标记来源
     unselected.forEach(f => {
       try { f.set('sourceTag', 'area') } catch (_) {}
-      try { f.set('layerName', targetLayerName) } catch (_) {}
       selectSource.addFeature(f)
     })
 
     // 写入区域选择结果
-    const inverted = unselected.map((f: any) => ({
-      id: f.getId?.() || null,
-      properties: f.getProperties ? f.getProperties() : {},
-      geometry: f.getGeometry ? f.getGeometry() : null,
-      layerName: targetLayerName,
-      _originalFeature: f
-    }))
-    selectionStore.setSelectedFeatures(inverted)
+    selectionStore.setSelectedFeatures(unselected)
     selectionStore.setSelectedFeatureIndex(-1)
 
     // 自动选中第一个要素并触发高亮效果
-    if (inverted.length > 0) {
+    if (unselected.length > 0) {
       selectionStore.setSelectedFeatureIndex(0)
-      const firstFeature = inverted[0]
+      const firstFeature = unselected[0]
       if (firstFeature) {
         highlightFeatureOnMap(firstFeature)
         triggerMapFeatureHighlight(firstFeature)
-        analysisStore.setAnalysisStatus(`已反选图层 "${targetLayerName}"，已自动选中第一个要素`)
+        analysisStore.setAnalysisStatus(`已反选图层 "${layerInfo.name}"，已自动选中第一个要素`)
       }
     } else {
-      analysisStore.setAnalysisStatus(`已反选图层 "${targetLayerName}"，更新选择列表`)
+      analysisStore.setAnalysisStatus(`已反选图层 "${layerInfo.name}"，更新选择列表`)
     }
   }
 

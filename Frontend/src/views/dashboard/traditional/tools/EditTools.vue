@@ -19,7 +19,7 @@
         >
           <div class="layer-info">
             <div class="layer-name">要素 {{ index + 1 }} - {{ getFeatureType(feature) }}</div>
-            <div class="layer-desc">{{ feature.layerName || '未知图层' }} | {{ getFeatureGeometryInfo(feature) }}</div>
+            <div class="layer-desc">{{ getFeatureGeometryInfo(feature) }}</div>
           </div>
         </div>
       </div>
@@ -73,6 +73,7 @@ import { watch, computed, onMounted, onUnmounted } from 'vue'
 import { useAnalysisStore } from '@/stores/analysisStore.ts'
 import { useMapStore } from '@/stores/mapStore.ts'
 import { useFeatureSelection } from '@/composables/useFeatureSelection'
+import { getFeatureCompleteInfo } from '@/utils/featureUtils'
 import SecondaryButton from '@/components/UI/SecondaryButton.vue'
 import PanelWindow from '@/components/UI/PanelWindow.vue'
 import TipWindow from '@/components/UI/TipWindow.vue'
@@ -101,29 +102,9 @@ const selectedFeatureInfo = computed(() => {
   }
   
   const feature = selectedFeatures.value[selectedFeatureIndex.value]
-  const properties = feature.properties || feature.getProperties?.() || {}
   
-  const info = [
-    { label: '要素ID', value: feature.getId?.() || feature.id || '无' },
-    { label: '图层名称', value: feature.layerName || '未知图层' },
-    { label: '几何类型', value: getFeatureType(feature) },
-    { label: '几何信息', value: getFeatureCoords(feature) }
-  ]
-  
-  // 添加属性字段计数
-  const attributeCount = Object.keys(properties).filter(key => key !== 'geometry').length
-  info.push({ label: '属性字段数', value: `${attributeCount}个` })
-  
-  // 添加所有属性字段，包括空值 - 与useMap中的显示逻辑一致
-  Object.keys(properties).forEach(key => {
-    if (key !== 'geometry') {
-      const value = properties[key]
-      const displayValue = value !== undefined && value !== null ? value : '(空值)'
-      info.push({ label: key, value: displayValue })
-    }
-  })
-  
-  return info
+  // 使用增强的要素信息获取函数
+  return getFeatureCompleteInfo(feature)
 })
 
 // 监听编辑工具关闭 - 不清除已选择的要素，只清除交互

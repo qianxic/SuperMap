@@ -52,18 +52,6 @@ import { useModeStateStore } from '@/stores/modeStateStore';
 import LLMInputGroup from '@/components/UI/LLMInputGroup.vue';
 import IconButton from '@/components/UI/IconButton.vue';
 
-interface LayerStatus {
-  name: string;
-  visible: boolean;
-}
-
-interface SelectedFeature {
-  id: string | number;
-  properties: object;
-  geometry: any;
-  layerName: string;
-}
-
 interface Message {
   id: number;
   text: string;
@@ -74,9 +62,7 @@ useThemeStore();
 const modeStateStore = useModeStateStore();
 
 const props = defineProps<{
-  initialLayers: LayerStatus[];
   mapReady: boolean;
-  selectedFeatures?: SelectedFeature[]; // 新增：选中要素列表
 }>();
 const messages = ref<Message[]>([]);
 const newMessage = ref('');
@@ -136,8 +122,6 @@ const handleScroll = () => {
   scrollTimeout.value = window.setTimeout(() => {
     isUserScrolling.value = false;
   }, 500);
-  
-
 };
 
 // 优化的滚动到底部函数
@@ -188,12 +172,7 @@ const renderMarkdown = (md: string): string => {
     htmlParts.push('<\/ul>');
   }
   return htmlParts.join('');
-}
-
-
-
-// 新增：格式化选中要素状态 
-// 移除选中要素状态格式化函数
+};
 
 const demoMessage = (): string => {
   return [
@@ -204,9 +183,7 @@ const demoMessage = (): string => {
     '- 统计 距我最近的医院数量',
     '- 进行 缓冲区分析',
     '- 进行 最优路径分析',
-    '- 进行 可达性分析',
-    '- 分析 已选中要素的属性',
-    '- 对 已选中要素 进行空间分析'
+    '- 进行 可达性分析'
   ].join('\n');
 }
 
@@ -293,52 +270,31 @@ watch(() => props.mapReady, (ready) => {
   }
 });
 
-// 移除图层数量和要素数量监听器
-
 watch(messages, async () => {
   await nextTick();
   // 使用智能滚动逻辑
   if (shouldAutoScroll()) {
     smoothScrollToBottom();
   }
-  // 更新滚动位置状态
   checkScrollPosition();
-});
+}, { deep: true });
 
+// 发送消息
 const sendMessage = () => {
-  if (!newMessage.value.trim()) {
-    return;
-  }
+  const message = newMessage.value.trim();
+  if (!message) return;
 
-  const userMessage = newMessage.value;
-  
+  // 添加用户消息
   messages.value.push({
     id: Date.now(),
-    text: userMessage,
+    text: message,
     sender: 'user'
   });
 
-  // 处理与选中要素相关的请求
-  const userInput = userMessage.toLowerCase();
-  const hasSelectedFeatures = props.selectedFeatures && props.selectedFeatures.length > 0;
+  // 处理用户输入并生成AI响应
+  const userInput = message.toLowerCase();
   
-  let aiResponse = '';
-  
-  if (hasSelectedFeatures) {
-    // 处理选中要素相关的请求
-    if (userInput.includes('分析') && userInput.includes('选中要素')) {
-      aiResponse = generateSelectedFeaturesAnalysis();
-    } else if (userInput.includes('选中要素') && userInput.includes('属性')) {
-      aiResponse = generateSelectedFeaturesProperties();
-    } else if (userInput.includes('选中要素') && userInput.includes('空间分析')) {
-      aiResponse = generateSelectedFeaturesSpatialAnalysis();
-    } 
-  }
-  
-  // 如果没有特定的选中要素处理，使用默认响应
-  if (!aiResponse) {
-    aiResponse = `我理解您的需求："${userMessage}"，正在处理中...`;
-  }
+  let aiResponse = `我理解您的需求："${message}"，正在处理中...`;
   
   // 添加AI响应
   messages.value.push({
@@ -357,109 +313,6 @@ const sendMessage = () => {
     checkScrollPosition();
   });
 };
-
-// 新增：生成选中要素分析报告
-const generateSelectedFeaturesAnalysis = (): string => {
-  const features = props.selectedFeatures || [];
-  const layerGroups = features.reduce((groups, feature) => {
-    if (!groups[feature.layerName]) {
-      groups[feature.layerName] = [];
-    }
-    groups[feature.layerName].push(feature);
-    return groups;
-  }, {} as Record<string, typeof features>);
-  
-  let analysis = `**选中要素分析报告**\n\n`;
-  analysis += `总计选中了 **${features.length}** 个要素，分布在 **${Object.keys(layerGroups).length}** 个图层中：\n\n`;
-  
-  Object.entries(layerGroups).forEach(([layerName, layerFeatures]) => {
-    analysis += `**${layerName}** (${layerFeatures.length}个要素)：\n`;
-    
-    // 统计几何类型
-    const geometryTypes = layerFeatures.reduce((types, feature) => {
-      const type = feature.geometry?.type || '未知';
-      types[type] = (types[type] || 0) + 1;
-      return types;
-    }, {} as Record<string, number>);
-    
-    Object.entries(geometryTypes).forEach(([type, count]) => {
-      analysis += `- ${type}: ${count}个\n`;
-    });
-    
-    analysis += '\n';
-  });
-  
-  return analysis;
-};
-
-// 新增：生成选中要素属性信息
-const generateSelectedFeaturesProperties = (): string => {
-  const features = props.selectedFeatures || [];
-  if (features.length === 0) return '当前没有选中的要素。';
-  
-  let properties = `**选中要素属性信息**\n\n`;
-  
-  features.forEach((feature, index) => {
-    properties += `**要素 ${index + 1}** (${feature.layerName}):\n`;
-    properties += `- ID: ${feature.id || '无'}\n`;
-    properties += `- 几何类型: ${feature.geometry?.type || '未知'}\n`;
-    
-    const props = feature.properties || {};
-    if (Object.keys(props).length > 0) {
-      properties += `- 属性字段:\n`;
-      Object.entries(props).forEach(([key, value]) => {
-        if (key !== 'geometry') {
-          properties += `  - ${key}: ${value || '(空值)'}\n`;
-        }
-      });
-    } else {
-      properties += `- 属性字段: 无\n`;
-    }
-    properties += '\n';
-  });
-  
-  return properties;
-};
-
-// 新增：生成选中要素空间分析建议
-const generateSelectedFeaturesSpatialAnalysis = (): string => {
-  const features = props.selectedFeatures || [];
-  if (features.length === 0) return '当前没有选中的要素。';
-  
-  let analysis = `**选中要素空间分析建议**\n\n`;
-  analysis += `基于您选中的 **${features.length}** 个要素，我建议可以进行以下空间分析：\n\n`;
-  
-  // 根据要素类型推荐分析
-  const hasPoints = features.some(f => f.geometry?.type === 'Point');
-  const hasLines = features.some(f => f.geometry?.type === 'LineString');
-  const hasPolygons = features.some(f => f.geometry?.type === 'Polygon');
-  
-  if (hasPoints) {
-    analysis += `- **点要素分析**:\n`;
-    analysis += `  - 最近邻分析\n`;
-    analysis += `  - 点密度分析\n`;
-    analysis += `  - 空间聚类分析\n\n`;
-  }
-  
-  if (hasLines) {
-    analysis += `- **线要素分析**:\n`;
-    analysis += `  - 网络分析\n`;
-    analysis += `  - 路径分析\n`;
-    analysis += `  - 可达性分析\n\n`;
-  }
-  
-  if (hasPolygons) {
-    analysis += `- **面要素分析**:\n`;
-    analysis += `  - 缓冲区分析\n`;
-    analysis += `  - 叠加分析\n`;
-    analysis += `  - 面积统计\n\n`;
-  }
-  
-  analysis += `您可以选择相应的分析工具进行操作。`;
-  
-  return analysis;
-};
-
 
 // 新增：开启新对话功能
 const startNewConversation = () => {

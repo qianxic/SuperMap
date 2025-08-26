@@ -253,7 +253,20 @@ export function useMap() {
   }
 
   const loadVectorLayer = async (map: any, layerConfig: any, visibleOverride?: boolean): Promise<void> => {
-    const layerName = layerConfig.name.split('@')[0] || layerConfig.name
+    // 改进图层名称解析逻辑
+    let layerName = layerConfig.name
+    if (layerConfig.name.includes('@')) {
+      // 处理标准化的数据源格式：图层名@数据源@@工作空间
+      const parts = layerConfig.name.split('@')
+      if (parts.length >= 1) {
+        layerName = parts[0] // 取第一部分作为图层名称
+      }
+    }
+    
+    // 如果图层名称仍然为空或无效，使用配置中的 datasetName 作为备选
+    if (!layerName || layerName === '未知' || layerName === 'unknown') {
+      layerName = layerConfig.datasetName || layerConfig.name || '未知图层'
+    }
     const style = createLayerStyle(layerConfig, layerName);
     
     const vectorLayer = new ol.layer.Vector({
@@ -359,6 +372,14 @@ export function useMap() {
     vectorLayer.setZIndex(zIndex);
     
     map.addLayer(vectorLayer);
+    // 添加调试信息
+    console.log(`图层加载完成:`, {
+      originalName: layerConfig.name,
+      parsedName: layerName,
+      datasetName: layerConfig.datasetName,
+      id: layerConfig.name
+    });
+    
     mapStore.vectorLayers.push({
       id: layerConfig.name,
       name: layerName,
@@ -469,14 +490,16 @@ export function useMap() {
           return;
         }
       } else {
-        // 统一处理所有要素的点击选择，移除来源限制
-        let layerName = '未知图层';
-        for (const layerInfo of mapStore.vectorLayers) {
-          if (layerInfo.layer && layerInfo.layer.getSource()) {
-            const source = layerInfo.layer.getSource();
+
+        
+        // 找到要素所属的图层
+        let layerInfo = null;
+        for (const layer of mapStore.vectorLayers) {
+          if (layer.layer && layer.layer.getSource()) {
+            const source = layer.layer.getSource();
             const features = source.getFeatures();
             if (features.includes(feature)) {
-              layerName = layerInfo.name;
+              layerInfo = layer;
               break;
             }
           }
@@ -495,35 +518,32 @@ export function useMap() {
         // 只清除点击选择的状态，不影响其他选择
         selectionStore.clearSelection()
         
-        feature.set('layerName', layerName);
+        // 标记来源为点击选择
         try { feature.set('sourceTag', 'click') } catch (_) {}
         
+        // 添加到选择图层
         selectSource.addFeature(feature);
+        
+        // 添加到选择状态（直接使用原始要素）
         selectionStore.addSelectedFeature(feature);
         
         if (mapStore.selectLayer) {
           mapStore.selectLayer.changed();
         }
 
-        // 使用统一的要素数据结构
-        const { getFeatureDisplayInfo } = await import('@/utils/featureUtils')
-        const displayInfo = getFeatureDisplayInfo(feature)
+        // 直接从GeoJSON properties中获取数据
+        const properties = feature.getProperties ? feature.getProperties() : {}
         
         let content = '<div class="feature-info">';
         
-        content += `<div class="field-row"><span class="field-label">要素ID:</span><span class="field-value">${displayInfo?.id || '无'}</span></div>`;
-        content += `<div class="field-row"><span class="field-label">几何类型:</span><span class="field-value">${displayInfo?.geometryType || '未知'}</span></div>`;
-        content += `<div class="field-row"><span class="field-label">图层:</span><span class="field-value">${displayInfo?.layerName || '未知'}</span></div>`;
-        
-        if (displayInfo?.properties) {
-          Object.keys(displayInfo.properties).forEach(key => {
-            if (key !== 'geometry') {
-              const value = displayInfo.properties[key];
-              const displayValue = value !== undefined && value !== null ? value : '(空值)';
-              content += `<div class="field-row"><span class="field-label">${key}:</span><span class="field-value">${displayValue}</span></div>`;
-            }
-          });
-        }
+        // 显示所有GeoJSON属性字段
+        Object.keys(properties).forEach(key => {
+          if (key !== 'geometry') {
+            const value = properties[key];
+            const displayValue = value !== undefined && value !== null ? value : '(空值)';
+            content += `<div class="field-row"><span class="field-label">${key}:</span><span class="field-value">${displayValue}</span></div>`;
+          }
+        });
         
         content += '</div>';
 
@@ -593,7 +613,7 @@ export function useMap() {
                       type: geometry.getType()
                     },
                     properties: feature.getProperties(),
-                    layerName: layerInfo.name
+                    layerName: layerInfo.name || layerInfo.id || '未知图层'
                   });
                 }
               }
@@ -620,7 +640,17 @@ export function useMap() {
         
         allFeatures.forEach((feature, index) => {
           content += `<div class="feature-item">`;
-          content += `<div class="feature-header">要素 ${index + 1} (${feature.layerName})</div>`;
+          // 改进图层名称显示逻辑
+          const displayLayerName = feature.layerName || '未知图层'
+          
+          // 添加调试信息
+          console.log(`要素 ${index + 1} 图层信息:`, {
+            layerName: feature.layerName,
+            displayLayerName: displayLayerName,
+            featureId: feature.id
+          });
+          
+          content += `<div class="feature-header">要素 ${index + 1} (${displayLayerName})</div>`;
           
           content += `<div class="field-row"><span class="field-label">要素ID:</span><span class="field-value">${feature.id || '无'}</span></div>`;
           content += `<div class="field-row"><span class="field-label">几何类型:</span><span class="field-value">${feature.geometry?.type || '未知'}</span></div>`;
@@ -687,6 +717,15 @@ export function useMap() {
     mapStore = useMapStore()
     
     testLayerConfig()
+    
+    // 测试图层名称解析逻辑
+    try {
+      const { testLayerNameParsing, testLayerNameMatching } = await import('@/utils/layerNameTest')
+      testLayerNameParsing()
+      testLayerNameMatching()
+    } catch (error) {
+      console.warn('图层名称测试模块加载失败:', error)
+    }
     
     try {
       if (!window.ol || !mapContainer.value) {

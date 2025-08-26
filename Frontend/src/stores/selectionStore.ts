@@ -43,6 +43,13 @@ const useSelectionStore = defineStore('selection', () => {
   }
   
   function addSelectedFeature(feature: any) {
+    // 确保要素有正确的sourceTag标记
+    if (feature && typeof feature.set === 'function') {
+      try {
+        feature.set('sourceTag', 'click')
+      } catch (_) {}
+    }
+    
     selectedFeatures.value.push(feature)
   }
   
@@ -72,10 +79,40 @@ const useSelectionStore = defineStore('selection', () => {
       mapStore.selectLayer.changed()
     }
     
-    // 清除本地状态
-    selectedFeatures.value = []
-    selectedFeatureIndex.value = -1
-    highlightedFeature.value = null
+    // 只清除点击选择的本地状态，不影响其他选择
+    const clickFeatures = selectedFeatures.value.filter((f: any) => {
+      const sourceTag = f.get?.('sourceTag') || f.sourceTag || 
+                       (f.getProperties ? f.getProperties().sourceTag : null)
+      return sourceTag === 'click'
+    })
+    
+    // 移除点击选择的要素
+    clickFeatures.forEach((clickFeature: any) => {
+      const index = selectedFeatures.value.findIndex((f: any) => {
+        // 通过几何坐标比较来判断是否为同一要素
+        const fGeom = f.getGeometry?.()
+        const clickGeom = clickFeature.getGeometry?.()
+        if (fGeom && clickGeom) {
+          const fCoords = JSON.stringify(fGeom.getCoordinates())
+          const clickCoords = JSON.stringify(clickGeom.getCoordinates())
+          return fCoords === clickCoords
+        }
+        return false
+      })
+      if (index !== -1) {
+        selectedFeatures.value.splice(index, 1)
+      }
+    })
+    
+    // 如果当前选中的要素被移除，重置选中索引
+    if (selectedFeatureIndex.value >= selectedFeatures.value.length) {
+      selectedFeatureIndex.value = selectedFeatures.value.length - 1
+    }
+    
+    // 如果没有要素了，清除高亮
+    if (selectedFeatures.value.length === 0) {
+      highlightedFeature.value = null
+    }
   }
 
   // 清除地图上的点击选择高亮

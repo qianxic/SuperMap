@@ -82,8 +82,23 @@
         >
           <div class="layer-info">
             <div class="layer-name">要素 {{ index + 1 }} - {{ getFeatureType(feature) }}</div>
-            <div class="layer-desc">{{ getSelectedLayerName() || '未知图层' }} | {{ getFeatureGeometryInfo(feature) }}</div>
+            <div class="layer-desc">{{ getFeatureGeometryInfo(feature) }}</div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 要素信息 -->
+    <div class="analysis-section" v-if="selectedFeatureIndex !== -1 && queryResults[selectedFeatureIndex]">
+      <div class="section-title">要素信息</div>
+      <div class="feature-details">
+        <div 
+          v-for="(item, index) in selectedFeatureInfo" 
+          :key="index"
+          class="info-item"
+        >
+          <span class="info-label">{{ item.label }}</span>
+          <span class="info-value">{{ item.value }}</span>
         </div>
       </div>
     </div>
@@ -122,6 +137,7 @@ import { computed, onMounted, onUnmounted, watch, ref } from 'vue'
 import { useAnalysisStore } from '@/stores/analysisStore.ts'
 import { useFeatureQueryStore } from '@/stores/featureQueryStore.ts'
 import { useModeStateStore } from '@/stores/modeStateStore.ts'
+import { getFeatureCompleteInfo, getFeatureGeometryDescription } from '@/utils/featureUtils'
 import DropdownSelect from '@/components/UI/DropdownSelect.vue'
 import SecondaryButton from '@/components/UI/SecondaryButton.vue'
 import PanelWindow from '@/components/UI/PanelWindow.vue'
@@ -147,6 +163,16 @@ const selectedFieldName = ref<string>('')
 const queryConfig = computed(() => featureQuery.queryConfig)
 const isQuerying = computed(() => featureQuery.isQuerying)
 const selectedFeatureIndex = computed(() => featureQuery.selectedFeatureIndex)
+
+// 选中要素的详细信息
+const selectedFeatureInfo = computed(() => {
+  if (selectedFeatureIndex.value === -1 || !queryResults.value[selectedFeatureIndex.value]) {
+    return []
+  }
+  
+  const feature = queryResults.value[selectedFeatureIndex.value]
+  return getFeatureCompleteInfo(feature)
+})
 
 // 工具状态管理
 const toolId = 'query'
@@ -320,7 +346,8 @@ const getFieldTypeClass = (type: string): string => {
     '数组': 'type-array',
     '对象': 'type-object',
     '空值': 'type-null',
-    '未知': 'type-unknown'
+    '未知': 'type-unknown',
+    '几何': 'type-geometry' // 几何类型使用专用样式
   }
   return typeClasses[type] || 'type-unknown'
 }
@@ -396,133 +423,10 @@ const getFeatureType = (feature: any): string => {
 
 // 获取要素几何信息
 const getFeatureGeometryInfo = (feature: any): string => {
-  const geometry = feature.geometry || feature.getGeometry?.()
-  if (!geometry) return '未知坐标'
-  
-  try {
-    const geometryType = geometry.getType?.() || geometry.type
-    const coords = geometry.getCoordinates?.() || geometry.coordinates
-    
-    if (!coords) return '坐标解析失败'
-    
-    switch (geometryType) {
-      case 'Point':
-        // 点要素显示坐标
-        if (Array.isArray(coords) && coords.length >= 2) {
-          return `${coords[0].toFixed(6)}, ${coords[1].toFixed(6)}`
-        }
-        return '点坐标解析失败'
-      
-      case 'LineString':
-        // 线要素显示长度
-        if (Array.isArray(coords) && coords.length >= 2) {
-          const length = calculateLineLength(coords)
-          return `长度: ${length.toFixed(4)}千米`
-        }
-        return '线长度计算失败'
-      
-      case 'Polygon':
-        // 面要素显示面积
-        if (Array.isArray(coords) && coords.length > 0) {
-          const area = calculatePolygonArea(coords[0]) // 使用外环计算面积
-          return `面积: ${area.toFixed(4)}平方千米`
-        }
-        return '面积计算失败'
-      
-      case 'MultiPoint':
-        // 多点显示点数和第一个点的坐标
-        if (Array.isArray(coords) && coords.length > 0) {
-          const firstPoint = coords[0]
-          if (Array.isArray(firstPoint) && firstPoint.length >= 2) {
-            return `${coords.length}个点, 起始: ${firstPoint[0].toFixed(6)}, ${firstPoint[1].toFixed(6)}`
-          }
-        }
-        return '多点坐标解析失败'
-      
-      case 'MultiLineString':
-        // 多线显示总长度
-        if (Array.isArray(coords) && coords.length > 0) {
-          let totalLength = 0
-          coords.forEach((lineCoords: number[][]) => {
-            if (Array.isArray(lineCoords)) {
-              totalLength += calculateLineLength(lineCoords)
-            }
-          })
-          return `总长度: ${totalLength.toFixed(4)}千米`
-        }
-        return '多线长度计算失败'
-      
-      case 'MultiPolygon':
-        // 多面显示总面积
-        if (Array.isArray(coords) && coords.length > 0) {
-          let totalArea = 0
-          coords.forEach((polygonCoords: number[][][]) => {
-            if (Array.isArray(polygonCoords) && polygonCoords.length > 0) {
-              totalArea += calculatePolygonArea(polygonCoords[0]) // 使用外环
-            }
-          })
-          return `总面积: ${totalArea.toFixed(4)}平方千米`
-        }
-        return '多面面积计算失败'
-      
-      default:
-        // 未知类型，尝试显示第一个坐标
-        if (Array.isArray(coords) && coords.length >= 2 && typeof coords[0] === 'number') {
-          return `${coords[0].toFixed(6)}, ${coords[1].toFixed(6)}`
-        }
-        return `${geometryType || '未知类型'}`
-    }
-  } catch (error) {
-    console.error('几何信息解析错误:', error)
-    return '几何信息解析失败'
-  }
+  return getFeatureGeometryDescription(feature)
 }
 
-// 几何计算函数
-const calculateLineLength = (coordinates: number[][]): number => {
-  if (!coordinates || coordinates.length < 2) return 0
-  
-  let totalLength = 0
-  for (let i = 1; i < coordinates.length; i++) {
-    const [lon1, lat1] = coordinates[i - 1]
-    const [lon2, lat2] = coordinates[i]
-    totalLength += haversineDistance(lat1, lon1, lat2, lon2)
-  }
-  return totalLength
-}
-
-const calculatePolygonArea = (coordinates: number[][]): number => {
-  if (!coordinates || coordinates.length < 3) return 0
-  
-  // 简化的球面面积计算（适用于小区域）
-  let area = 0
-  const n = coordinates.length
-  
-  for (let i = 0; i < n - 1; i++) {
-    const [x1, y1] = coordinates[i]
-    const [x2, y2] = coordinates[i + 1]
-    area += x1 * y2 - x2 * y1
-  }
-  
-  // 将度转换为平方千米（近似）
-  const earthRadius = 6371 // 地球半径（千米）
-  const latRad = coordinates[0][1] * Math.PI / 180
-  const kmPerDegLat = earthRadius * Math.PI / 180
-  const kmPerDegLon = kmPerDegLat * Math.cos(latRad)
-  
-  return Math.abs(area * kmPerDegLat * kmPerDegLon / 2)
-}
-
-const haversineDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-  const R = 6371 // 地球半径（千米）
-  const dLat = (lat2 - lat1) * Math.PI / 180
-  const dLon = (lon2 - lon1) * Math.PI / 180
-  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2)
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-  return R * c
-}
+// 几何计算函数已移除
 
 // 反选当前已选中的要素
 const invertSelectedLayer = () => {
@@ -768,6 +672,11 @@ const clearQueryResults = () => {
   color: var(--field-type-object-color);
 }
 
+.type-geometry {
+  background: var(--field-type-geometry-bg, var(--field-type-object-bg));
+  color: var(--field-type-geometry-color, var(--field-type-object-color));
+}
+
 .type-null {
   background: var(--field-type-null-bg);
   color: var(--field-type-null-color);
@@ -794,6 +703,43 @@ const clearQueryResults = () => {
 /* 查询条件样式 */
 .query-conditions {
   margin-bottom: 16px;
+}
+
+/* 要素详细信息样式 */
+.feature-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.info-item:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  color: var(--sub);
+  min-width: 80px;
+  font-weight: 500;
+}
+
+.info-value {
+  color: var(--text);
+  text-align: right;
+  word-break: break-word;
+  max-width: 200px;
+  font-size: 11px;
 }
 
 
