@@ -113,7 +113,7 @@ const router = createRouter({
                           'bianji': 'edit',
                           'buffer': 'buffer',
                           'distance': 'distance',
-                          'gotowhere': 'thiessen'
+                          'servicearea': 'service-area'
                         }
                         const path = toolPathMap[state.activeTool]
                         if (path) {
@@ -182,14 +182,14 @@ const router = createRouter({
                 requiresAuth: true
               }
             },
-            // 泰森多边形
+            // 服务区分析
             {
-              path: 'thiessen',
-              name: 'thiessen-analysis',
-              component: () => import('@/views/dashboard/traditional/tools/ThiessenAnalysisPanel.vue'),
+              path: 'service-area',
+              name: 'service-area-analysis',
+              component: () => import('@/views/dashboard/traditional/tools/ServiceAreaAnalysisPanel.vue'),
               meta: {
-                title: '泰森多边形',
-                tool: 'gotowhere',
+                title: '服务区分析',
+                tool: 'servicearea',
                 requiresAuth: true
               }
             }

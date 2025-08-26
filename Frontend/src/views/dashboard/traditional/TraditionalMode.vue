@@ -11,7 +11,7 @@
         <div class="button-row">
           <PrimaryButton text="缓冲区分析" :active="isBufferOpen" @click="toggleBuffer" />
           <PrimaryButton text="最优路径分析" :active="isDistanceOpen" @click="toggleDistance" />
-          <PrimaryButton text="泰森多边形" :active="isGotowhereOpen" @click="toggleGotowhere" />
+          <PrimaryButton text="服务区分析" :active="isServiceAreaOpen" @click="toggleServiceArea" />
         </div>
       </div>
     </div>
@@ -23,7 +23,7 @@
       <EditTools v-if="analysisStore.toolPanel.activeTool === 'bianji'" />
       <BufferAnalysisPanel v-if="analysisStore.toolPanel.activeTool === 'buffer'" />
       <DistanceAnalysisPanel v-if="analysisStore.toolPanel.activeTool === 'distance'" />
-      <ThiessenAnalysisPanel v-if="analysisStore.toolPanel.activeTool === 'gotowhere'" />
+      <ServiceAreaAnalysisPanel v-if="analysisStore.toolPanel.activeTool === 'servicearea'" />
       <LayerManager v-if="analysisStore.toolPanel.activeTool === 'layer'" />
       
       <!-- 新增：路由视图（不影响现有逻辑） -->
@@ -47,7 +47,7 @@ import FeatureQueryPanel from '@/views/dashboard/traditional/tools/FeatureQueryP
 import EditTools from '@/views/dashboard/traditional/tools/EditTools.vue'
 import BufferAnalysisPanel from '@/views/dashboard/traditional/tools/BufferAnalysisPanel.vue'
 import DistanceAnalysisPanel from '@/views/dashboard/traditional/tools/DistanceAnalysisPanel.vue'
-import ThiessenAnalysisPanel from '@/views/dashboard/traditional/tools/ThiessenAnalysisPanel.vue'
+import ServiceAreaAnalysisPanel from '@/views/dashboard/traditional/tools/ServiceAreaAnalysisPanel.vue'
 import LayerManager from '@/views/dashboard/traditional/tools/LayerManager.vue'
 import PrimaryButton from '@/components/UI/PrimaryButton.vue'
 import PanelContainer from '@/components/UI/PanelContainer.vue'
@@ -63,7 +63,7 @@ const toolConfigs = {
   buffer: { id: 'buffer', title: '缓冲区分析', path: 'buffer' },
   layer: { id: 'layer', title: '图层管理', path: 'layer' },
   distance: { id: 'distance', title: '最优路径分析', path: 'distance' },
-  gotowhere: { id: 'gotowhere', title: '泰森多边形', path: 'thiessen' },
+  servicearea: { id: 'servicearea', title: '服务区分析', path: 'service-area' },
   query: { id: 'query', title: '要素查询', path: 'query' }
 } as const
 
@@ -77,7 +77,7 @@ const isBufferOpen = computed(() => analysisStore.toolPanel.visible && analysisS
 const isLayerOpen = computed(() => analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'layer')
 const isbianji = computed(() => analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'bianji')
 const isDistanceOpen = computed(() => analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'distance')
-const isGotowhereOpen = computed(() => analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'gotowhere')
+const isServiceAreaOpen = computed(() => analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'servicearea')
 const isQueryOpen = computed(() => analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'query')
 
 // 路由导航函数
@@ -112,7 +112,7 @@ const togglebianji = () => toggleTool('bianji')
 const toggleBuffer = () => toggleTool('buffer')
 const toggleLayerManager = () => toggleTool('layer')
 const toggleDistance = () => toggleTool('distance')
-const toggleGotowhere = () => toggleTool('gotowhere')
+const toggleServiceArea = () => toggleTool('servicearea')
 const toggleQuery = () => toggleTool('query')
 
 // 监听路由变化，同步到状态管理
@@ -166,7 +166,7 @@ onMounted(() => {
         'bianji': '图层编辑',
         'buffer': '缓冲区分析',
         'distance': '距离分析',
-        'gotowhere': '泰森多边形'
+        'servicearea': '服务区分析'
       }
       analysisStore.openTool(activeTool as any, toolTitleMap[activeTool] || '图层管理')
     }
