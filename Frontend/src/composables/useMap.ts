@@ -492,6 +492,7 @@ export function useMap() {
             }
           })
         }
+        // 只清除点击选择的状态，不影响其他选择
         selectionStore.clearSelection()
         
         feature.set('layerName', layerName);

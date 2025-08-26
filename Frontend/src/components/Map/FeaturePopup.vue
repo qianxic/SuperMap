@@ -53,65 +53,109 @@ const isSameFeature = (feature1: any, feature2: any): boolean => {
   return false
 }
 
-// 处理关闭按钮点击事件
-const handleClose = () => {
-  // 获取当前弹窗对应的要素
-  const currentPopupFeature = popupStore.feature
-  
-  // 关闭要素信息弹窗
-  popupStore.hidePopup()
-  
-  // 检查要素的标识类型
-  const sourceTag = currentPopupFeature?.get?.('sourceTag') || 
-                   currentPopupFeature?.sourceTag || 
-                   (currentPopupFeature?.getProperties ? currentPopupFeature.getProperties().sourceTag : null)
-  
-  const isQueryOrAreaFeature = sourceTag === 'query' || sourceTag === 'area'
-  
-  if (isQueryOrAreaFeature) {
-    // 对于 query 和 area 标识的要素：仅关闭弹窗和橙色高亮，保持蓝色高亮
-    if (mapStore.selectLayer && mapStore.selectLayer.getSource()) {
-      const source = mapStore.selectLayer.getSource()
-      const features = source.getFeatures()
-      features.forEach((f: any) => {
-        // 只清除当前弹窗对应的要素（橙色高亮），不清除原有的蓝色高亮
-        if (currentPopupFeature && isSameFeature(f, currentPopupFeature) && 
-            f?.get && f.get('sourceTag') === 'click') {
-          source.removeFeature(f)
+  // 处理关闭按钮点击事件
+  const handleClose = async () => {
+    // 获取当前弹窗对应的要素
+    const currentPopupFeature = popupStore.feature
+    
+    // 关闭要素信息弹窗
+    popupStore.hidePopup()
+    
+    // 检查要素的标识类型
+    const sourceTag = currentPopupFeature?.get?.('sourceTag') || 
+                     currentPopupFeature?.sourceTag || 
+                     (currentPopupFeature?.getProperties ? currentPopupFeature.getProperties().sourceTag : null)
+    
+    // 根据要素来源类型进行不同的清除处理
+    if (sourceTag === 'click') {
+      // 点击选择的要素：清除点击选择状态
+      if (currentPopupFeature) {
+        // 从选择存储中移除当前要素
+        const updatedFeatures = selectionStore.selectedFeatures.filter((feature: any) => {
+          return !isSameFeature(feature, currentPopupFeature)
+        })
+        selectionStore.setSelectedFeatures(updatedFeatures)
+        
+        // 如果当前选中的要素被移除，重置选中索引
+        if (selectionStore.selectedFeatureIndex >= updatedFeatures.length) {
+          selectionStore.setSelectedFeatureIndex(-1)
         }
-      })
-      mapStore.selectLayer.changed()
-    }
-  } else {
-    // 对于其他标识的要素：按当前逻辑处理
-    if (currentPopupFeature) {
-      // 从选择存储中移除当前要素
-      const updatedFeatures = selectionStore.selectedFeatures.filter((feature: any) => {
-        return !isSameFeature(feature, currentPopupFeature)
-      })
-      selectionStore.setSelectedFeatures(updatedFeatures)
+      }
       
-      // 如果当前选中的要素被移除，重置选中索引
-      if (selectionStore.selectedFeatureIndex >= updatedFeatures.length) {
-        selectionStore.setSelectedFeatureIndex(-1)
+      // 清除地图上对应的点击选择高亮
+      if (mapStore.selectLayer && mapStore.selectLayer.getSource()) {
+        const source = mapStore.selectLayer.getSource()
+        const features = source.getFeatures()
+        features.forEach((f: any) => {
+          if (f?.get && f.get('sourceTag') === 'click' && 
+              (currentPopupFeature ? isSameFeature(f, currentPopupFeature) : true)) {
+            source.removeFeature(f)
+          }
+        })
+        mapStore.selectLayer.changed()
+      }
+    } else if (sourceTag === 'area') {
+      // 区域选择的要素：清除区域选择状态
+      const { useAreaSelectionStore } = await import('@/stores/areaSelectionStore')
+      const areaSelectionStore = useAreaSelectionStore()
+      
+      if (currentPopupFeature) {
+        // 从区域选择存储中移除当前要素
+        const updatedFeatures = areaSelectionStore.selectedFeatures.filter((feature: any) => {
+          return !isSameFeature(feature, currentPopupFeature)
+        })
+        areaSelectionStore.setSelectedFeatures(updatedFeatures)
+        
+        // 如果当前选中的要素被移除，重置选中索引
+        if (areaSelectionStore.selectedFeatureIndex >= updatedFeatures.length) {
+          areaSelectionStore.setSelectedFeatureIndex(-1)
+        }
+      }
+      
+      // 清除地图上对应的区域选择高亮
+      if (mapStore.selectLayer && mapStore.selectLayer.getSource()) {
+        const source = mapStore.selectLayer.getSource()
+        const features = source.getFeatures()
+        features.forEach((f: any) => {
+          if (f?.get && f.get('sourceTag') === 'area' && 
+              (currentPopupFeature ? isSameFeature(f, currentPopupFeature) : true)) {
+            source.removeFeature(f)
+          }
+        })
+        mapStore.selectLayer.changed()
+      }
+    } else if (sourceTag === 'query') {
+      // 查询选择的要素：清除查询选择状态
+      const { useFeatureQueryStore } = await import('@/stores/featureQueryStore')
+      const featureQueryStore = useFeatureQueryStore()
+      
+      if (currentPopupFeature) {
+        // 从查询结果中移除当前要素
+        const updatedResults = featureQueryStore.queryResults.filter((feature: any) => {
+          return !isSameFeature(feature, currentPopupFeature)
+        })
+        featureQueryStore.queryResults = updatedResults
+        
+        // 如果当前选中的要素被移除，重置选中索引
+        if (featureQueryStore.selectedFeatureIndex >= updatedResults.length) {
+          featureQueryStore.selectedFeatureIndex = -1
+        }
+      }
+      
+      // 清除地图上对应的查询选择高亮
+      if (mapStore.selectLayer && mapStore.selectLayer.getSource()) {
+        const source = mapStore.selectLayer.getSource()
+        const features = source.getFeatures()
+        features.forEach((f: any) => {
+          if (f?.get && f.get('sourceTag') === 'query' && 
+              (currentPopupFeature ? isSameFeature(f, currentPopupFeature) : true)) {
+            source.removeFeature(f)
+          }
+        })
+        mapStore.selectLayer.changed()
       }
     }
-    
-    // 仅清除地图上对应的点击选择高亮显示
-    if (mapStore.selectLayer && mapStore.selectLayer.getSource()) {
-      const source = mapStore.selectLayer.getSource()
-      const features = source.getFeatures()
-      features.forEach((f: any) => {
-        // 只清除当前弹窗对应的要素和标记为点击来源的要素
-        if (f?.get && f.get('sourceTag') === 'click' && 
-            (currentPopupFeature ? isSameFeature(f, currentPopupFeature) : true)) {
-          source.removeFeature(f)
-        }
-      })
-      mapStore.selectLayer.changed()
-    }
   }
-}
 
 // 计算弹窗高度为屏幕高度的1/4（缩小一半）
 const popupHeight = computed(() => {

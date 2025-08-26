@@ -1,10 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { QueryConfig } from '@/types/query'
+import { useMapStore } from '@/stores/mapStore'
 
 export type SelectionMode = 'single' | 'area'
 
 const useSelectionStore = defineStore('selection', () => {
+  const mapStore = useMapStore()
+  
   // 选择模式
   const selectionMode = ref<SelectionMode>('single')
   
@@ -55,7 +58,21 @@ const useSelectionStore = defineStore('selection', () => {
     highlightedFeature.value = feature
   }
   
+  // 清除点击选择：只清除sourceTag为'click'的要素
   function clearSelection() {
+    // 清除地图上的点击选择高亮
+    if (mapStore.selectLayer && mapStore.selectLayer.getSource()) {
+      const source = mapStore.selectLayer.getSource()
+      const features = source.getFeatures()
+      features.forEach((f: any) => {
+        if (f?.get && f.get('sourceTag') === 'click') {
+          source.removeFeature(f)
+        }
+      })
+      mapStore.selectLayer.changed()
+    }
+    
+    // 清除本地状态
     selectedFeatures.value = []
     selectedFeatureIndex.value = -1
     highlightedFeature.value = null
@@ -63,8 +80,16 @@ const useSelectionStore = defineStore('selection', () => {
 
   // 清除地图上的点击选择高亮
   function clearClickSelection() {
-    // 这个方法需要在外部调用时传入 mapStore
-    // 这里只清除本地状态，地图高亮清除在外部处理
+    if (mapStore.selectLayer && mapStore.selectLayer.getSource()) {
+      const source = mapStore.selectLayer.getSource()
+      const features = source.getFeatures()
+      features.forEach((f: any) => {
+        if (f?.get && f.get('sourceTag') === 'click') {
+          source.removeFeature(f)
+        }
+      })
+      mapStore.selectLayer.changed()
+    }
   }
   
   function removeSelectedFeature(index: number) {

@@ -1,7 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { useMapStore } from '@/stores/mapStore'
 
 const useAreaSelectionStore = defineStore('areaSelection', () => {
+  const mapStore = useMapStore()
   const selectedFeatures = ref<any[]>([])
   const selectedFeatureIndex = ref<number>(-1)
   const highlightedFeature = ref<any>(null)
@@ -26,7 +28,21 @@ const useAreaSelectionStore = defineStore('areaSelection', () => {
     highlightedFeature.value = feature
   }
 
+  // 清除区域选择：只清除sourceTag为'area'的要素
   function clear() {
+    // 清除地图上的区域选择高亮
+    if (mapStore.selectLayer && mapStore.selectLayer.getSource()) {
+      const source = mapStore.selectLayer.getSource()
+      const features = source.getFeatures()
+      features.forEach((f: any) => {
+        if (f?.get && f.get('sourceTag') === 'area') {
+          source.removeFeature(f)
+        }
+      })
+      mapStore.selectLayer.changed()
+    }
+    
+    // 清除本地状态
     selectedFeatures.value = []
     selectedFeatureIndex.value = -1
     highlightedFeature.value = null

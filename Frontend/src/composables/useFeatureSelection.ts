@@ -626,11 +626,21 @@ export function useFeatureSelection() {
     selectionStore.setSelectedFeatures(inverted)
     selectionStore.setSelectedFeatureIndex(-1)
 
-    // 更新状态
-    analysisStore.setAnalysisStatus(`已反选图层 "${targetLayerName}"，更新选择列表`)
+    // 自动选中第一个要素并触发高亮效果
+    if (inverted.length > 0) {
+      selectionStore.setSelectedFeatureIndex(0)
+      const firstFeature = inverted[0]
+      if (firstFeature) {
+        highlightFeatureOnMap(firstFeature)
+        triggerMapFeatureHighlight(firstFeature)
+        analysisStore.setAnalysisStatus(`已反选图层 "${targetLayerName}"，已自动选中第一个要素`)
+      }
+    } else {
+      analysisStore.setAnalysisStatus(`已反选图层 "${targetLayerName}"，更新选择列表`)
+    }
   }
 
-  // 清除选择
+  // 清除区域选择：只清除sourceTag为'area'的要素
   const clearSelection = () => {
     // 先移除区域选择相关交互与监听
     clearSelectionInteractions()
