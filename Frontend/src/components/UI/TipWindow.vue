@@ -46,7 +46,7 @@ const tipClass = computed(() => {
   font-size: 12px;
   color: var(--text);
   padding: 12px;
-  background: rgba(66, 165, 245, 0.08);
+  background: var(--surface);
   border-radius: 12px;
   border-left: 4px solid var(--accent);
   /* 禁用动画，防止主题切换闪烁 */
@@ -79,26 +79,26 @@ const tipClass = computed(() => {
 
 /* 变体样式 */
 .tip-info {
-  background: rgba(66, 165, 245, 0.08);
+  background: var(--surface);
   border-left-color: var(--accent);
   color: var(--text);
 }
 
 .tip-warning {
-  background: rgba(255, 193, 7, 0.08);
-  border-left-color: #ffc107;
+  background: var(--surface);
+  border-left-color: var(--accent);
   color: var(--text);
 }
 
 .tip-success {
-  background: rgba(40, 167, 69, 0.08);
-  border-left-color: #28a745;
+  background: var(--surface);
+  border-left-color: var(--accent);
   color: var(--text);
 }
 
 .tip-error {
-  background: rgba(220, 53, 69, 0.08);
-  border-left-color: #dc3545;
+  background: var(--surface);
+  border-left-color: var(--accent);
   color: var(--text);
 }
 

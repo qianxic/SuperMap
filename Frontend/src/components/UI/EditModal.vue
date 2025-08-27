@@ -370,8 +370,8 @@ const handleSave = () => {
 }
 
 .btn-primary {
-  background: var(--accent);
-  color: white;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-color);
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -384,8 +384,8 @@ const handleSave = () => {
 }
 
 .btn-secondary {
-  background: var(--surface);
-  color: var(--text);
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-color);
   border: 1px solid var(--border);
 }
 

@@ -294,13 +294,13 @@ const handleLogin = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background: linear-gradient(135deg, var(--bg) 0%, var(--surface) 100%);
   font-family: "Segoe UI", PingFang SC, Microsoft YaHei, Arial, sans-serif;
 }
 
 /* 深色主题背景 */
 [data-theme="dark"] .login-container {
-  background: linear-gradient(135deg, #2d2d30 0%, #1e1e1e 100%);
+  background: linear-gradient(135deg, var(--bg) 0%, var(--surface) 100%);
 }
 
 .login-box {

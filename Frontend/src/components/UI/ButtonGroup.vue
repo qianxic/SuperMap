@@ -50,7 +50,7 @@ button {
 
 button.active {
   background-color: var(--accent);
-  color: #fff;
+  color: var(--btn-primary-color);
   box-shadow: 0 2px 8px rgba(var(--accent-rgb), 0.3);
 }
 

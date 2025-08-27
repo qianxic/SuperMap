@@ -74,13 +74,13 @@ const handleClick = (event: MouseEvent) => {
 }
 
 .btn.primary { 
-  background: var(--accent); 
-  color: white; 
-  border-color: var(--accent);
+  background: var(--btn-primary-bg); 
+  color: var(--btn-primary-color); 
+  border-color: var(--btn-primary-bg);
 }
 
 .btn.primary:hover:not(:disabled) {
-  background: var(--accent);
+  background: var(--btn-primary-bg);
   opacity: 0.9;
 }
 
@@ -90,20 +90,20 @@ const handleClick = (event: MouseEvent) => {
 }
 
 .btn.danger {
-  background: #dc3545;
-  color: white;
-  border-color: #dc3545;
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
 }
 
 .btn.danger:hover:not(:disabled) {
-  background: #c82333;
-  border-color: #c82333;
+  background: var(--surface-hover);
+  border-color: var(--border);
 }
 
 .btn.active {
   background: var(--accent);
   border-color: var(--accent);
-  color: white;
+  color: var(--btn-primary-color);
   box-shadow: 0 2px 8px rgba(var(--accent-rgb), 0.3);
 }
 

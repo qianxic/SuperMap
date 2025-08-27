@@ -32,7 +32,6 @@
                 <div class="agent-name">{{ agent.name }}</div>
                 <div class="agent-description">{{ agent.description }}</div>
                 <div class="agent-type">{{ getAgentTypeLabel(agent.type) }}</div>
-                <div class="agent-api-key">API: {{ getApiKeyName(agent.apiKeyId) }}</div>
                 <div class="agent-status" :class="agent.status">
                   {{ agent.status === 'active' ? '运行中' : '已停止' }}
                 </div>
@@ -414,10 +413,7 @@ const getCategoryLabel = (category: string) => {
   return categoryLabels[category as keyof typeof categoryLabels] || category
 }
 
-const getApiKeyName = (apiKeyId: number) => {
-  const apiKey = apiKeys.value.find(key => key.id === apiKeyId || key.id === Number(apiKeyId))
-  return apiKey ? `${apiKey.name} (${apiKey.provider})` : '未知密钥'
-}
+
 
 // 打开API密钥编辑弹窗
 const openKeyModal = (key?: any) => {
@@ -761,8 +757,8 @@ const deleteAgent = (id: number) => {
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  background: var(--accent);
-  color: white;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-color);
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -838,13 +834,13 @@ const deleteAgent = (id: number) => {
 }
 
 .key-status.active {
-  background: rgba(40, 167, 69, 0.1);
-  color: #28a745;
+  background: var(--selection-bg);
+  color: var(--text);
 }
 
 .key-status.inactive {
-  background: rgba(108, 117, 125, 0.1);
-  color: #6c757d;
+  background: var(--surface);
+  color: var(--sub);
 }
 
 .preference-weight {
@@ -901,13 +897,13 @@ const deleteAgent = (id: number) => {
 }
 
 .agent-status.active {
-  background: rgba(40, 167, 69, 0.1);
-  color: #28a745;
+  background: var(--selection-bg);
+  color: var(--text);
 }
 
 .agent-status.inactive {
-  background: rgba(108, 117, 125, 0.1);
-  color: #6c757d;
+  background: var(--surface);
+  color: var(--sub);
 }
 
 .key-actions,
@@ -938,8 +934,8 @@ const deleteAgent = (id: number) => {
 }
 
 .action-btn.delete:hover {
-  background: rgba(220, 53, 69, 0.1);
-  color: #dc3545;
+  background: var(--surface-hover);
+  color: var(--text);
 }
 
 /* 空状态 */
@@ -956,8 +952,8 @@ const deleteAgent = (id: number) => {
 
 .add-first-btn {
   padding: 8px 16px;
-  background: var(--accent);
-  color: white;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-color);
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -982,18 +978,17 @@ const deleteAgent = (id: number) => {
   padding: 40px 20px;
   text-align: center;
   cursor: pointer;
-   
   background: var(--surface);
 }
 
 .file-upload-area:hover {
   border-color: var(--accent);
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--surface-hover);
 }
 
 .file-upload-area.drag-over {
   border-color: var(--accent);
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-hover);
   transform: scale(1.02);
 }
 
@@ -1093,18 +1088,18 @@ const deleteAgent = (id: number) => {
 }
 
 .file-status.uploading {
-  background: rgba(255, 193, 7, 0.1);
-  color: #ffc107;
+  background: var(--surface);
+  color: var(--sub);
 }
 
 .file-status.uploaded {
-  background: rgba(40, 167, 69, 0.1);
-  color: #28a745;
+  background: var(--selection-bg);
+  color: var(--text);
 }
 
 .file-status.error {
-  background: rgba(220, 53, 69, 0.1);
-  color: #dc3545;
+  background: var(--surface);
+  color: var(--sub);
 }
 
 .file-actions {

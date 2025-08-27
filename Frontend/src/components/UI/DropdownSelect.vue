@@ -135,7 +135,7 @@ onUnmounted(() => {
 .dropdown-select {
   width: 100%;
   padding: 8px 12px;
-  background: var(--surface);
+  background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 8px;
   color: var(--text);
@@ -147,18 +147,47 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   min-height: 36px;
+  transition: all 0.2s ease;
+  position: relative;
 }
 
 .dropdown-select:focus {
-  border-color: var(--border);
-  background: var(--panel);
-  box-shadow: 0 0 0 2px rgba(222, 226, 230, 0.15);
-  transform: translateY(-1px);
+  outline: none !important;
+  border-color: var(--accent);
+  background: var(--bg);
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.1);
+}
+
+.dropdown-select:focus-visible {
+  outline: none !important;
+  border-color: var(--accent);
+  background: var(--bg);
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.1);
 }
 
 .dropdown-select:hover:not(.dropdown-disabled) {
-  border-color: var(--border);
+  outline: none !important;
+  border-color: var(--accent);
   background: var(--surface-hover);
+}
+
+.dropdown-select.dropdown-open {
+  outline: none !important;
+  border-color: var(--accent);
+  background: var(--bg);
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.1);
+}
+
+.dropdown-select.dropdown-open:hover {
+  outline: none !important;
+  background: var(--bg);
+}
+
+.dropdown-select.dropdown-open:focus {
+  outline: none !important;
+  border-color: var(--accent);
+  background: var(--bg);
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.1);
 }
 
 .dropdown-disabled {

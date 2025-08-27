@@ -455,8 +455,6 @@ const handleCancelRemove = () => {
   overflow: hidden;
 }
 
-
-
 .group-header {
   padding: 6px 10px;
   background: var(--surface);

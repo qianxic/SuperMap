@@ -38,6 +38,15 @@ onMounted(() => {
   box-sizing: border-box;
 }
 
+/* 全局focus样式重置 */
+*:focus {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: none;
+}
+
 html, body {
   height: 100%;
   margin: 0;

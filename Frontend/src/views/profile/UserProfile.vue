@@ -342,8 +342,8 @@ onMounted(() => {
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  background: var(--accent);
-  color: white;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-color);
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -352,7 +352,7 @@ onMounted(() => {
 }
 
 .edit-btn:hover {
-  background: var(--accent);
+  background: var(--btn-primary-bg);
   opacity: 0.9;
 }
 
@@ -436,8 +436,8 @@ onMounted(() => {
 .security-btn,
 .setting-btn {
   padding: 8px 16px;
-  background: var(--accent);
-  color: white;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-color);
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -586,8 +586,8 @@ onMounted(() => {
 }
 
 .btn-primary {
-  background: var(--accent);
-  color: white;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-color);
 }
 
 .btn-primary:hover {
@@ -595,8 +595,8 @@ onMounted(() => {
 }
 
 .btn-secondary {
-  background: var(--surface);
-  color: var(--text);
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-color);
   border: 1px solid var(--border);
 }
 

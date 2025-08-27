@@ -6,9 +6,9 @@
     :height="'100%'"
     class="chat-history-panel"
   >
-    <!-- 聊天记录管理 -->
+    <!-- 聊天历史 -->
     <div class="analysis-section">
-      <div class="section-title">聊天记录管理</div>
+      <div class="section-title"></div>
       
       <!-- 操作按钮 -->
       <div class="action-buttons">
@@ -301,14 +301,14 @@ onMounted(() => {
 }
 
 .icon-btn.danger {
-  background: #dc3545;
-  color: white;
-  border-color: #dc3545;
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
 }
 
 .icon-btn.danger:hover:not(:disabled) {
-  background: #c82333;
-  border-color: #c82333;
+  background: var(--surface-hover);
+  border-color: var(--border);
 }
 
 /* 聊天记录列表样式 */
@@ -404,14 +404,14 @@ onMounted(() => {
 }
 
 .record-icon-btn.danger {
-  background: #dc3545;
-  color: white;
-  border-color: #dc3545;
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
 }
 
 .record-icon-btn.danger:hover:not(:disabled) {
-  background: #c82333;
-  border-color: #c82333;
+  background: var(--surface-hover);
+  border-color: var(--border);
 }
 
 /* 加载状态样式 */
