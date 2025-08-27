@@ -129,10 +129,20 @@ const useMapStore = defineStore('map', () => {
 
 
 
+  /**
+   * 创建地图配置 - 整合SuperMap服务配置和图层样式配置
+   * 调用者: mapStore.ts -> mapConfig
+   * 作用: 将API配置转换为地图可用的配置，包括服务URL和图层样式
+   */
   const createMapConfig = (): MapConfig => {
+    // ===== 获取SuperMap API配置 =====
+    // 调用者: createMapConfig() -> createAPIConfig()
+    // 作用: 获取所有SuperMap服务器连接配置和图层定义
     const apiConfig = createAPIConfig()
     
-    // 根据图层类型创建不同的样式配置
+    // ===== 创建矢量图层样式配置 =====
+    // 调用者: createMapConfig()
+    // 作用: 为每个矢量图层创建对应的样式配置，支持主题切换
     const vectorLayerConfigs: VectorLayerConfig[] = apiConfig.wuhanLayers
       .filter(layer => layer.type !== 'raster') // 过滤掉栅格图层
       .map(layer => {
@@ -196,15 +206,31 @@ const useMapStore = defineStore('map', () => {
         }
       })
     
+    // ===== 返回完整地图配置 =====
+    // 调用者: mapStore.ts -> mapConfig
+    // 作用: 整合所有配置信息，包括服务URL、图层样式、地图中心点等
     return {
+      // ===== 地图服务URL配置 =====
+      // 调用者: useMap.ts -> updateBaseMap() -> getFullUrl('map')
+      // 服务器地址: ${baseUrl}/${mapService} (地图服务)
+      // 作用: 提供地图瓦片服务的访问地址
       baseUrl: getFullUrl('map'),
+      
+      // ===== 数据服务URL配置 =====
+      // 调用者: useMap.ts -> loadVectorLayer() -> featureService
+      // 服务器地址: ${baseUrl}/${dataService} (数据服务)
+      // 作用: 提供矢量要素数据的访问地址
       dataUrl: getFullUrl('data'),
+      
       datasetName: apiConfig.datasetName,
       vectorLayers: vectorLayerConfigs,
-      center: [114.37, 30.69],
-      zoom: 8,
-      projection: 'EPSG:4326',
-      extent: [113.7, 29.97, 115.08, 31.36]
+      
+      // ===== 地图显示配置 =====
+      // 作用: 定义地图的初始显示参数
+      center: [114.37, 30.69], // 武汉市中心坐标
+      zoom: 8,                 // 初始缩放级别
+      projection: 'EPSG:4326', // 坐标系
+      extent: [113.7, 29.97, 115.08, 31.36] // 武汉地区边界范围
     }
   }
   

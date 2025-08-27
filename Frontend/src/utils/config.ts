@@ -1,54 +1,93 @@
 import type { APIConfig, WuhanLayer } from '@/types/map'
 
+/**
+ * 创建SuperMap API配置 - 定义所有服务器连接地址和图层配置
+ * 调用者: mapStore.ts -> createMapConfig() -> createAPIConfig()
+ * 作用: 集中管理SuperMap iServer的服务器地址、服务路径和图层定义
+ */
 export const createAPIConfig = (): APIConfig => {
+  // ===== 服务器连接配置 =====
+  // 调用者: createAPIConfig()
+  // 服务器地址: 从环境变量获取，默认localhost:8090
+  // 作用: 定义SuperMap iServer的基础服务器地址
   const baseUrl = import.meta.env.VITE_SUPERMAP_BASE_URL || 'http://localhost:8090'
+  
+  // ===== 地图服务路径配置 =====
+  // 调用者: createAPIConfig()
+  // 服务路径: iserver/services/map-WuHan/rest
+  // 作用: 定义地图服务的REST API路径，用于底图和地图服务
   const mapService = import.meta.env.VITE_SUPERMAP_MAP_SERVICE || 'iserver/services/map-WuHan/rest'
+  
+  // ===== 数据服务路径配置 =====
+  // 调用者: createAPIConfig()
+  // 服务路径: iserver/services/data-WuHan/rest/data
+  // 作用: 定义数据服务的REST API路径，用于矢量要素数据获取
   const dataService = import.meta.env.VITE_SUPERMAP_DATA_SERVICE || 'iserver/services/data-WuHan/rest/data'
   
-  return {
-    baseUrl: baseUrl.replace(/\/$/, ''), // 移除末尾斜杠
-    mapService,
-    dataService,
-    datasetName: import.meta.env.VITE_SUPERMAP_DATASET_NAME || '',
-    // 底图配置 - 根据主题自动切换
-    baseMaps: {
-      light: 'https://www.supermapol.com/proxy/gqzvimgx/iserver/services/map_china-1-_331nhzuk/rest/maps/China_Light?prjCoordSys=%7B%22epsgCode%22:4326%7D',
-      dark: 'https://www.supermapol.com/proxy/dd2z0vuq/iserver/services/map_china-1-_hl5n2ma6/rest/maps/China_Dark'
-    },
-    // 备用底图配置
-    fallbackBaseMaps: {
-      light: 'https://www.supermapol.com/proxy/gqzvimgx/iserver/services/map_china-1-_331nhzuk/rest/maps/China_Light?prjCoordSys=%7B%22epsgCode%22:4326%7D',
-      dark: 'https://www.supermapol.com/proxy/dd2z0vuq/iserver/services/map_china-1-_hl5n2ma6/rest/maps/China_Dark'
-    },
-    // 武汉工作空间的所有子图层配置 - 根据实际SuperMap服务结构
-    wuhanLayers: [
-      // 武汉市县级图层
-      { 
-        name: '武汉_县级@wuhan@@武汉', 
-        type: 'polygon', 
-        visible: true, 
-        group: '县级行政区',
-        datasetName: '武汉_县级',
-        dataService: 'iserver/services/map-WuHan/rest/maps/武汉'
+      return {
+      baseUrl: baseUrl.replace(/\/$/, ''), // 移除末尾斜杠
+      mapService,
+      dataService,
+      datasetName: import.meta.env.VITE_SUPERMAP_DATASET_NAME || '',
+      
+      // ===== 底图服务配置 =====
+      // 调用者: useMap.ts -> updateBaseMap() -> getCurrentBaseMapUrl()
+      // 服务器地址: https://www.supermapol.com/proxy/... (SuperMap在线底图服务)
+      // 作用: 提供浅色和深色主题的底图瓦片服务，根据主题自动切换
+      baseMaps: {
+        light: 'https://www.supermapol.com/proxy/gqzvimgx/iserver/services/map_china-1-_331nhzuk/rest/maps/China_Light?prjCoordSys=%7B%22epsgCode%22:4326%7D',
+        dark: 'https://www.supermapol.com/proxy/dd2z0vuq/iserver/services/map_china-1-_hl5n2ma6/rest/maps/China_Dark'
       },
       
-      // 城市基本信息图层组 - 交通设施
-      { 
-        name: '公路@wuhan@@武汉', 
-        type: 'line', 
-        visible: true, 
-        group: '城市基本信息',
-        datasetName: '公路',
-        dataService: 'iserver/services/map-WuHan/rest/maps/武汉'
+      // ===== 备用底图服务配置 =====
+      // 调用者: useMap.ts -> updateBaseMap() (备用方案)
+      // 服务器地址: https://www.supermapol.com/proxy/... (SuperMap在线底图服务)
+      // 作用: 当主底图服务不可用时的备用底图服务
+      fallbackBaseMaps: {
+        light: 'https://www.supermapol.com/proxy/gqzvimgx/iserver/services/map_china-1-_331nhzuk/rest/maps/China_Light?prjCoordSys=%7B%22epsgCode%22:4326%7D',
+        dark: 'https://www.supermapol.com/proxy/dd2z0vuq/iserver/services/map_china-1-_hl5n2ma6/rest/maps/China_Dark'
       },
-      { 
-        name: '铁路@wuhan@@武汉', 
-        type: 'line', 
-        visible: true, 
-        group: '城市基本信息',
-        datasetName: '铁路',
-        dataService: 'iserver/services/map-WuHan/rest/maps/武汉'
-      },
+          // ===== 武汉矢量图层配置 =====
+      // 调用者: useMap.ts -> loadVectorLayers() -> loadVectorLayer()
+      // 服务器地址: ${baseUrl}/${dataService}/datasources/wuhan/datasets/{数据集名}
+      // 作用: 定义所有武汉地区的矢量图层，包括县级边界、交通、水系、建筑物、基础设施等
+      wuhanLayers: [
+        // ===== 武汉市县级行政区图层 =====
+        // 调用者: useMap.ts -> loadVectorLayer()
+        // 服务器地址: ${baseUrl}/iserver/services/data-WuHan/rest/data/datasources/wuhan/datasets/武汉_县级
+        // 作用: 提供武汉市的县级行政区边界数据，用于区域划分和空间分析
+        { 
+          name: '武汉_县级@wuhan@@武汉', 
+          type: 'polygon', 
+          visible: true, 
+          group: '县级行政区',
+          datasetName: '武汉_县级',
+          dataService: 'iserver/services/map-WuHan/rest/maps/武汉'
+        },
+      
+        // ===== 交通设施图层组 =====
+        // 调用者: useMap.ts -> loadVectorLayer()
+        // 服务器地址: ${baseUrl}/iserver/services/data-WuHan/rest/data/datasources/wuhan/datasets/公路
+        // 作用: 提供武汉市公路网络数据，用于交通分析和路径规划
+        { 
+          name: '公路@wuhan@@武汉', 
+          type: 'line', 
+          visible: true, 
+          group: '城市基本信息',
+          datasetName: '公路',
+          dataService: 'iserver/services/map-WuHan/rest/maps/武汉'
+        },
+        // 调用者: useMap.ts -> loadVectorLayer()
+        // 服务器地址: ${baseUrl}/iserver/services/data-WuHan/rest/data/datasources/wuhan/datasets/铁路
+        // 作用: 提供武汉市铁路网络数据，用于交通分析和运输规划
+        { 
+          name: '铁路@wuhan@@武汉', 
+          type: 'line', 
+          visible: true, 
+          group: '城市基本信息',
+          datasetName: '铁路',
+          dataService: 'iserver/services/map-WuHan/rest/maps/武汉'
+        },
       
       // 城市基本信息图层组 - 水系信息
       { 
@@ -122,9 +161,26 @@ export const createAPIConfig = (): APIConfig => {
   }
 }
 
+/**
+ * 获取完整的SuperMap服务URL
+ * 调用者: mapStore.ts -> createMapConfig() -> getFullUrl()
+ * 作用: 根据服务类型构建完整的SuperMap iServer服务访问地址
+ */
 export const getFullUrl = (endpoint: 'map' | 'data'): string => {
+  // ===== 获取API配置 =====
+  // 调用者: getFullUrl() -> createAPIConfig()
+  // 作用: 获取SuperMap服务器的基础配置信息
   const config = createAPIConfig()
+  
+  // ===== 选择服务类型 =====
+  // 调用者: getFullUrl()
+  // 作用: 根据endpoint参数选择对应的服务路径
   const service = endpoint === 'map' ? config.mapService : config.dataService
+  
+  // ===== 构建完整URL =====
+  // 调用者: mapStore.ts -> createMapConfig()
+  // 服务器地址: ${baseUrl}/${service}
+  // 作用: 返回完整的SuperMap服务访问地址
   return `${config.baseUrl}/${service}`
 }
 

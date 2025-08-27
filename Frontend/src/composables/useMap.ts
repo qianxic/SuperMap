@@ -261,6 +261,11 @@ export function useMap() {
      }
    }
 
+  /**
+   * 加载矢量图层 - 连接SuperMap iServer数据服务获取地理要素数据
+   * 调用者: useMap() -> loadVectorLayers() -> loadVectorLayer()
+   * 作用: 从SuperMap服务器加载指定图层的矢量要素数据并渲染到地图上
+   */
   const loadVectorLayer = async (map: any, layerConfig: any, visibleOverride?: boolean): Promise<void> => {
     // 改进图层名称解析逻辑
     let layerName = layerConfig.name
@@ -273,16 +278,27 @@ export function useMap() {
     } 
     const style = createLayerStyle(layerConfig, layerName);
     
+    // 创建OpenLayers矢量图层容器
     const vectorLayer = new ol.layer.Vector({
       source: new ol.source.Vector({}),
       style: style
     });
     
+    // ===== 连接SuperMap iServer数据服务 =====
+    // 调用者: loadVectorLayer()
+    // 服务器地址: mapStore.mapConfig.dataUrl (来自 src/utils/config.ts 配置)
+    // 作用: 创建SuperMap要素服务客户端，用于获取矢量数据
     const featureService = new ol.supermap.FeatureService(mapStore.mapConfig.dataUrl);
+    
+    // 解析图层名称获取数据集和数据源信息
     const parts = layerConfig.name.split('@');
-    const dataset = parts[0];
-    const datasource = parts[1];
+    const dataset = parts[0];    // 数据集名称，如: '武汉_县级'
+    const datasource = parts[1]; // 数据源名称，如: 'wuhan'
 
+    // ===== 第一次服务器调用：获取图层元数据信息 =====
+    // 调用者: loadVectorLayer()
+    // 服务器地址: ${mapStore.mapConfig.dataUrl}/datasources/${datasource}/datasets/${dataset}/features.json
+    // 作用: 获取图层的要素总数、起始索引等元数据信息，用于分页加载
     const metaUrlBounds = `${mapStore.mapConfig.dataUrl}/datasources/${datasource}/datasets/${dataset}/features.json`;
     const metaJsonBounds = await (await fetch(metaUrlBounds)).json();
     const startIndexDefaultBounds: number = (metaJsonBounds && typeof metaJsonBounds.startIndex === 'number') ? metaJsonBounds.startIndex : 0;
@@ -290,6 +306,7 @@ export function useMap() {
     const computedFromIndexBounds: number = startIndexDefaultBounds;
     const computedToIndexBounds: number = startIndexDefaultBounds + featureCountBounds - 1;
 
+    // 定义武汉地区边界范围，用于空间过滤
     const wuhanBounds = new ol.geom.Polygon([[
       [113.7, 29.97],
       [115.08, 29.97],
@@ -301,6 +318,10 @@ export function useMap() {
     const pageSize = 10000;
     const initialToIndex = Math.min(computedFromIndexBounds + pageSize - 1, computedToIndexBounds);
 
+    // ===== 第二次服务器调用：获取第一页要素数据 =====
+    // 调用者: loadVectorLayer() -> featureService.getFeaturesByBounds()
+    // 服务器地址: mapStore.mapConfig.dataUrl (通过SuperMap FeatureService)
+    // 作用: 获取指定边界范围内的第一页矢量要素数据（最多10000个要素）
     const getFeaturesByBoundsParams = new ol.supermap.GetFeaturesByBoundsParameters({
       datasetNames: [`${datasource}:${dataset}`],
       bounds: ol.extent.boundingExtent(wuhanBounds.getCoordinates()[0]),
@@ -311,6 +332,10 @@ export function useMap() {
       toIndex: initialToIndex
     });
 
+    // ===== 第三次服务器调用：获取要素总数统计信息 =====
+    // 调用者: loadVectorLayer() -> featureService.getFeaturesByBounds()
+    // 服务器地址: mapStore.mapConfig.dataUrl (通过SuperMap FeatureService)
+    // 作用: 获取指定边界范围内的要素总数，用于显示加载进度和统计信息
     try {
       const countParams = new ol.supermap.GetFeaturesByBoundsParameters({
         datasetNames: [`${datasource}:${dataset}`],
@@ -326,11 +351,19 @@ export function useMap() {
       // 静默处理错误
     }
 
+    // ===== 第四次服务器调用：执行第一页要素数据获取 =====
+    // 调用者: loadVectorLayer() -> featureService.getFeaturesByBounds()
+    // 服务器地址: mapStore.mapConfig.dataUrl (通过SuperMap FeatureService)
+    // 作用: 实际执行第一页要素数据的获取，并将GeoJSON格式的要素数据转换为OpenLayers要素对象
     featureService.getFeaturesByBounds(getFeaturesByBoundsParams, (serviceResult: any) => {
       if (serviceResult.result && serviceResult.result.features) {
         const features = (new ol.format.GeoJSON()).readFeatures(serviceResult.result.features);
         vectorLayer.getSource().addFeatures(features);
 
+        // ===== 第五次及后续服务器调用：分页加载剩余要素数据 =====
+        // 调用者: loadVectorLayer() -> addPage() -> featureService.getFeaturesByBounds()
+        // 服务器地址: mapStore.mapConfig.dataUrl (通过SuperMap FeatureService)
+        // 作用: 如果要素总数超过10000个，则分页加载剩余的要素数据，每页最多10000个要素
         const addPage = (from: number, to: number): Promise<void> => new Promise(resolve => {
           const pageParams = new ol.supermap.GetFeaturesByBoundsParameters({
             datasetNames: [`${datasource}:${dataset}`],
@@ -350,12 +383,15 @@ export function useMap() {
           });
         });
 
+        // ===== 异步分页加载循环 =====
+        // 调用者: loadVectorLayer() -> setTimeout() -> addPage()
+        // 作用: 延迟100ms后开始分页加载剩余要素，避免阻塞主线程
         setTimeout(() => {
           (async () => {
             try {
               for (let start = initialToIndex + 1; start <= computedToIndexBounds; start += pageSize) {
                 const end = Math.min(start + pageSize - 1, computedToIndexBounds);
-                await addPage(start, end);
+                await addPage(start, end); // 每次调用addPage都会发起一次服务器请求
               }
             } catch (error) {
               // 静默处理分页加载错误
@@ -363,6 +399,9 @@ export function useMap() {
           })();
         }, 100);
         
+        // ===== 加载完成通知 =====
+        // 调用者: loadVectorLayer()
+        // 作用: 显示图层加载完成的统计信息，包括要素数量、数据来源和服务器地址
         notificationManager.info(
           `图层 ${layerName} 加载完成`,
           `共 ${features.length} 个要素\n总要素数: ${serviceResult.result.totalCount || '未知'}\n当前返回: ${serviceResult.result.currentCount || features.length}\n最大要素数: ${serviceResult.result.maxFeatures || '无限制'}\nfeatureCount: ${(serviceResult.result.featureCount ?? serviceResult.result.totalCount ?? serviceResult.result.currentCount ?? features.length) || 0}\n数据来源: SuperMap iServer\n服务器地址: ${mapStore.mapConfig.dataUrl}`
