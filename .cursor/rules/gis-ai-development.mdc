@@ -496,9 +496,9 @@ app.add_middleware(
 
 # 服务发现
 SERVICES = {
-    "ai": "http://ai-service:8000",
-    "gis": "http://gis-service:3000",
-    "auth": "http://auth-service:8001"
+    "ai": "http://ai-service:8001",
+    "gis": "http://gis-service:8090",
+    "auth": "http://auth-service:8000"
 }
 
 @app.post("/api/v1/agent/chat")
