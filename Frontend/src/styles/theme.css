@@ -1,7 +1,7 @@
 :root {
   /* ===== 基础颜色 ===== */
   --bg: #f8f9fa;
-  --panel: #ffffff;
+  --panel: #f9f9f9;
   --border: #dee2e6;
   --text: #212529;
   --sub: #6c757d;
@@ -46,12 +46,12 @@
 [data-theme="dark"] {
   /* ===== 基础颜色 ===== */
   --bg: #1e1e1e;
-  --panel: #2d2d30;
+  --panel: #262626;
   --border: #3c3c3c;
   --text: #ffffff;
   --sub: #cccccc;
-  --accent: #666666;
-  --accent-rgb: 102, 102, 102;
+  --accent: #000000;
+  --accent-rgb: 0, 0, 0;
   --glow: 0 2px 8px rgba(0, 0, 0, 0.4);
 
   /* ===== 按钮颜色 ===== */

@@ -61,6 +61,7 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, nextTick, onUnmounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { useThemeStore } from '@/stores/themeStore';
 import { useModeStateStore } from '@/stores/modeStateStore';
 import LLMInputGroup from '@/components/UI/LLMInputGroup.vue';
@@ -74,6 +75,7 @@ interface Message {
 
 useThemeStore();
 const modeStateStore = useModeStateStore();
+const router = useRouter();
 
 const props = defineProps<{
   mapReady: boolean;
@@ -328,51 +330,9 @@ const sendMessage = () => {
   });
 };
 
-// 显示历史聊天记录
+// 跳转到历史聊天记录页面
 const showChatHistory = () => {
-  // 获取保存的聊天历史记录
-  const savedChatHistory = localStorage.getItem('chatHistory') || '[]';
-  const chatHistory = JSON.parse(savedChatHistory);
-  
-  if (chatHistory.length === 0) {
-    window.dispatchEvent(new CustomEvent('showNotification', {
-      detail: {
-        title: '聊天历史',
-        message: '暂无历史聊天记录',
-        type: 'info',
-        duration: 3000
-      }
-    }));
-    return;
-  }
-  
-  // 格式化历史记录显示 - 每次对话一行，按时间倒序排列
-  const historyText = chatHistory
-    .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) // 按时间倒序
-    .map((record: any, index: number) => {
-      const date = new Date(record.timestamp).toLocaleString('zh-CN', {
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-      const messageCount = record.messages ? record.messages.length : 0;
-      const firstMessage = record.messages && record.messages.length > 0 
-        ? record.messages[0].text.substring(0, 20) + (record.messages[0].text.length > 20 ? '...' : '')
-        : '空对话';
-      return `${index + 1}. ${date} | ${messageCount}条消息 | ${firstMessage}`;
-    })
-    .join('\n');
-  
-  // 显示历史记录
-  window.dispatchEvent(new CustomEvent('showNotification', {
-    detail: {
-      title: `历史聊天记录 (共${chatHistory.length}次对话)`,
-      message: historyText,
-      type: 'info',
-      duration: 10000
-    }
-  }));
+  router.push('/dashboard/chat-history');
 };
 
 // 新增：开启新对话功能

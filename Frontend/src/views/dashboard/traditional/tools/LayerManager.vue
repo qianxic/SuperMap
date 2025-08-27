@@ -9,29 +9,31 @@
     <!-- 地图图层管理 -->
     <div class="analysis-section">
       <div class="section-title">地图图层管理</div>
-      <div class="layer-list-container">
-        <div class="layer-list" :class="{ empty: groupedLayers.length === 0 }">
-          <div v-if="groupedLayers.length === 0" class="empty-state">
-            <div class="empty-icon">🗺️</div>
-            <div class="empty-text">暂无图层加载</div>
-            <div class="empty-desc">地图图层正在加载中，请稍候...</div>
+      
+      <!-- 三个独立的图层容器 -->
+      <div class="layer-containers">
+        <!-- SuperMap 服务图层容器 -->
+        <div class="layer-container">
+          <div class="group-header" @click="toggleGroupCollapse('supermap')">
+            <div class="group-title">
+              <span class="collapse-icon" :class="{ collapsed: collapsedGroups.supermap }">
+                ▼
+              </span>
+              SuperMap 服务图层
+              <span class="layer-count">({{ getLayerCount('supermap') }})</span>
+            </div>
           </div>
           
-          <!-- 按来源分类的图层组 -->
-          <div class="layer-group" v-for="group in groupedLayers" :key="group.source">
-            <div class="group-header" @click="toggleGroupCollapse(group.source)">
-              <div class="group-title">
-                <span class="collapse-icon" :class="{ collapsed: collapsedGroups[group.source] }">
-                  ▼
-                </span>
-                {{ getSourceDisplayName(group.source) }}
-                <span class="layer-count">({{ group.items.length }})</span>
-              </div>
-            </div>
-            
-            <!-- 可折叠的图层列表 -->
-            <div class="group-items" v-show="!collapsedGroups[group.source]">
-              <div class="layer-item" v-for="item in group.items" :key="item.key">
+          <!-- 可折叠的图层列表 -->
+          <div class="group-content" v-show="!collapsedGroups.supermap">
+            <div class="group-scroll-container">
+              <div 
+                v-for="item in getLayersBySource('supermap')" 
+                :key="item.key"
+                class="layer-item"
+                :class="{ 'active': selectedLayerKey === item.key }"
+                @click="selectLayer(item.key)"
+              >
                 <div class="layer-info">
                   <div class="layer-name">{{ item.displayName }}</div>
                   <div class="layer-desc">{{ item.desc }}</div>
@@ -39,12 +41,96 @@
                 <div class="layer-operations">
                   <SecondaryButton
                     :text="item.visible ? '隐藏' : '显示'"
-                    @click="handleToggleVisibility(item)"
+                    @click.stop="handleToggleVisibility(item)"
                   />
                   <SecondaryButton
                     text="移除"
                     variant="danger"
-                    @click="handleRemove(item)"
+                    @click.stop="handleRemove(item)"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 绘制图层容器 -->
+        <div class="layer-container">
+          <div class="group-header" @click="toggleGroupCollapse('draw')">
+            <div class="group-title">
+              <span class="collapse-icon" :class="{ collapsed: collapsedGroups.draw }">
+                ▼
+              </span>
+              绘制图层
+              <span class="layer-count">({{ getLayerCount('draw') }})</span>
+            </div>
+          </div>
+          
+          <!-- 可折叠的图层列表 -->
+          <div class="group-content" v-show="!collapsedGroups.draw">
+            <div class="group-scroll-container">
+              <div 
+                v-for="item in getLayersBySource('draw')" 
+                :key="item.key"
+                class="layer-item"
+                :class="{ 'active': selectedLayerKey === item.key }"
+                @click="selectLayer(item.key)"
+              >
+                <div class="layer-info">
+                  <div class="layer-name">{{ item.displayName }}</div>
+                  <div class="layer-desc">{{ item.desc }}</div>
+                </div>
+                <div class="layer-operations">
+                  <SecondaryButton
+                    :text="item.visible ? '隐藏' : '显示'"
+                    @click.stop="handleToggleVisibility(item)"
+                  />
+                  <SecondaryButton
+                    text="移除"
+                    variant="danger"
+                    @click.stop="handleRemove(item)"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 查询图层容器 -->
+        <div class="layer-container">
+          <div class="group-header" @click="toggleGroupCollapse('query')">
+            <div class="group-title">
+              <span class="collapse-icon" :class="{ collapsed: collapsedGroups.query }">
+                ▼
+              </span>
+              查询图层
+              <span class="layer-count">({{ getLayerCount('query') }})</span>
+            </div>
+          </div>
+          
+          <!-- 可折叠的图层列表 -->
+          <div class="group-content" v-show="!collapsedGroups.query">
+            <div class="group-scroll-container">
+              <div 
+                v-for="item in getLayersBySource('query')" 
+                :key="item.key"
+                class="layer-item"
+                :class="{ 'active': selectedLayerKey === item.key }"
+                @click="selectLayer(item.key)"
+              >
+                <div class="layer-info">
+                  <div class="layer-name">{{ item.displayName }}</div>
+                  <div class="layer-desc">{{ item.desc }}</div>
+                </div>
+                <div class="layer-operations">
+                  <SecondaryButton
+                    :text="item.visible ? '隐藏' : '显示'"
+                    @click.stop="handleToggleVisibility(item)"
+                  />
+                  <SecondaryButton
+                    text="移除"
+                    variant="danger"
+                    @click.stop="handleRemove(item)"
                   />
                 </div>
               </div>
@@ -55,6 +141,17 @@
     </div>
   </PanelWindow>
   
+  <!-- 确认对话框 -->
+  <ConfirmDialog
+    :visible="confirmDialogVisible"
+    :title="confirmDialogConfig.title"
+    :message="confirmDialogConfig.message"
+    confirm-text="确定移除"
+    cancel-text="取消"
+    @confirm="handleConfirmRemove"
+    @cancel="handleCancelRemove"
+    @close="handleCancelRemove"
+  />
 </template>
 
 <script setup lang="ts">
@@ -64,6 +161,7 @@ import { useAnalysisStore } from '@/stores/analysisStore'
 import SecondaryButton from '@/components/UI/SecondaryButton.vue'
 import { useLayerManager } from '@/composables/useLayerManager'
 import PanelWindow from '@/components/UI/PanelWindow.vue'
+import ConfirmDialog from '@/components/UI/ConfirmDialog.vue'
 
 interface MapLayerItem {
   key: string;
@@ -78,11 +176,28 @@ const mapStore = useMapStore()
 const analysisStore = useAnalysisStore()
 const { toggleLayerVisibility, removeLayer } = useLayerManager()
 
+// 确认对话框状态
+const confirmDialogVisible = ref(false)
+const confirmDialogConfig = ref({
+  title: '',
+  message: '',
+  layerId: ''
+})
+
+// 选中图层状态
+const selectedLayerKey = ref<string>('')
+
+// 选择图层
+const selectLayer = (layerKey: string) => {
+  selectedLayerKey.value = layerKey
+}
+
 // 折叠状态管理
 const collapsedGroups = ref<Record<string, boolean>>({
-  supermap: false,
-  local: false,
-  external: false
+  supermap: true,
+  draw: true,
+  query: true,
+  external: true
 })
 
 // 切换分组折叠状态
@@ -90,28 +205,34 @@ const toggleGroupCollapse = (source: string) => {
   collapsedGroups.value[source] = !collapsedGroups.value[source]
 }
 
+// 获取指定来源的图层数量
+const getLayerCount = (source: string): number => {
+  return allLayers.value.filter(item => item.source === source).length
+}
+
+// 获取指定来源的图层列表
+const getLayersBySource = (source: string): MapLayerItem[] => {
+  return allLayers.value.filter(item => item.source === source)
+}
+
+
+
 // 获取来源显示名称
 const getSourceDisplayName = (source: string): string => {
   const sourceNames: Record<string, string> = {
     supermap: 'SuperMap 服务图层',
-    local: '本地绘制图层',
+    draw: '绘制图层',
+    query: '查询图层',
     external: '外部图层'
   }
   return sourceNames[source] || source
 }
 
-// 按来源分组的图层
-const groupedLayers = computed(() => {
-  const allLayers = mapStore.vectorLayers
+// 所有图层的扁平化列表
+const allLayers = computed(() => {
+  const layers: MapLayerItem[] = []
   
-  // 按来源分组
-  const groupedBySource: Record<string, MapLayerItem[]> = {
-    supermap: [],
-    local: [],
-    external: []
-  }
-  
-  allLayers.forEach(vl => {
+  mapStore.vectorLayers.forEach(vl => {
     const source = vl.source || 'external'
     const item: MapLayerItem = {
       key: vl.id,
@@ -122,7 +243,7 @@ const groupedLayers = computed(() => {
       source: source
     }
     
-    // 特殊处理本地图层的显示名称
+    // 特殊处理本地图层的显示名称和分组
     if (source === 'local') {
       const layerName = vl.layer.get('layerName') || vl.name
       const sourceType = vl.layer.get('sourceType') || 'draw'
@@ -133,12 +254,35 @@ const groupedLayers = computed(() => {
       }
       item.displayName = `${sourceTypeNames[sourceType] || '本地'}: ${layerName}`
       item.desc = '用户创建的图层'
+      
+      // 根据sourceType确定分组
+      if (sourceType === 'draw') {
+        item.source = 'draw' // 绘制图层
+      } else if (sourceType === 'area' || sourceType === 'query') {
+        item.source = 'query' // 查询图层（区域选择 + 属性查询）
+      }
     }
     
-    if (groupedBySource[source]) {
-      groupedBySource[source].push(item)
+    layers.push(item)
+  })
+  
+  return layers
+})
+
+// 按来源分组的图层
+const groupedLayers = computed(() => {
+  const groupedBySource: Record<string, MapLayerItem[]> = {
+    supermap: [],
+    draw: [],
+    query: [],
+    external: []
+  }
+  
+  allLayers.value.forEach(item => {
+    if (groupedBySource[item.source]) {
+      groupedBySource[item.source].push(item)
     } else {
-      groupedBySource[source] = [item]
+      groupedBySource[item.source] = [item]
     }
   })
   
@@ -164,9 +308,21 @@ const handleToggleVisibility = (item: MapLayerItem) => {
 }
 
 const handleRemove = (item: MapLayerItem) => {
-  if (confirm(`确定要移除图层"${item.name}"吗？此操作不可撤销。`)) {
-    removeLayer(item.key)
+  confirmDialogConfig.value = {
+    title: '移除图层',
+    message: `确定要移除图层"${item.name}"吗？此操作不可撤销。`,
+    layerId: item.key
   }
+  confirmDialogVisible.value = true
+}
+
+const handleConfirmRemove = () => {
+  removeLayer(confirmDialogConfig.value.layerId)
+  confirmDialogVisible.value = false
+}
+
+const handleCancelRemove = () => {
+  confirmDialogVisible.value = false
 }
 </script>
 
@@ -225,30 +381,173 @@ const handleRemove = (item: MapLayerItem) => {
 .layer-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  flex: 1;
+  gap: 8px;
+  max-height: 400px;
   overflow-y: auto;
   padding-right: 4px;
-  /* 确保滚动条样式正确 */
-  scrollbar-width: thin;
-  scrollbar-color: var(--border) transparent;
 }
 
-.layer-list::-webkit-scrollbar {
-  width: 6px;
+.layer-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--btn-secondary-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  /* 禁用动画，防止主题切换闪烁 */
+  animation: none !important;
+  cursor: pointer;
+  /* 禁用过渡动画 */
+  transition: none !important;
 }
 
-.layer-list::-webkit-scrollbar-track {
-  background: transparent;
+.layer-item:hover {
+  background: var(--surface-hover);
+  border-color: var(--accent);
 }
 
-.layer-list::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 3px;
-}
-
-.layer-list::-webkit-scrollbar-thumb:hover {
+.layer-item.active {
   background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.layer-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.layer-name {
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.layer-item.active .layer-name {
+  color: white;
+}
+
+.layer-desc {
+  font-size: 11px;
+  color: var(--sub);
+  margin-top: 2px;
+}
+
+.layer-item.active .layer-desc {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.layer-operations {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.layer-operations :deep(.secondary-button) {
+  font-size: 10px;
+  padding: 4px 8px;
+  min-width: auto;
+}
+
+/* 图层容器样式 */
+.layer-containers {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.layer-container {
+  background: var(--btn-secondary-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+
+
+.group-header {
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease;
+}
+
+.group-header:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.group-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.collapse-icon {
+  font-size: 10px;
+  transition: transform 0.2s ease;
+  color: var(--accent);
+}
+
+.collapse-icon.collapsed {
+  transform: rotate(-90deg);
+}
+
+.layer-count {
+  font-size: 11px;
+  color: var(--sub);
+  font-weight: normal;
+}
+
+.group-content {
+  border-top: 1px solid var(--border);
+}
+
+.group-scroll-container {
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+
+
+
+
+
+
+/* 滚动条样式 */
+.layer-list::-webkit-scrollbar,
+.layer-groups::-webkit-scrollbar,
+.group-scroll-container::-webkit-scrollbar {
+  width: 3px;
+}
+
+.layer-list::-webkit-scrollbar-track,
+.layer-groups::-webkit-scrollbar-track,
+.group-scroll-container::-webkit-scrollbar-track {
+  background: var(--scrollbar-track, rgba(200, 200, 200, 0.1));
+  border-radius: 1.5px;
+}
+
+.layer-list::-webkit-scrollbar-thumb,
+.layer-groups::-webkit-scrollbar-thumb,
+.group-scroll-container::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb, rgba(150, 150, 150, 0.3));
+  border-radius: 1.5px;
+}
+
+.layer-list::-webkit-scrollbar-thumb:hover,
+.layer-groups::-webkit-scrollbar-thumb:hover,
+.group-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover, rgba(150, 150, 150, 0.5));
 }
 
 .layer-list.empty {
@@ -279,110 +578,7 @@ const handleRemove = (item: MapLayerItem) => {
   opacity: 0.8;
 }
 
-.layer-group {
-  background: var(--btn-secondary-bg);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.group-header {
-  padding: 12px 16px;
-  background: var(--surface-hover);
-  border-bottom: 1px solid var(--border);
-  cursor: pointer;
-  user-select: none;
-  transition: background-color 0.2s ease;
-}
-
-.group-header:hover {
-  background: var(--surface-hover);
-}
-
-.group-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.collapse-icon {
-  font-size: 10px;
-  transition: transform 0.2s ease;
-  color: var(--accent);
-}
-
-.collapse-icon.collapsed {
-  transform: rotate(-90deg);
-}
-
-.layer-count {
-  font-size: 11px;
-  color: var(--sub);
-  font-weight: normal;
-}
-
-.group-items {
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.layer-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px 12px;
-  transition: all 0.2s ease;
-}
-
-.layer-item:hover {
-  background: var(--surface-hover);
-  border-color: var(--accent);
-}
-
-.layer-info {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
-}
-
-.layer-name {
-  font-size: 12px;
-  color: var(--text);
-  font-weight: 500;
-  margin-bottom: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.layer-desc {
-  font-size: 10px;
-  color: var(--sub);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.layer-operations {
-  display: flex;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.layer-operations :deep(.secondary-button) {
-  font-size: 10px;
-  padding: 4px 8px;
-  min-width: auto;
-}
+/* 保留空状态样式 */
 </style>
 
 

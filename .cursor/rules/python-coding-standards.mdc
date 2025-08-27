@@ -1,0 +1,552 @@
+# Python 编码标准与最佳实践
+
+## 代码风格规范
+
+### PEP 8 遵循
+- 使用 4 个空格缩进
+- 行长度限制在 88 字符以内
+- 使用 snake_case 命名变量和函数
+- 使用 PascalCase 命名类
+- 使用 UPPER_CASE 命名常量
+
+### 导入规范
+```python
+# 标准库导入
+import os
+import sys
+from typing import Dict, List, Optional
+
+# 第三方库导入
+import fastapi
+from pydantic import BaseModel
+
+# 本地模块导入
+from app.domains.user.entities import UserEntity
+from app.application.dto.user_dto import UserDTO
+```
+
+### 类型注解
+```python
+# 函数类型注解
+async def create_user(
+    email: str,
+    username: str,
+    password: str
+) -> UserEntity:
+    """创建用户"""
+    pass
+
+# 变量类型注解
+user_list: List[UserEntity] = []
+config: Dict[str, Any] = {}
+
+# 复杂类型
+from typing import Union, Callable
+OptionalUser = Optional[UserEntity]
+UserCallback = Callable[[UserEntity], None]
+```
+
+## 类设计规范
+
+### 数据类 (Dataclass)
+```python
+from dataclasses import dataclass, field
+from datetime import datetime
+from uuid import UUID, uuid4
+
+@dataclass
+class UserEntity:
+    """用户实体"""
+    id: UUID
+    email: str
+    username: str
+    created_at: datetime = field(default_factory=datetime.utcnow)
+    
+    def __post_init__(self):
+        """初始化后处理"""
+        if not self.id:
+            self.id = uuid4()
+```
+
+### 抽象基类
+```python
+from abc import ABC, abstractmethod
+from typing import Optional
+
+class UserRepository(ABC):
+    """用户仓储接口"""
+    
+    @abstractmethod
+    async def save(self, user: UserEntity) -> UserEntity:
+        """保存用户"""
+        pass
+    
+    @abstractmethod
+    async def get_by_id(self, user_id: UUID) -> Optional[UserEntity]:
+        """根据ID获取用户"""
+        pass
+```
+
+### 工厂模式
+```python
+class UserFactory:
+    """用户工厂"""
+    
+    @classmethod
+    def create_user(
+        cls,
+        email: str,
+        username: str,
+        password: str
+    ) -> UserEntity:
+        """创建用户"""
+        # 验证逻辑
+        if not email or not username:
+            raise ValueError("邮箱和用户名不能为空")
+        
+        # 创建用户
+        return UserEntity(
+            id=uuid4(),
+            email=email.lower().strip(),
+            username=username.strip(),
+            hashed_password=cls._hash_password(password)
+        )
+    
+    @staticmethod
+    def _hash_password(password: str) -> str:
+        """密码哈希"""
+        return hashlib.sha256(password.encode()).hexdigest()
+```
+
+## 异步编程规范
+
+### Async/Await 使用
+```python
+import asyncio
+from typing import List
+
+class UserService:
+    """用户服务"""
+    
+    def __init__(self, repository: UserRepository):
+        self.repository = repository
+    
+    async def create_user(self, user_data: UserDTO) -> UserEntity:
+        """创建用户"""
+        # 异步验证
+        await self._validate_user_data(user_data)
+        
+        # 异步保存
+        user = await self.repository.save(user_data.to_entity())
+        
+        # 异步通知
+        await self._notify_user_created(user)
+        
+        return user
+    
+    async def _validate_user_data(self, user_data: UserDTO) -> None:
+        """验证用户数据"""
+        # 检查用户名唯一性
+        if await self.repository.exists_by_username(user_data.username):
+            raise ValueError("用户名已存在")
+        
+        # 检查邮箱唯一性
+        if await self.repository.exists_by_email(user_data.email):
+            raise ValueError("邮箱已存在")
+    
+    async def _notify_user_created(self, user: UserEntity) -> None:
+        """通知用户创建"""
+        # 异步发送邮件
+        await self._send_welcome_email(user.email)
+```
+
+### 并发处理
+```python
+async def process_multiple_users(user_ids: List[UUID]) -> List[UserEntity]:
+    """并发处理多个用户"""
+    # 创建任务列表
+    tasks = [
+        get_user_by_id(user_id) 
+        for user_id in user_ids
+    ]
+    
+    # 并发执行
+    users = await asyncio.gather(*tasks, return_exceptions=True)
+    
+    # 过滤异常结果
+    valid_users = [
+        user for user in users 
+        if not isinstance(user, Exception)
+    ]
+    
+    return valid_users
+```
+
+## 错误处理规范
+
+### 异常定义
+```python
+class DomainException(Exception):
+    """领域异常基类"""
+    pass
+
+class UserNotFoundException(DomainException):
+    """用户不存在异常"""
+    pass
+
+class UserAlreadyExistsException(DomainException):
+    """用户已存在异常"""
+    pass
+
+class ValidationException(DomainException):
+    """验证异常"""
+    pass
+```
+
+### 异常处理
+```python
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def database_transaction():
+    """数据库事务上下文"""
+    try:
+        # 开始事务
+        await db.begin()
+        yield
+        # 提交事务
+        await db.commit()
+    except Exception as e:
+        # 回滚事务
+        await db.rollback()
+        raise e
+
+async def create_user_safe(user_data: UserDTO) -> UserEntity:
+    """安全创建用户"""
+    try:
+        async with database_transaction():
+            user = await user_service.create_user(user_data)
+            return user
+    except UserAlreadyExistsException as e:
+        logger.warning(f"用户已存在: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except ValidationException as e:
+        logger.error(f"数据验证失败: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"创建用户失败: {e}")
+        raise HTTPException(status_code=500, detail="内部服务器错误")
+```
+
+## 日志规范
+
+### 日志配置
+```python
+import logging
+from typing import Optional
+
+def setup_logger(
+    name: str,
+    level: int = logging.INFO,
+    log_file: Optional[str] = None
+) -> logging.Logger:
+    """设置日志器"""
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+    
+    # 格式化器
+    formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    
+    # 控制台处理器
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+    
+    # 文件处理器
+    if log_file:
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+    
+    return logger
+
+# 使用示例
+logger = setup_logger(__name__)
+```
+
+### 日志使用
+```python
+import logging
+
+logger = logging.getLogger(__name__)
+
+class UserService:
+    """用户服务"""
+    
+    async def create_user(self, user_data: UserDTO) -> UserEntity:
+        """创建用户"""
+        logger.info(f"开始创建用户: {user_data.username}")
+        
+        try:
+            # 验证数据
+            logger.debug("验证用户数据")
+            await self._validate_user_data(user_data)
+            
+            # 创建用户
+            logger.debug("创建用户实体")
+            user = UserEntity.create_new(
+                email=user_data.email,
+                username=user_data.username,
+                password=user_data.password
+            )
+            
+            # 保存用户
+            logger.debug("保存用户到数据库")
+            saved_user = await self.repository.save(user)
+            
+            logger.info(f"用户创建成功: {saved_user.id}")
+            return saved_user
+            
+        except Exception as e:
+            logger.error(f"创建用户失败: {e}", exc_info=True)
+            raise
+```
+
+## 测试规范
+
+### 单元测试
+```python
+import pytest
+from unittest.mock import AsyncMock, patch
+from app.domains.user.entities import UserEntity
+from app.application.use_cases.user.auth_use_case import AuthUseCase
+
+class TestAuthUseCase:
+    """认证用例测试"""
+    
+    @pytest.fixture
+    def mock_user_service(self):
+        """模拟用户服务"""
+        return AsyncMock()
+    
+    @pytest.fixture
+    def auth_use_case(self, mock_user_service):
+        """认证用例实例"""
+        return AuthUseCase(mock_user_service)
+    
+    @pytest.mark.asyncio
+    async def test_register_user_success(self, auth_use_case, mock_user_service):
+        """测试用户注册成功"""
+        # 准备测试数据
+        user_data = UserRegisterDTO(
+            username="testuser",
+            email="test@example.com",
+            password="password123",
+            confirm_password="password123"
+        )
+        
+        # 模拟用户服务返回
+        mock_user = UserEntity(
+            id=uuid4(),
+            username="testuser",
+            email="test@example.com",
+            hashed_password="hashed_password"
+        )
+        mock_user_service.create_user.return_value = mock_user
+        
+        # 执行测试
+        result = await auth_use_case.register_user(user_data)
+        
+        # 验证结果
+        assert result["success"] is True
+        assert result["message"] == "用户注册成功"
+        assert result["data"]["username"] == "testuser"
+        
+        # 验证调用
+        mock_user_service.create_user.assert_called_once()
+    
+    @pytest.mark.asyncio
+    async def test_register_user_password_mismatch(self, auth_use_case):
+        """测试密码不匹配"""
+        user_data = UserRegisterDTO(
+            username="testuser",
+            email="test@example.com",
+            password="password123",
+            confirm_password="different_password"
+        )
+        
+        with pytest.raises(ValueError, match="密码和确认密码不匹配"):
+            await auth_use_case.register_user(user_data)
+```
+
+### 集成测试
+```python
+import pytest
+from httpx import AsyncClient
+from app.main import app
+
+class TestUserAPI:
+    """用户API集成测试"""
+    
+    @pytest.mark.asyncio
+    async def test_register_user_api(self):
+        """测试用户注册API"""
+        async with AsyncClient(app=app, base_url="http://test") as client:
+            response = await client.post("/api/v1/user/register", json={
+                "username": "testuser",
+                "email": "test@example.com",
+                "password": "password123",
+                "confirm_password": "password123"
+            })
+            
+            assert response.status_code == 200
+            data = response.json()
+            assert data["success"] is True
+            assert data["message"] == "用户注册成功"
+```
+
+## 性能优化规范
+
+### 缓存使用
+```python
+from functools import lru_cache
+import asyncio
+from typing import Optional
+
+class UserService:
+    """用户服务"""
+    
+    def __init__(self, repository: UserRepository, cache: CacheService):
+        self.repository = repository
+        self.cache = cache
+    
+    @lru_cache(maxsize=128)
+    def get_user_config(self, user_id: str) -> Dict[str, Any]:
+        """获取用户配置（缓存）"""
+        # 这个方法的结果会被缓存
+        return self._load_user_config(user_id)
+    
+    async def get_user_by_id(self, user_id: UUID) -> Optional[UserEntity]:
+        """根据ID获取用户（Redis缓存）"""
+        # 尝试从缓存获取
+        cache_key = f"user:{user_id}"
+        cached_user = await self.cache.get(cache_key)
+        
+        if cached_user:
+            return UserEntity.from_dict(cached_user)
+        
+        # 从数据库获取
+        user = await self.repository.get_by_id(user_id)
+        
+        if user:
+            # 缓存用户数据
+            await self.cache.set(
+                cache_key, 
+                user.to_dict(), 
+                expire=3600
+            )
+        
+        return user
+```
+
+### 数据库优化
+```python
+from sqlalchemy import select, func
+from sqlalchemy.orm import selectinload
+
+class UserRepository:
+    """用户仓储"""
+    
+    async def get_users_with_profiles(self, limit: int = 100) -> List[UserEntity]:
+        """获取用户及其资料（优化查询）"""
+        # 使用 selectinload 避免 N+1 查询
+        stmt = (
+            select(UserModel)
+            .options(selectinload(UserModel.profile))
+            .limit(limit)
+        )
+        
+        result = await self.session.execute(stmt)
+        users = result.scalars().all()
+        
+        return [UserEntity.from_model(user) for user in users]
+    
+    async def get_user_count(self) -> int:
+        """获取用户数量（优化计数）"""
+        stmt = select(func.count(UserModel.id))
+        result = await self.session.execute(stmt)
+        return result.scalar()
+```
+
+## 文档规范
+
+### Docstring 规范
+```python
+def calculate_buffer_area(
+    geometry: Dict[str, Any],
+    radius: float,
+    unit: str = "meters"
+) -> float:
+    """
+    计算缓冲区面积
+    
+    Args:
+        geometry: GeoJSON格式的几何对象
+        radius: 缓冲区半径
+        unit: 距离单位，默认为米
+        
+    Returns:
+        float: 缓冲区面积（平方米）
+        
+    Raises:
+        ValueError: 当半径小于等于0时
+        GeometryError: 当几何对象无效时
+        
+    Example:
+        >>> geometry = {"type": "Point", "coordinates": [116.4074, 39.9042]}
+        >>> area = calculate_buffer_area(geometry, 1000)
+        >>> print(f"缓冲区面积: {area} 平方米")
+    """
+    if radius <= 0:
+        raise ValueError("缓冲区半径必须大于0")
+    
+    # 实现逻辑...
+    return area
+```
+
+### 类型注解文档
+```python
+from typing import TypeVar, Generic, Protocol
+
+T = TypeVar('T')
+
+class Repository(Protocol[T]):
+    """仓储协议"""
+    
+    async def save(self, entity: T) -> T:
+        """保存实体"""
+        ...
+    
+    async def get_by_id(self, id: str) -> Optional[T]:
+        """根据ID获取实体"""
+        ...
+
+class UserRepository(Repository[UserEntity]):
+    """用户仓储实现"""
+    
+    async def save(self, user: UserEntity) -> UserEntity:
+        """保存用户"""
+        # 实现...
+        pass
+    
+    async def get_by_id(self, user_id: str) -> Optional[UserEntity]:
+        """根据ID获取用户"""
+        # 实现...
+        pass
+```
+description:
+globs:
+alwaysApply: true
+---

@@ -84,6 +84,17 @@ const router = createRouter({
             requiresAuth: true
           }
         },
+        // 历史聊天记录
+        {
+          path: 'chat-history',
+          name: 'chat-history',
+          component: () => import('@/views/dashboard/LLM/ChatHistory.vue'),
+          meta: {
+            title: '历史聊天记录',
+            mode: 'llm',
+            requiresAuth: true
+          }
+        },
         // 传统模式
         {
           path: 'traditional',

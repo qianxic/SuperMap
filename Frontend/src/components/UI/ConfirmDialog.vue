@@ -1,4 +1,5 @@
 <template>
+  <!-- 确认对话框 -->
   <div v-if="visible" class="confirm-dialog-overlay" @click="handleOverlayClick">
     <div class="confirm-dialog" @click.stop>
       <div class="dialog-header">
@@ -189,7 +190,8 @@ watch(() => props.visible, (newVisible) => {
 }
 
 .btn-primary:hover {
-  background: var(--accent-hover);
+  background: var(--accent);
+  opacity: 0.9;
   transform: translateY(-1px);
 }
 
