@@ -460,7 +460,7 @@ const startNewConversation = () => {
   transform: translateY(-1px) !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
   background: rgba(var(--panel-rgb), 0.95) !important;
-  border-color: var(--accent) !important;
+  /* 移除黑色边框效果 */
 }
 
 .history-button:active,

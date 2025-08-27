@@ -66,7 +66,6 @@ const handleClick = (event: MouseEvent) => {
 
 .btn:hover:not(:disabled) {
   background: var(--surface-hover);
-  border-color: var(--accent);
 }
 
 .btn:disabled { 

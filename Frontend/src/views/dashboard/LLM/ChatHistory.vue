@@ -291,7 +291,7 @@ onMounted(() => {
 
 .icon-btn:hover:not(:disabled) {
   background: var(--surface-hover);
-  border-color: var(--accent);
+  /* 移除黑色边框效果 */
   transform: translateY(-1px);
 }
 
@@ -338,7 +338,7 @@ onMounted(() => {
 
 .chat-record-item:hover {
   background: var(--surface-hover);
-  border-color: var(--accent);
+  /* 移除黑色边框效果 */
 }
 
 .chat-record-item.active {
@@ -394,7 +394,7 @@ onMounted(() => {
 
 .record-icon-btn:hover:not(:disabled) {
   background: var(--surface-hover);
-  border-color: var(--accent);
+  /* 移除黑色边框效果 */
   transform: translateY(-1px);
 }
 

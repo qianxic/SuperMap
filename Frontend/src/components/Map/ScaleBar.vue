@@ -157,7 +157,7 @@ onUnmounted(() => {
   color: var(--text);
   text-shadow: 0 0 8px rgba(66,165,245,0.35);
   white-space: nowrap;
-  background: var(--panel);
+  background: transparent;
   padding: 2px 6px;
   border-radius: 4px;
   border: 1px solid var(--border);

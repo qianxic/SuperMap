@@ -16,9 +16,6 @@
         <div class="layer-container">
           <div class="group-header" @click="toggleGroupCollapse('supermap')">
             <div class="group-title">
-              <span class="collapse-icon" :class="{ collapsed: collapsedGroups.supermap }">
-                ▼
-              </span>
               SuperMap 服务图层
               <span class="layer-count">({{ getLayerCount('supermap') }})</span>
             </div>
@@ -58,9 +55,6 @@
         <div class="layer-container">
           <div class="group-header" @click="toggleGroupCollapse('draw')">
             <div class="group-title">
-              <span class="collapse-icon" :class="{ collapsed: collapsedGroups.draw }">
-                ▼
-              </span>
               绘制图层
               <span class="layer-count">({{ getLayerCount('draw') }})</span>
             </div>
@@ -100,9 +94,6 @@
         <div class="layer-container">
           <div class="group-header" @click="toggleGroupCollapse('query')">
             <div class="group-title">
-              <span class="collapse-icon" :class="{ collapsed: collapsedGroups.query }">
-                ▼
-              </span>
               查询图层
               <span class="layer-count">({{ getLayerCount('query') }})</span>
             </div>
@@ -404,7 +395,7 @@ const handleCancelRemove = () => {
 
 .layer-item:hover {
   background: var(--surface-hover);
-  border-color: var(--accent);
+  /* 移除黑色边框效果 */
 }
 
 .layer-item.active {
@@ -468,15 +459,18 @@ const handleCancelRemove = () => {
 
 .group-header {
   padding: 6px 10px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--surface);
   border-bottom: 1px solid var(--border);
   cursor: pointer;
   user-select: none;
   transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  min-height: 36px;
 }
 
 .group-header:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--surface-hover);
 }
 
 .group-title {
@@ -488,15 +482,7 @@ const handleCancelRemove = () => {
   gap: 6px;
 }
 
-.collapse-icon {
-  font-size: 10px;
-  transition: transform 0.2s ease;
-  color: var(--accent);
-}
 
-.collapse-icon.collapsed {
-  transform: rotate(-90deg);
-}
 
 .layer-count {
   font-size: 11px;
@@ -506,6 +492,7 @@ const handleCancelRemove = () => {
 
 .group-content {
   border-top: 1px solid var(--border);
+  background: var(--panel);
 }
 
 .group-scroll-container {

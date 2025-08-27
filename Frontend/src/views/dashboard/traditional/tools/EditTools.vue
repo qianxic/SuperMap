@@ -249,7 +249,7 @@ defineExpose({
 
 .layer-item:hover {
   background: var(--surface-hover);
-  border-color: var(--accent);
+  /* 移除黑色边框效果 */
 }
 
 .layer-item.active {

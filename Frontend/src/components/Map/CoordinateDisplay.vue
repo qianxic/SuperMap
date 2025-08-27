@@ -19,7 +19,7 @@ const mapStore = useMapStore()
   font-size: 12px;
   color: var(--text);
   text-shadow: 0 0 8px rgba(66,165,245,0.35);
-  background: var(--panel);
+  background: transparent;
   padding: 4px 8px;
   border-radius: 4px;
   border: 1px solid var(--border);

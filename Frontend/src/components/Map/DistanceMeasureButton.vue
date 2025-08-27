@@ -58,7 +58,7 @@ const toggleDistanceMeasure = () => {
 
 .measure-btn:hover {
   background: var(--surface-hover);
-  border-color: var(--accent);
+  /* 移除黑色边框效果 */
   box-shadow: var(--glow);
 }
 

@@ -6,14 +6,30 @@
     :height="'100%'"
     class="buffer-analysis-panel"
   >
-    <!-- 选择分析区域 -->
+    <!-- 选择分析区域和图层 -->
     <div class="analysis-section">
       <div class="section-title">选择分析区域</div>
-      <SecondaryButton 
-        text="选择分析区域"
-        @click="selectFeatureFromMap"
-        :active="isSelectingFeature"
-      />
+      <div class="button-row">
+        <SecondaryButton 
+          text="选择分析区域"
+          @click="selectFeatureFromMap"
+          :active="isSelectingFeature"
+        />
+        <SecondaryButton 
+          text="选择分析图层"
+          @click="showLayerSelector = true"
+          :active="showLayerSelector"
+        />
+      </div>
+      
+      <!-- 图层选择下拉框 -->
+      <div v-if="showLayerSelector" class="layer-selector">
+        <DropdownSelect 
+          v-model="selectedAnalysisLayerId"
+          :options="layerOptionsWithNone"
+          placeholder="请选择分析图层"
+        />
+      </div>
       
       <!-- 显示选中要素信息 -->
       <div v-if="selectedFeatureInfo" class="feature-info">
@@ -26,6 +42,8 @@
           <span class="info-value">{{ selectedFeatureInfo?.coordinates }}</span>
         </div>
       </div>
+      
+
     </div>
     
     <!-- 缓冲区参数 -->
@@ -55,11 +73,13 @@
 </template>
 
 <script setup lang="ts">
-import { watch, computed } from 'vue'
+import { watch, computed, ref } from 'vue'
 import { useAnalysisStore } from '@/stores/analysisStore'
+import { useMapStore } from '@/stores/mapStore'
 import { useBufferAnalysis } from '@/composables/useBufferAnalysis'
 import SecondaryButton from '@/components/UI/SecondaryButton.vue'
 import TraditionalInputGroup from '@/components/UI/TraditionalInputGroup.vue'
+import DropdownSelect from '@/components/UI/DropdownSelect.vue'
 import PanelWindow from '@/components/UI/PanelWindow.vue'
 
 const analysisStore = useAnalysisStore()
@@ -67,17 +87,33 @@ const analysisStore = useAnalysisStore()
 const {
   selectedFeature,
   bufferDistance,
+  selectedAnalysisLayerId,
   selectedFeatureInfo,
-  setSelectedFeature,
+  layerOptions,
+  setSelectedAnalysisLayer,
   selectFeatureFromMap,
   clearMapSelection,
+  clearAllSelections,
   executeBufferAnalysis
 } = useBufferAnalysis()
+
+// 图层选择相关状态
+const showLayerSelector = ref(false)
+
+// 包含"无"选项的图层选项
+const layerOptionsWithNone = computed(() => {
+  return [
+    { value: '', label: '无', disabled: false },
+    ...layerOptions.value
+  ]
+})
 
 // 是否正在选择要素
 const isSelectingFeature = computed(() => {
   return analysisStore.toolPanel.activeTool === 'buffer' && !selectedFeature.value
 })
+
+
 
 // 距离变化时的处理（可以添加实时预览等功能）
 const onDistanceChange = () => {
@@ -89,8 +125,6 @@ const onDistanceChange = () => {
   }
 }
 
-
-
 // 监听工具面板变化，自动激活地图选择模式
 watch(() => analysisStore.toolPanel.activeTool, (tool) => {
   if (tool === 'buffer') {
@@ -98,10 +132,18 @@ watch(() => analysisStore.toolPanel.activeTool, (tool) => {
     selectFeatureFromMap()
   } else {
     // 当离开缓冲区分析时，清除选中状态和监听器
-    setSelectedFeature(null)
+    clearAllSelections()
     clearMapSelection()
+    showLayerSelector.value = false
   }
 }, { immediate: true }) // 立即执行，确保初始状态正确
+
+// 监听图层选择变化
+watch(selectedAnalysisLayerId, (newLayerId) => {
+  if (newLayerId) {
+    setSelectedAnalysisLayer(newLayerId)
+  }
+})
 </script>
 
 <style scoped>
@@ -145,6 +187,20 @@ watch(() => analysisStore.toolPanel.activeTool, (tool) => {
   letter-spacing: 0.5px;
 }
 
+.button-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.button-row .secondary-button {
+  flex: 1;
+}
+
+.layer-selector {
+  margin-bottom: 12px;
+}
+
 .form-item {
   display: flex;
   flex-direction: column;
@@ -165,6 +221,8 @@ watch(() => analysisStore.toolPanel.activeTool, (tool) => {
   border-radius: 12px;
   animation: fadeIn 0.3s ease-out;
 }
+
+
 
 .info-item {
   display: flex;
