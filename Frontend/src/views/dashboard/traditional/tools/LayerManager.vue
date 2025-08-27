@@ -201,23 +201,16 @@ const getLayerCount = (source: string): number => {
   return allLayers.value.filter(item => item.source === source).length
 }
 
-// 获取指定来源的图层列表
+// 获取指定来源的图层列表（将已打开/可见图层置顶）
 const getLayersBySource = (source: string): MapLayerItem[] => {
-  return allLayers.value.filter(item => item.source === source)
+  return allLayers.value
+    .filter(item => item.source === source)
+    .sort((a, b) => Number(b.visible) - Number(a.visible))
 }
 
 
 
-// 获取来源显示名称
-const getSourceDisplayName = (source: string): string => {
-  const sourceNames: Record<string, string> = {
-    supermap: 'SuperMap 服务图层',
-    draw: '绘制图层',
-    query: '查询图层',
-    external: '外部图层'
-  }
-  return sourceNames[source] || source
-}
+
 
 // 所有图层的扁平化列表
 const allLayers = computed(() => {
@@ -494,7 +487,7 @@ const handleCancelRemove = () => {
 }
 
 .group-scroll-container {
-  max-height: 240px;
+  max-height: 360px;
   overflow-y: auto;
   padding: 8px;
   display: flex;

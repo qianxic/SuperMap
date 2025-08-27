@@ -1,5 +1,17 @@
 <template>
-  <PanelContainer class="Agent-management">
+  <teleport to="body">
+  <div class="page-modal-overlay" @click="closeModal">
+    <div class="page-modal-content" @click.stop>
+      <div class="page-modal-header">
+        <h2>Agent管理</h2>
+        <button class="page-modal-close" @click="closeModal" aria-label="close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <PanelContainer class="Agent-management">
     <div class="management-header">
       <h1 class="management-title">Agent管理</h1>
       <p class="management-subtitle">管理Agent助手的配置和个性化设置</p>
@@ -213,10 +225,10 @@
         </div>
       </div>
 
-      <!-- 用户偏好记忆 -->
+      <!-- 用户偏好 -->
       <div class="management-card">
         <div class="card-header">
-          <h2 class="card-title">用户偏好记忆</h2>
+          <h2 class="card-title">用户偏好</h2>
           <button class="add-btn" @click="openPreferenceModal()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -318,15 +330,25 @@
       @close="closeEditModal"
       @save="handleSave"
     />
-  </PanelContainer>
+      </PanelContainer>
+    </div>
+  </div>
+  </teleport>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
 import PanelContainer from '@/components/UI/PanelContainer.vue'
 import EditModal from '@/components/UI/EditModal.vue'
+import { useGlobalModalStore } from '@/stores/modalStore'
 
 // 响应式数据
+// 关闭页面级弹窗
+const modal = useGlobalModalStore()
+const closeModal = () => {
+  modal.close()
+}
+
 const showEditModal = ref(false)
 const editModalType = ref<'api-key' | 'preference' | 'prompt' | 'agent'>('api-key')
 const editModalTitle = ref('')
@@ -698,12 +720,66 @@ const deleteAgent = (id: number) => {
 </script>
 
 <style scoped>
+.page-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+}
+
+.page-modal-content {
+  width: 90%;
+  max-width: 980px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.page-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.page-modal-header h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.page-modal-close {
+  border: none;
+  background: transparent;
+  color: var(--sub);
+  cursor: pointer;
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.page-modal-close:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
 .Agent-management {
   width: 100%;
-  height: 100%;
-  padding: 24px;
+  padding: 12px;
   overflow-y: auto;
-  max-height: calc(100vh - 64px);
+  max-height: 60vh;
 }
 
 .management-header {

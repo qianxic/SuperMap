@@ -442,6 +442,10 @@ const handleRegister = async () => {
   transition: color 0.2s ease;
 }
 
+.login-link:visited {
+  color: var(--accent);
+}
+
 .login-link:hover {
   color: rgba(var(--accent-rgb), 0.8);
   text-decoration: underline;

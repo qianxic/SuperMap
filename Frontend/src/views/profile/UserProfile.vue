@@ -1,5 +1,17 @@
 <template>
-  <PanelContainer class="user-profile">
+  <teleport to="body">
+  <div class="page-modal-overlay" @click="closeModal">
+    <div class="page-modal-content" @click.stop>
+      <div class="page-modal-header">
+        <h2>个人中心</h2>
+        <button class="page-modal-close" @click="closeModal" aria-label="close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <PanelContainer class="user-profile">
     <div class="profile-header">
       <h1 class="profile-title">个人中心</h1>
       <p class="profile-subtitle">管理您的账户信息和设置</p>
@@ -149,7 +161,10 @@
         </div>
       </div>
     </div>
-  </PanelContainer>
+      </PanelContainer>
+    </div>
+  </div>
+  </teleport>
 </template>
 
 <script setup lang="ts">
@@ -196,6 +211,12 @@ const userInfo = computed(() => {
 const theme = computed(() => themeStore.theme)
 
 // 方法
+import { useGlobalModalStore } from '@/stores/modalStore'
+const modal = useGlobalModalStore()
+const closeModal = () => {
+  modal.close()
+}
+
 const toggleEditMode = () => {
   if (isEditing.value) {
     // 保存编辑
@@ -283,12 +304,66 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.page-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+}
+
+.page-modal-content {
+  width: 90%;
+  max-width: 880px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.page-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.page-modal-header h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.page-modal-close {
+  border: none;
+  background: transparent;
+  color: var(--sub);
+  cursor: pointer;
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.page-modal-close:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
 .user-profile {
   width: 100%;
-  height: 100%;
-  padding: 24px;
+  padding: 12px;
   overflow-y: auto;
-  max-height: calc(100vh - 64px);
+  max-height: 60vh;
 }
 
 .profile-header {

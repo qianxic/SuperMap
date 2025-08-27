@@ -169,20 +169,17 @@ const copyUserInfo = async () => {
   }
 }
 
+import { useGlobalModalStore } from '@/stores/modalStore'
+const globalModal = useGlobalModalStore()
+
 const goToProfile = () => {
-  // 关闭用户菜单
   showUserMenu.value = false
-  
-  // 跳转到个人中心
-  router.push('/profile')
+  globalModal.open('profile')
 }
 
 const goToAIManagement = () => {
-  // 关闭用户菜单
   showUserMenu.value = false
-  
-  // 跳转到Agent管理
-  router.push('/Agent-management')
+  globalModal.open('agent')
 }
 
 const handleLogout = () => {
