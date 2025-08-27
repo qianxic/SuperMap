@@ -44,7 +44,7 @@ const tipClass = computed(() => {
 .tip-window {
   margin-top: 8px;
   font-size: 12px;
-  color: var(--sub);
+  color: var(--text);
   padding: 12px;
   background: rgba(66, 165, 245, 0.08);
   border-radius: 12px;
@@ -81,25 +81,25 @@ const tipClass = computed(() => {
 .tip-info {
   background: rgba(66, 165, 245, 0.08);
   border-left-color: var(--accent);
-  color: var(--sub);
+  color: var(--text);
 }
 
 .tip-warning {
   background: rgba(255, 193, 7, 0.08);
   border-left-color: #ffc107;
-  color: #ffc107;
+  color: var(--text);
 }
 
 .tip-success {
   background: rgba(40, 167, 69, 0.08);
   border-left-color: #28a745;
-  color: #28a745;
+  color: var(--text);
 }
 
 .tip-error {
   background: rgba(220, 53, 69, 0.08);
   border-left-color: #dc3545;
-  color: #dc3545;
+  color: var(--text);
 }
 
 /* 保留fadeIn动画定义但不使用 */

@@ -13,6 +13,8 @@
     <OverviewMap />
     <!-- 距离量算面板 -->
     <DistanceMeasurePanel />
+    <!-- 面积量算面板 -->
+    <AreaMeasurePanel />
   </div>
 </template>
 
@@ -26,6 +28,7 @@ import ScaleBar from './ScaleBar.vue'
 import LayerAssistant from './LayerAssistant.vue'
 import OverviewMap from './OverviewMap.vue'
 import DistanceMeasurePanel from './DistanceMeasurePanel.vue'
+import AreaMeasurePanel from './AreaMeasurePanel.vue'
 
 
 // 组合式函数

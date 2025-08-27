@@ -173,16 +173,23 @@ export const useModeStateStore = defineStore('modeState', () => {
   // 初始化状态
   const initializeState = () => {
     try {
-      // 恢复当前模式
+      // 恢复当前模式，如果没有保存过则默认为llm
       const savedMode = localStorage.getItem('currentMode') as ModeType
-      if (savedMode) {
+      if (savedMode && (savedMode === 'llm' || savedMode === 'traditional')) {
         modeState.value.currentMode = savedMode
+      } else {
+        // 默认设置为llm模式
+        modeState.value.currentMode = 'llm'
+        localStorage.setItem('currentMode', 'llm')
       }
 
       // 恢复模式切换时间
       const savedSwitchTime = localStorage.getItem('modeSwitchTime')
       if (savedSwitchTime) {
         modeState.value.lastSwitchTime = parseInt(savedSwitchTime)
+      } else {
+        modeState.value.lastSwitchTime = Date.now()
+        localStorage.setItem('modeSwitchTime', modeState.value.lastSwitchTime.toString())
       }
 
       // 恢复各模式状态
@@ -190,6 +197,9 @@ export const useModeStateStore = defineStore('modeState', () => {
       restoreModeState('traditional')
     } catch (error) {
       console.warn('初始化模式状态失败:', error)
+      // 出错时重置为默认状态
+      modeState.value.currentMode = 'llm'
+      localStorage.setItem('currentMode', 'llm')
     }
   }
 

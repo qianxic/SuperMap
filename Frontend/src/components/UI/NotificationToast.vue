@@ -104,6 +104,7 @@ defineExpose({
   gap: 12px;
   backdrop-filter: blur(10px);
   border-left: 4px solid var(--accent);
+  font-family: "Segoe UI", PingFang SC, Microsoft YaHei, Arial, sans-serif;
 }
 
 .notification-toast.success {
@@ -144,25 +145,27 @@ defineExpose({
   color: var(--text);
   margin-bottom: 4px;
   line-height: 1.3;
+  font-family: "Segoe UI", PingFang SC, Microsoft YaHei, Arial, sans-serif;
 }
 
 .toast-message {
   font-size: 13px;
   color: var(--sub);
   line-height: 1.4;
+  font-family: "Segoe UI", PingFang SC, Microsoft YaHei, Arial, sans-serif;
 }
 
 /* 针对不同主题类型的文字颜色 */
 .notification-toast.success .toast-title {
-  color: var(--accent);
+  color: var(--text);
 }
 
 .notification-toast.error .toast-title {
-  color: var(--accent);
+  color: var(--text);
 }
 
 .notification-toast.info .toast-title {
-  color: var(--accent);
+  color: var(--text);
 }
 
 .toast-close {
@@ -188,7 +191,7 @@ defineExpose({
 /* 动画效果 */
 .toast-enter-active,
 .toast-leave-active {
-   
+  transition: all 0.3s ease;
 }
 
 .toast-enter-from {

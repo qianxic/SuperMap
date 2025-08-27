@@ -260,9 +260,8 @@ export function useFeatureSelection() {
 
     // 创建常亮样式
     const createFlashingStyle = () => {
-      const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#007bff'
-      const grayFillColor = getComputedStyle(document.documentElement).getPropertyValue('--map-select-fill').trim() || 'rgba(128, 128, 128, 0.3)'
-      const highlightColor = '#ff6b35' // 橙色常亮
+      const grayFillColor = getComputedStyle(document.documentElement).getPropertyValue('--map-select-fill').trim() || (document.documentElement.getAttribute('data-theme') === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(33, 37, 41, 0.15)')
+      const highlightColor = getComputedStyle(document.documentElement).getPropertyValue('--map-highlight-color').trim() || (document.documentElement.getAttribute('data-theme') === 'dark' ? '#ffffff' : '#000000')
 
       return (feature: any) => {
         // 检查是否是常亮要素
@@ -282,7 +281,7 @@ export function useFeatureSelection() {
                 image: new ol.style.Circle({ 
                   radius: 12, 
                   stroke: new ol.style.Stroke({color: highlightColor, width: 4}), 
-                  fill: new ol.style.Fill({color: 'rgba(255, 107, 53, 0.4)'})
+                  fill: new ol.style.Fill({color: grayFillColor})
                 })
               })
               
@@ -297,33 +296,33 @@ export function useFeatureSelection() {
                 })
               })
               
-            case 'Polygon':
-            case 'MultiPolygon':
-              return new ol.style.Style({
-                stroke: new ol.style.Stroke({color: highlightColor, width: 4}),
-                fill: new ol.style.Fill({color: 'rgba(255, 107, 53, 0.3)'})
-              })
-              
-            default:
-              return new ol.style.Style({
-                image: new ol.style.Circle({ 
-                  radius: 12, 
-                  stroke: new ol.style.Stroke({color: highlightColor, width: 4}), 
-                  fill: new ol.style.Fill({color: 'rgba(255, 107, 53, 0.4)'})
-                }),
-                stroke: new ol.style.Stroke({color: highlightColor, width: 4}),
-                fill: new ol.style.Fill({color: 'rgba(255, 107, 53, 0.3)'})
-              })
+                         case 'Polygon':
+             case 'MultiPolygon':
+               return new ol.style.Style({
+                 stroke: new ol.style.Stroke({color: highlightColor, width: 4}),
+                 fill: new ol.style.Fill({color: grayFillColor})
+               })
+               
+             default:
+               return new ol.style.Style({
+                 image: new ol.style.Circle({ 
+                   radius: 12, 
+                   stroke: new ol.style.Stroke({color: highlightColor, width: 4}), 
+                   fill: new ol.style.Fill({color: grayFillColor})
+                 }),
+                 stroke: new ol.style.Stroke({color: highlightColor, width: 4}),
+                 fill: new ol.style.Fill({color: grayFillColor})
+               })
           }
         } else {
-          // 正常样式 - 蓝色高亮
+          // 正常样式 - 使用主题高亮颜色
           switch (geometryType) {
             case 'Point':
             case 'MultiPoint':
               return new ol.style.Style({
                 image: new ol.style.Circle({ 
                   radius: 8, 
-                  stroke: new ol.style.Stroke({color: accentColor, width: 3}), 
+                  stroke: new ol.style.Stroke({color: highlightColor, width: 3}), 
                   fill: new ol.style.Fill({color: grayFillColor})
                 })
               })
@@ -332,7 +331,7 @@ export function useFeatureSelection() {
             case 'MultiLineString':
               return new ol.style.Style({
                 stroke: new ol.style.Stroke({
-                  color: accentColor, 
+                  color: highlightColor, 
                   width: 5,
                   lineCap: 'round',
                   lineJoin: 'round'
@@ -342,7 +341,7 @@ export function useFeatureSelection() {
             case 'Polygon':
             case 'MultiPolygon':
               return new ol.style.Style({
-                stroke: new ol.style.Stroke({color: accentColor, width: 3}),
+                stroke: new ol.style.Stroke({color: highlightColor, width: 3}),
                 fill: new ol.style.Fill({color: grayFillColor})
               })
               
@@ -350,10 +349,10 @@ export function useFeatureSelection() {
               return new ol.style.Style({
                 image: new ol.style.Circle({ 
                   radius: 8, 
-                  stroke: new ol.style.Stroke({color: accentColor, width: 3}), 
+                  stroke: new ol.style.Stroke({color: highlightColor, width: 3}), 
                   fill: new ol.style.Fill({color: grayFillColor})
                 }),
-                stroke: new ol.style.Stroke({color: accentColor, width: 3}),
+                stroke: new ol.style.Stroke({color: highlightColor, width: 3}),
                 fill: new ol.style.Fill({color: grayFillColor})
               })
           }
@@ -371,8 +370,8 @@ export function useFeatureSelection() {
     if (!mapStore.selectLayer) return
 
     // 恢复原始样式
-    const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#007bff'
-    const grayFillColor = getComputedStyle(document.documentElement).getPropertyValue('--map-select-fill').trim() || 'rgba(128, 128, 128, 0.3)'
+    const highlightColor = getComputedStyle(document.documentElement).getPropertyValue('--map-highlight-color').trim() || (document.documentElement.getAttribute('data-theme') === 'dark' ? '#ffffff' : '#000000')
+    const grayFillColor = getComputedStyle(document.documentElement).getPropertyValue('--map-select-fill').trim() || (document.documentElement.getAttribute('data-theme') === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(33, 37, 41, 0.15)')
 
     const restoreOriginalStyle = (feature: any) => {
       const geometry = feature.getGeometry()
@@ -386,7 +385,7 @@ export function useFeatureSelection() {
           return new ol.style.Style({
             image: new ol.style.Circle({ 
               radius: 8, 
-              stroke: new ol.style.Stroke({color: accentColor, width: 3}), 
+              stroke: new ol.style.Stroke({color: highlightColor, width: 3}), 
               fill: new ol.style.Fill({color: grayFillColor})
             })
           })
@@ -395,7 +394,7 @@ export function useFeatureSelection() {
         case 'MultiLineString':
           return new ol.style.Style({
             stroke: new ol.style.Stroke({
-              color: accentColor, 
+              color: highlightColor, 
               width: 5,
               lineCap: 'round',
               lineJoin: 'round'
@@ -405,7 +404,7 @@ export function useFeatureSelection() {
         case 'Polygon':
         case 'MultiPolygon':
           return new ol.style.Style({
-            stroke: new ol.style.Stroke({color: accentColor, width: 3}),
+            stroke: new ol.style.Stroke({color: highlightColor, width: 3}),
             fill: new ol.style.Fill({color: grayFillColor})
           })
           
@@ -413,10 +412,10 @@ export function useFeatureSelection() {
           return new ol.style.Style({
             image: new ol.style.Circle({ 
               radius: 8, 
-              stroke: new ol.style.Stroke({color: accentColor, width: 3}), 
+              stroke: new ol.style.Stroke({color: highlightColor, width: 3}), 
               fill: new ol.style.Fill({color: grayFillColor})
             }),
-            stroke: new ol.style.Stroke({color: accentColor, width: 3}),
+            stroke: new ol.style.Stroke({color: highlightColor, width: 3}),
             fill: new ol.style.Fill({color: grayFillColor})
           })
       }

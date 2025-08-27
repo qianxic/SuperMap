@@ -169,7 +169,7 @@ watch(() => props.visible, (newVisible) => {
   display: flex;
   gap: 12px;
   padding: 0 24px 24px 24px;
-  justify-content: flex-end;
+  justify-content: space-between;
 }
 
 .btn {
@@ -194,8 +194,8 @@ watch(() => props.visible, (newVisible) => {
 }
 
 .btn-secondary {
-  background: var(--surface);
-  color: var(--text);
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-color);
   border: 1px solid var(--border);
 }
 

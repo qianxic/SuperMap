@@ -1,7 +1,8 @@
 <template>
   <div class="chat-assistant">
-    <!-- 新对话按钮固定在聊天容器外部 -->
-    <div class="fixed-new-chat">
+    <!-- 功能按钮固定在聊天容器外部 -->
+    <div class="fixed-buttons">
+      <!-- 新对话按钮 -->
       <IconButton 
         class="new-chat-button" 
         size="medium"
@@ -12,6 +13,19 @@
           <path d="M12 5v14M5 12h14"/>
         </svg>
         <span class="button-text">新对话</span>
+      </IconButton>
+      
+      <!-- 历史记录按钮 -->
+      <IconButton 
+        class="history-button" 
+        size="medium"
+        :title="'查看历史聊天记录'"
+        @click="showChatHistory"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <span class="button-text">历史</span>
       </IconButton>
     </div>
     
@@ -314,8 +328,77 @@ const sendMessage = () => {
   });
 };
 
+// 显示历史聊天记录
+const showChatHistory = () => {
+  // 获取保存的聊天历史记录
+  const savedChatHistory = localStorage.getItem('chatHistory') || '[]';
+  const chatHistory = JSON.parse(savedChatHistory);
+  
+  if (chatHistory.length === 0) {
+    window.dispatchEvent(new CustomEvent('showNotification', {
+      detail: {
+        title: '聊天历史',
+        message: '暂无历史聊天记录',
+        type: 'info',
+        duration: 3000
+      }
+    }));
+    return;
+  }
+  
+  // 格式化历史记录显示 - 每次对话一行，按时间倒序排列
+  const historyText = chatHistory
+    .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) // 按时间倒序
+    .map((record: any, index: number) => {
+      const date = new Date(record.timestamp).toLocaleString('zh-CN', {
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      const messageCount = record.messages ? record.messages.length : 0;
+      const firstMessage = record.messages && record.messages.length > 0 
+        ? record.messages[0].text.substring(0, 20) + (record.messages[0].text.length > 20 ? '...' : '')
+        : '空对话';
+      return `${index + 1}. ${date} | ${messageCount}条消息 | ${firstMessage}`;
+    })
+    .join('\n');
+  
+  // 显示历史记录
+  window.dispatchEvent(new CustomEvent('showNotification', {
+    detail: {
+      title: `历史聊天记录 (共${chatHistory.length}次对话)`,
+      message: historyText,
+      type: 'info',
+      duration: 10000
+    }
+  }));
+};
+
 // 新增：开启新对话功能
 const startNewConversation = () => {
+  // 保存当前对话到历史记录
+  if (messages.value.length > 0) {
+    const savedChatHistory = localStorage.getItem('chatHistory') || '[]';
+    const chatHistory = JSON.parse(savedChatHistory);
+    
+    const currentChat = {
+      id: Date.now(),
+      timestamp: new Date().toISOString(),
+      messages: [...messages.value],
+      messageCount: messages.value.length
+    };
+    
+    chatHistory.push(currentChat);
+    
+    // 限制历史记录数量，最多保存20条
+    if (chatHistory.length > 20) {
+      chatHistory.splice(0, chatHistory.length - 20);
+    }
+    
+    localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+  }
+  
   // 清空消息历史
   messages.value = [];
   // 清空输入框
@@ -356,13 +439,16 @@ const startNewConversation = () => {
   position: relative;
 }
 
-.fixed-new-chat {
+.fixed-buttons {
   position: absolute;
   top: 8px;
   right: 8px;
   z-index: 20;
   /* 确保按钮完全脱离文档流，不占用空间 */
   pointer-events: auto;
+  display: flex;
+  gap: 8px;
+  flex-direction: column;
 }
 
 .messages-container {
@@ -392,6 +478,7 @@ const startNewConversation = () => {
 }
 
 
+.history-button,
 .new-chat-button {
   display: flex !important;
   align-items: center !important;
@@ -403,22 +490,41 @@ const startNewConversation = () => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
   backdrop-filter: blur(8px) !important;
   background: rgba(var(--panel-rgb), 0.9) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
 }
 
+.history-button:hover,
 .new-chat-button:hover {
-  transform: none !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+  background: rgba(var(--panel-rgb), 0.95) !important;
+  border-color: var(--accent) !important;
 }
 
+.history-button:active,
+.new-chat-button:active {
+  transform: translateY(0) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+}
+
+.history-button .button-text,
 .new-chat-button .button-text {
-  font-size: 12px;
-  margin-left: 2px;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: var(--text) !important;
+  margin-left: 2px !important;
+  white-space: nowrap !important;
 }
 
+.history-button svg,
 .new-chat-button svg {
-  flex-shrink: 0;
+  flex-shrink: 0 !important;
   width: 14px !important;
   height: 14px !important;
+  color: var(--text) !important;
+  stroke-width: 2 !important;
 }
 
 

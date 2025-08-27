@@ -30,32 +30,33 @@ export function useMap() {
     const css = getComputedStyle(document.documentElement);
     const strokeVar = css.getPropertyValue(`--layer-stroke-${layerName}`).trim();
     const fillVar = css.getPropertyValue(`--layer-fill-${layerName}`).trim();
-    const accentFallback = css.getPropertyValue('--accent').trim() || '#007bff';
+    const accentFallback = css.getPropertyValue('--accent').trim() || (document.documentElement.getAttribute('data-theme') === 'dark' ? '#666666' : '#212529');
 
-    const fallbackColorMap: Record<string, { stroke: string; fill: string } > = {
-      '武汉_县级': { stroke: accentFallback, fill: 'rgba(0,0,0,0)' },
-      '公路': { stroke: '#f39c12', fill: 'rgba(243,156,18,0.08)' },
-      '铁路': { stroke: '#8e44ad', fill: 'rgba(142,68,173,0.08)' },
-      '水系面': { stroke: '#2980b9', fill: 'rgba(41,128,185,0.18)' },
-      '水系线': { stroke: '#3498db', fill: 'rgba(52,152,219,0.10)' },
-      '建筑物面': { stroke: '#7f8c8d', fill: 'rgba(127,140,141,0.20)' },
-      '居民地地名点': { stroke: '#e74c3c', fill: 'rgba(231,76,60,0.35)' },
-      '学校': { stroke: '#27ae60', fill: 'rgba(39,174,96,0.35)' },
-      '医院': { stroke: '#c0392b', fill: 'rgba(192,57,43,0.35)' }
-    };
-    const mapped = fallbackColorMap[layerName] || { stroke: accentFallback, fill: 'rgba(0,123,255,0.1)' };
-    const resolvedStroke = strokeVar || mapped.stroke;
-    const resolvedFill = fillVar || mapped.fill;
-    
+    // 县级图层使用固定颜色，不受主题切换影响
     if (layerName === '武汉_县级') {
+      console.log('武汉市县级图层样式创建:', {
+        layerName,
+        strokeVar,
+        fillVar,
+        theme: document.documentElement.getAttribute('data-theme'),
+        strokeColor: strokeVar || '#000000',
+        fillColor: fillVar || 'rgba(0,0,0,0.1)'
+      });
+      
       return new ol.style.Style({
         stroke: new ol.style.Stroke({ 
-          color: resolvedStroke, 
-          width: 1.5 
+          color: strokeVar || '#000000', // 使用固定颜色，默认黑色
+          width: 1.5
         }),
-        fill: new ol.style.Fill({ color: 'rgba(0, 0, 0, 0)' })
+        fill: new ol.style.Fill({ 
+          color: fillVar || 'rgba(0,0,0,0.1)' // 使用固定颜色，默认半透明黑色
+        })
       });
     }
+    
+    // 统一使用CSS变量，如果CSS变量为空则使用主题色作为fallback
+    const resolvedStroke = strokeVar || accentFallback;
+    const resolvedFill = fillVar || (document.documentElement.getAttribute('data-theme') === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(33,37,41,0.1)');
     
     switch (layerConfig.type) {
       case 'point':
@@ -107,6 +108,7 @@ export function useMap() {
       if (layerInfo.layer && layerInfo.source === 'supermap') {
         const layerConfig = createAPIConfig().wuhanLayers.find(config => config.name === layerInfo.id);
         if (layerConfig) {
+          // 包括县级图层，进行主题切换时的样式更新
           const newStyle = createLayerStyle(layerConfig, layerInfo.name);
           layerInfo.layer.setStyle(newStyle);
         }
@@ -114,8 +116,8 @@ export function useMap() {
     });
     
     if (mapStore.selectLayer) {
-      const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#007bff';
-      const grayFillColor = getComputedStyle(document.documentElement).getPropertyValue('--map-select-fill').trim() || 'rgba(128, 128, 128, 0.3)';
+      const grayFillColor = getComputedStyle(document.documentElement).getPropertyValue('--map-select-fill').trim() || (document.documentElement.getAttribute('data-theme') === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(33, 37, 41, 0.15)');
+      const highlightColor = getComputedStyle(document.documentElement).getPropertyValue('--map-highlight-color').trim() || (document.documentElement.getAttribute('data-theme') === 'dark' ? '#ffffff' : '#000000');
       
       const newSelectStyle = (feature: any) => {
         const geometry = feature.getGeometry();
@@ -123,10 +125,10 @@ export function useMap() {
           return new ol.style.Style({
             image: new ol.style.Circle({ 
               radius: 8, 
-              stroke: new ol.style.Stroke({color: accentColor, width: 3}), 
+              stroke: new ol.style.Stroke({color: highlightColor, width: 3}), 
               fill: new ol.style.Fill({color: grayFillColor})
             }),
-            stroke: new ol.style.Stroke({color: accentColor, width: 3}),
+            stroke: new ol.style.Stroke({color: highlightColor, width: 3}),
             fill: new ol.style.Fill({color: grayFillColor})
           });
         }
@@ -139,7 +141,7 @@ export function useMap() {
             return new ol.style.Style({
               image: new ol.style.Circle({ 
                 radius: 8, 
-                stroke: new ol.style.Stroke({color: accentColor, width: 3}), 
+                stroke: new ol.style.Stroke({color: highlightColor, width: 3}), 
                 fill: new ol.style.Fill({color: grayFillColor})
               })
             });
@@ -148,7 +150,7 @@ export function useMap() {
           case 'MultiLineString':
             return new ol.style.Style({
               stroke: new ol.style.Stroke({
-                color: accentColor, 
+                color: highlightColor, 
                 width: 5,
                 lineCap: 'round',
                 lineJoin: 'round'
@@ -158,7 +160,7 @@ export function useMap() {
           case 'Polygon':
           case 'MultiPolygon':
             return new ol.style.Style({
-              stroke: new ol.style.Stroke({color: accentColor, width: 3}),
+              stroke: new ol.style.Stroke({color: highlightColor, width: 3}),
               fill: new ol.style.Fill({color: grayFillColor})
             });
             
@@ -166,10 +168,10 @@ export function useMap() {
             return new ol.style.Style({
               image: new ol.style.Circle({ 
                 radius: 8, 
-                stroke: new ol.style.Stroke({color: accentColor, width: 3}), 
+                stroke: new ol.style.Stroke({color: highlightColor, width: 3}), 
                 fill: new ol.style.Fill({color: grayFillColor})
               }),
-              stroke: new ol.style.Stroke({color: accentColor, width: 3}),
+              stroke: new ol.style.Stroke({color: highlightColor, width: 3}),
               fill: new ol.style.Fill({color: grayFillColor})
             });
         }
@@ -179,16 +181,16 @@ export function useMap() {
     }
     
     if (mapStore.hoverLayer) {
-      const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#007bff';
+      const highlightColor = getComputedStyle(document.documentElement).getPropertyValue('--map-highlight-color').trim() || (document.documentElement.getAttribute('data-theme') === 'dark' ? '#ffffff' : '#000000');
       const hoverFillColor = getComputedStyle(document.documentElement).getPropertyValue('--map-hover-fill').trim() || 'rgba(0, 123, 255, 0.3)';
       
       const newHoverStyle = new ol.style.Style({
         image: new ol.style.Circle({ 
           radius: 6, 
-          stroke: new ol.style.Stroke({color: accentColor, width: 2}), 
+          stroke: new ol.style.Stroke({color: highlightColor, width: 2}), 
           fill: new ol.style.Fill({color: hoverFillColor}) 
         }),
-        stroke: new ol.style.Stroke({color: accentColor, width: 2}),
+        stroke: new ol.style.Stroke({color: highlightColor, width: 2}),
         fill: new ol.style.Fill({color: hoverFillColor})
       });
       
@@ -232,27 +234,32 @@ export function useMap() {
     }
   }
 
-  const observeThemeChanges = () => {
-    const observer = new MutationObserver(() => {
-      updateLayerStyles();
-      updateBaseMap();
-    });
-    
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class', 'style'],
-      subtree: false
-    });
-    
-    const stopThemeWatch = watch(() => themeStore.theme, () => {
-      updateBaseMap();
-    });
-    
-    return () => {
-      try { observer.disconnect(); } catch (_) {}
-      try { stopThemeWatch(); } catch (_) {}
-    }
-  }
+     const observeThemeChanges = () => {
+     const observer = new MutationObserver(() => {
+       updateLayerStyles();
+       updateBaseMap();
+       // 更新面积量测样式
+       mapStore.updateAreaMeasureStyle();
+     });
+     
+     observer.observe(document.documentElement, {
+       attributes: true,
+       attributeFilter: ['data-theme'],
+       subtree: false
+     });
+     
+     const stopThemeWatch = watch(() => themeStore.theme, () => {
+       updateLayerStyles();
+       updateBaseMap();
+       // 更新面积量测样式
+       mapStore.updateAreaMeasureStyle();
+     });
+     
+     return () => {
+       try { observer.disconnect(); } catch (_) {}
+       try { stopThemeWatch(); } catch (_) {}
+     }
+   }
 
   const loadVectorLayer = async (map: any, layerConfig: any, visibleOverride?: boolean): Promise<void> => {
     // 改进图层名称解析逻辑
@@ -430,12 +437,13 @@ export function useMap() {
     const isEditToolActive = analysisStore.toolPanel?.activeTool === 'bianji';
     const isQueryToolActive = analysisStore.toolPanel?.activeTool === 'query';
     const isDistanceMeasureMode = analysisStore.isDistanceMeasureMode;
+    const isAreaMeasureMode = analysisStore.isAreaMeasureMode;
     
     // 检查是否处于绘制模式
     const isDrawingMode = analysisStore.drawMode !== '';
     
-    // 如果处于距离量测模式或绘制模式，禁用要素点击选择功能
-    if (isDistanceMeasureMode || isDrawingMode) {
+    // 如果处于距离量测模式、面积量测模式或绘制模式，禁用要素点击选择功能
+    if (isDistanceMeasureMode || isAreaMeasureMode || isDrawingMode) {
       return;
     }
     
@@ -781,16 +789,16 @@ export function useMap() {
       const hoverSource = new ol.source.Vector()
       
       const createHoverStyle = () => {
-        const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#007bff';
+        const highlightColor = getComputedStyle(document.documentElement).getPropertyValue('--map-highlight-color').trim() || (document.documentElement.getAttribute('data-theme') === 'dark' ? '#ffffff' : '#000000');
         const hoverFillColor = getComputedStyle(document.documentElement).getPropertyValue('--map-hover-fill').trim() || 'rgba(0, 123, 255, 0.3)';
         
         return new ol.style.Style({
           image: new ol.style.Circle({ 
             radius: 6, 
-            stroke: new ol.style.Stroke({color: accentColor, width: 2}), 
+            stroke: new ol.style.Stroke({color: highlightColor, width: 2}), 
             fill: new ol.style.Fill({color: hoverFillColor}) 
           }),
-          stroke: new ol.style.Stroke({color: accentColor, width: 2}),
+          stroke: new ol.style.Stroke({color: highlightColor, width: 2}),
           fill: new ol.style.Fill({color: hoverFillColor})
         });
       };
@@ -805,8 +813,8 @@ export function useMap() {
       const selectSource = new ol.source.Vector()
       
       const createSelectStyle = () => {
-        const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#007bff';
-        const grayFillColor = getComputedStyle(document.documentElement).getPropertyValue('--map-select-fill').trim() || 'rgba(128, 128, 128, 0.3)';
+        const highlightColor = getComputedStyle(document.documentElement).getPropertyValue('--map-highlight-color').trim() || (document.documentElement.getAttribute('data-theme') === 'dark' ? '#ffffff' : '#000000');
+        const grayFillColor = getComputedStyle(document.documentElement).getPropertyValue('--map-select-fill').trim() || (document.documentElement.getAttribute('data-theme') === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(33, 37, 41, 0.15)');
         
         return (feature: any) => {
           const geometry = feature.getGeometry();
@@ -814,10 +822,10 @@ export function useMap() {
             return new ol.style.Style({
               image: new ol.style.Circle({ 
                 radius: 8, 
-                stroke: new ol.style.Stroke({color: accentColor, width: 3}), 
+                stroke: new ol.style.Stroke({color: highlightColor, width: 3}), 
                 fill: new ol.style.Fill({color: grayFillColor})
               }),
-              stroke: new ol.style.Stroke({color: accentColor, width: 3}),
+              stroke: new ol.style.Stroke({color: highlightColor, width: 3}),
               fill: new ol.style.Fill({color: grayFillColor})
             });
           }
@@ -830,7 +838,7 @@ export function useMap() {
               return new ol.style.Style({
                 image: new ol.style.Circle({ 
                   radius: 8, 
-                  stroke: new ol.style.Stroke({color: accentColor, width: 3}), 
+                  stroke: new ol.style.Stroke({color: highlightColor, width: 3}), 
                   fill: new ol.style.Fill({color: grayFillColor})
                 })
               });
@@ -839,7 +847,7 @@ export function useMap() {
             case 'MultiLineString':
               return new ol.style.Style({
                 stroke: new ol.style.Stroke({
-                  color: accentColor, 
+                  color: highlightColor, 
                   width: 5,
                   lineCap: 'round',
                   lineJoin: 'round'
@@ -849,7 +857,7 @@ export function useMap() {
             case 'Polygon':
             case 'MultiPolygon':
               return new ol.style.Style({
-                stroke: new ol.style.Stroke({color: accentColor, width: 3}),
+                stroke: new ol.style.Stroke({color: highlightColor, width: 3}),
                 fill: new ol.style.Fill({color: grayFillColor})
               });
               
@@ -857,10 +865,10 @@ export function useMap() {
               return new ol.style.Style({
                 image: new ol.style.Circle({ 
                   radius: 8, 
-                  stroke: new ol.style.Stroke({color: accentColor, width: 3}), 
+                  stroke: new ol.style.Stroke({color: highlightColor, width: 3}), 
                   fill: new ol.style.Fill({color: grayFillColor})
                 }),
-                stroke: new ol.style.Stroke({color: accentColor, width: 3}),
+                stroke: new ol.style.Stroke({color: highlightColor, width: 3}),
                 fill: new ol.style.Fill({color: grayFillColor})
               });
           }

@@ -59,9 +59,15 @@ const handleClick = (event: MouseEvent) => {
   flex: 1;
   text-align: center;
   white-space: nowrap;
+  font-family: "Segoe UI", PingFang SC, Microsoft YaHei, Arial, sans-serif;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
-
+.btn:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+}
 
 .btn:disabled { 
   opacity: 0.4; 
@@ -72,6 +78,11 @@ const handleClick = (event: MouseEvent) => {
   background: var(--accent); 
   color: white; 
   border-color: var(--accent);
+}
+
+.btn.primary:hover:not(:disabled) {
+  background: var(--accent);
+  opacity: 0.9;
 }
 
 .btn.secondary {
@@ -94,8 +105,11 @@ const handleClick = (event: MouseEvent) => {
   background: var(--accent);
   border-color: var(--accent);
   color: white;
-  box-shadow: none;
+  box-shadow: 0 2px 8px rgba(var(--accent-rgb), 0.3);
 }
 
-
+.btn.active:hover:not(:disabled) {
+  background: var(--accent);
+  opacity: 0.9;
+}
 </style>

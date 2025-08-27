@@ -1,133 +1,98 @@
 :root {
-  /* Clean and professional light theme */
+  /* ===== 基础颜色 ===== */
   --bg: #f8f9fa;
   --panel: #ffffff;
   --border: #dee2e6;
-  --glow: 0 2px 8px rgba(0, 0, 0, 0.08);
   --text: #212529;
-  --sub:  #6c757d;
-  --accent: #007bff;
-  --accent-rgb: 0, 123, 255;
+  --sub: #6c757d;
+  --accent: #212529;
+  --accent-rgb: 33, 37, 41;
+  --glow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --radius: 10px;
 
-  --btn-primary-bg: #007bff;
+  /* ===== 按钮颜色 ===== */
+  --btn-primary-bg: #212529;
   --btn-primary-color: #ffffff;
   --btn-secondary-bg: #e9ecef;
   --btn-secondary-color: #212529;
 
-  /* Light theme specific variables */
+  /* ===== 交互颜色 ===== */
   --surface: rgba(0, 0, 0, 0.03);
   --surface-hover: rgba(0, 0, 0, 0.06);
   --divider: #dee2e6;
   --splitter-bg: rgba(0, 0, 0, 0.1);
-  --splitter-hover: #007bff;
-
-  --radius: 10px;
+  --splitter-hover: #212529;
+  --selection-bg: rgba(33, 37, 41, 0.1);
   
-  /* Map highlight colors for light theme */
+  /* ===== 地图相关颜色 ===== */
   --map-hover-fill: rgba(0, 0, 0, 0.06);
-  --map-select-fill: rgba(0, 123, 255, 0.15);
-  --map-select-point-fill: rgba(0, 123, 255, 0.25);
+  --map-select-fill: rgba(33, 37, 41, 0.15);
+  --map-highlight-color: #000000; /* 浅色模式使用黑色边界 */
+  --measure-line-color: #212529;
+  --measure-line-rgb: 33, 37, 41;
+  --overview-extent-color: #000000;
+  --overview-extent-rgb: 0, 0, 0;
 
-  /* Feature popup styles */
-  --popup-bg: #ffffff;
-  --popup-border: #dee2e6;
-  --popup-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  /* ===== 弹窗颜色 ===== */
   --field-label-color: #6c757d;
   --field-value-color: #212529;
   
-  /* Selection colors for light theme */
-  --selection-bg: rgba(0, 123, 255, 0.1);
-  
-  /* Field type colors for light theme */
-  --field-type-text-bg: rgba(52, 152, 219, 0.1);
-  --field-type-text-color: #3498db;
-  --field-type-number-bg: rgba(46, 204, 113, 0.1);
-  --field-type-number-color: #2ecc71;
-  --field-type-boolean-bg: rgba(155, 89, 182, 0.1);
-  --field-type-boolean-color: #9b59b6;
-  --field-type-date-bg: rgba(241, 196, 15, 0.1);
-  --field-type-date-color: #f1c40f;
-  --field-type-array-bg: rgba(230, 126, 34, 0.1);
-  --field-type-array-color: #e67e22;
-  --field-type-object-bg: rgba(231, 76, 60, 0.1);
-  --field-type-object-color: #e74c3c;
-  --field-type-null-bg: rgba(149, 165, 166, 0.1);
-  --field-type-null-color: #95a5a6;
-  --field-type-unknown-bg: rgba(52, 73, 94, 0.1);
-  --field-type-unknown-color: #34495e;
+  /* ===== 武汉市县级图层 - 浅色主题 ===== */
+  --layer-stroke-武汉_县级: #000000;
+  --layer-fill-武汉_县级: rgba(0, 0, 0, 0.1);
 }
-
-
 
 /* Windows-style dark theme */
 [data-theme="dark"] {
+  /* ===== 基础颜色 ===== */
   --bg: #1e1e1e;
   --panel: #2d2d30;
   --border: #3c3c3c;
-  --glow: 0 2px 8px rgba(0, 0, 0, 0.4);
   --text: #ffffff;
   --sub: #cccccc;
-  --accent: #0078d4;
-  --accent-rgb: 0, 120, 212;
+  --accent: #666666;
+  --accent-rgb: 102, 102, 102;
+  --glow: 0 2px 8px rgba(0, 0, 0, 0.4);
 
-  --btn-primary-bg: #0078d4;
+  /* ===== 按钮颜色 ===== */
+  --btn-primary-bg: #000000;
   --btn-primary-color: #ffffff;
   --btn-secondary-bg: #373737;
   --btn-secondary-color: #ffffff;
 
-  /* Dark theme specific variables */
+  /* ===== 交互颜色 ===== */
   --surface: rgba(255, 255, 255, 0.03);
   --surface-hover: rgba(255, 255, 255, 0.06);
   --divider: #484848;
   --splitter-bg: rgba(255, 255, 255, 0.1);
-  --splitter-hover: #0078d4;
-  --overlay: rgba(0, 0, 0, 0.6);
+  --splitter-hover: #000000;
+  --selection-bg: rgba(255, 255, 255, 0.15);
   
-  /* Scrollbar colors for dark theme */
+  /* 滚动条颜色 */
   --scrollbar-track: rgba(255, 255, 255, 0.1);
   --scrollbar-thumb: rgba(255, 255, 255, 0.3);
   --scrollbar-thumb-hover: rgba(255, 255, 255, 0.5);
   
-  /* Selection colors for dark theme */
-  --selection-bg: rgba(0, 120, 212, 0.4);
-  
-  /* Field type colors for dark theme */
-  --field-type-text-bg: rgba(52, 152, 219, 0.2);
-  --field-type-text-color: #74b9ff;
-  --field-type-number-bg: rgba(46, 204, 113, 0.2);
-  --field-type-number-color: #55a3ff;
-  --field-type-boolean-bg: rgba(155, 89, 182, 0.2);
-  --field-type-boolean-color: #a29bfe;
-  --field-type-date-bg: rgba(241, 196, 15, 0.2);
-  --field-type-date-color: #fdcb6e;
-  --field-type-array-bg: rgba(230, 126, 34, 0.2);
-  --field-type-array-color: #fd79a8;
-  --field-type-object-bg: rgba(231, 76, 60, 0.2);
-  --field-type-object-color: #e17055;
-  --field-type-null-bg: rgba(149, 165, 166, 0.2);
-  --field-type-null-color: #b2bec3;
-  --field-type-unknown-bg: rgba(52, 73, 94, 0.2);
-  --field-type-unknown-color: #636e72;
-  
-  /* Map highlight colors for dark theme */
+  /* ===== 地图相关颜色 ===== */
   --map-hover-fill: rgba(255, 255, 255, 0.06);
-  --map-select-fill: rgba(0, 120, 212, 0.2);
-  --map-select-point-fill: rgba(0, 120, 212, 0.35);
+  --map-select-fill: rgba(255, 255, 255, 0.15);
+  --map-highlight-color: #ffffff; /* 深色模式使用白色边界 */
+  --measure-line-color: #ffffff;
+  --measure-line-rgb: 255, 255, 255;
+  --overview-extent-color: #cccccc;
+  --overview-extent-rgb: 204, 204, 204;
 
-  /* Feature popup styles for dark theme */
-  --popup-bg: #2d2d30;
-  --popup-border: #3c3c3c;
-  --popup-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  /* ===== 弹窗颜色 ===== */
   --field-label-color: #cccccc;
   --field-value-color: #ffffff;
+  
+  /* ===== 武汉市县级图层 - 深色主题 ===== */
+  --layer-stroke-武汉_县级: #ffffff;
+  --layer-fill-武汉_县级: rgba(255, 255, 255, 0.1);
 }
 
-/* Fixed layer colors (do not follow theme) */
+/* ===== 固定图层颜色 (不受主题影响) ===== */
 :root, [data-theme="dark"] {
-  /* 行政区划 - 武汉_县级 */
-  --layer-stroke-武汉_县级: var(--accent);
-  --layer-fill-武汉_县级: rgba(0, 0, 0, 0);
-
   /* 交通设施 - 公路 */
   --layer-stroke-公路: #f39c12;
   --layer-fill-公路: rgba(243, 156, 18, 0.08);
@@ -161,6 +126,123 @@
   --layer-fill-医院: rgba(192, 57, 43, 0.35);
 }
 
+/* ===== 深色主题特殊样式 ===== */
+/* 确保黑色主题下所有弹出窗口使用浅色字体 */
+[data-theme="dark"] .panel-window,
+[data-theme="dark"] .confirm-dialog,
+[data-theme="dark"] .notification-toast,
+[data-theme="dark"] .popup-body,
+[data-theme="dark"] .feature-info,
+[data-theme="dark"] .multi-feature-info {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .panel-window *,
+[data-theme="dark"] .confirm-dialog *,
+[data-theme="dark"] .notification-toast *,
+[data-theme="dark"] .popup-body *,
+[data-theme="dark"] .feature-info *,
+[data-theme="dark"] .multi-feature-info * {
+  color: inherit;
+}
+
+/* 确保黑色主题下弹出窗口中的文本元素使用浅色 */
+[data-theme="dark"] .panel-title,
+[data-theme="dark"] .dialog-title,
+[data-theme="dark"] .toast-title,
+[data-theme="dark"] .toast-message,
+[data-theme="dark"] .dialog-message,
+[data-theme="dark"] .feature-count,
+[data-theme="dark"] .feature-header,
+[data-theme="dark"] .field-label,
+[data-theme="dark"] .field-value,
+[data-theme="dark"] .k,
+[data-theme="dark"] .v,
+[data-theme="dark"] .section-title {
+  color: #ffffff !important;
+}
+
+/* 确保黑色主题下弹出窗口中的次要文本使用浅灰色 */
+[data-theme="dark"] .field-label,
+[data-theme="dark"] .k {
+  color: #cccccc !important;
+}
+
+/* 确保黑色主题下提示窗口使用浅色字体 */
+[data-theme="dark"] .tip-window,
+[data-theme="dark"] .tip-content,
+[data-theme="dark"] .tip-text {
+  color: #ffffff !important;
+}
+
+/* 确保黑色主题下所有模态框和对话框使用浅色字体 */
+[data-theme="dark"] .modal-content,
+[data-theme="dark"] .modal-header,
+[data-theme="dark"] .modal-body,
+[data-theme="dark"] .modal-footer {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .modal-content *,
+[data-theme="dark"] .modal-header *,
+[data-theme="dark"] .modal-body *,
+[data-theme="dark"] .modal-footer * {
+  color: inherit;
+}
+
+/* 确保黑色主题下标题、坐标、比例尺等使用浅色字体 */
+[data-theme="dark"] .screen-title,
+[data-theme="dark"] .coordinate-text,
+[data-theme="dark"] .scale-text,
+[data-theme="dark"] .scale-line,
+[data-theme="dark"] .scale-line::before,
+[data-theme="dark"] .scale-line::after {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .coordinate-text,
+[data-theme="dark"] .scale-text {
+  background: var(--panel) !important;
+  border-color: var(--border) !important;
+}
+
+[data-theme="dark"] .scale-line,
+[data-theme="dark"] .scale-line::before,
+[data-theme="dark"] .scale-line::after {
+  background: #ffffff !important;
+}
+
+/* 确保黑色主题下验证消息使用浅色字体 */
+[data-theme="dark"] .validation-success,
+[data-theme="dark"] .validation-warning {
+  color: #ffffff !important;
+}
+
+/* 确保黑色主题下测量组件使用浅色字体 */
+[data-theme="dark"] .area-measure-panel,
+[data-theme="dark"] .distance-measure-panel,
+[data-theme="dark"] .distance-measure-button {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .area-measure-panel *,
+[data-theme="dark"] .distance-measure-panel *,
+[data-theme="dark"] .distance-measure-button * {
+  color: inherit;
+}
+
+[data-theme="dark"] .measure-btn {
+  background: var(--panel) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+[data-theme="dark"] .measure-btn.active {
+  background: var(--accent) !important;
+  color: white !important;
+}
+
+/* ===== 工具类样式 ===== */
 /* Utility panel style (optional reuse) */
 .card-panel {
   background: var(--panel);
@@ -211,9 +293,6 @@
   box-shadow: var(--glow) !important; 
   color: var(--text) !important; 
 }
-
-
-
 
 /* Feature popup styles */
 .feature-info {
@@ -287,6 +366,7 @@
   gap: 6px;
 }
 
+/* ===== 防闪烁样式 ===== */
 /* 全局防闪烁样式 - 防止主题切换时的颜色闪烁 */
 .no-theme-flicker,
 .no-theme-flicker *,

@@ -1,23 +1,12 @@
 <template>
-  <div class="overview-map-container no-theme-flicker" v-if="isVisible">
+  <div class="overview-map-container no-theme-flicker" v-if="mapStore.overviewMapVisible">
     <div class="overview-map-header">
       <span class="overview-title">鹰眼</span>
-      <button 
-        class="overview-toggle-btn"
-        @click="toggleOverview"
-        :title="isCollapsed ? '展开' : '收起'"
-      >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-          <path v-if="isCollapsed" d="M7 10l5 5 5-5z"/>
-          <path v-else d="M7 14l5-5 5 5z"/>
-        </svg>
-      </button>
     </div>
     <div 
       ref="overviewMapElement" 
       class="overview-map"
-      :class="{ collapsed: isCollapsed }"
-      :title="!isCollapsed ? '点击导航到指定位置，拖拽移动视图' : ''"
+      title="点击导航到指定位置，拖拽移动视图"
     ></div>
   </div>
 </template>
@@ -33,10 +22,9 @@ const themeStore = useThemeStore()
 
 // 响应式数据
 const overviewMapElement = ref<HTMLElement | null>(null)
-const isVisible = ref(true)
-const isCollapsed = ref(true) // 修改为默认折叠状态
 const overviewMap = ref<any>(null)
 const extentLayer = ref<any>(null) // 视口框图层
+let themeObserver: MutationObserver | null = null // 主题变化观察器
 
 // 更新视口框函数
 const updateExtentBox = () => {
@@ -81,10 +69,18 @@ const syncViews = () => {
 
 // 初始化鹰眼
 const initOverviewMap = async () => {
-  if (!mapStore.map || !overviewMapElement.value) return
+  if (!mapStore.map || !overviewMapElement.value) {
+    console.warn('鹰眼初始化条件不满足，地图或容器未准备好')
+    return
+  }
 
   try {
     const ol = window.ol
+    
+    // 确保容器可见
+    if (overviewMapElement.value.style.display === 'none') {
+      overviewMapElement.value.style.display = 'block'
+    }
     
     // 创建鹰眼的地图实例
     const currentBaseMapUrl = getCurrentBaseMapUrl(themeStore.theme)
@@ -94,13 +90,15 @@ const initOverviewMap = async () => {
       serverType: 'iserver'
     }
     
+    // 确保在浅色模式下正确加载地图
     if (themeStore.theme === 'light') {
       sourceConfig.crossOrigin = 'anonymous'
     }
     
     const overviewLayer = new ol.layer.Tile({
       source: new ol.source.TileSuperMapRest(sourceConfig),
-      visible: true
+      visible: true,
+      opacity: 0.8 // 降低透明度，让视口框更明显
     })
     
     // 创建鹰眼视图
@@ -119,24 +117,59 @@ const initOverviewMap = async () => {
       controls: [], // 鹰眼不需要控件
     })
     
+    // 获取视口框颜色
+    const extentColor = getComputedStyle(document.documentElement).getPropertyValue('--overview-extent-color').trim() || '#000000'
+    const extentRgb = getComputedStyle(document.documentElement).getPropertyValue('--overview-extent-rgb').trim() || '0, 0, 0'
+    
     // 添加主地图视口框图层到鹰眼
     extentLayer.value = new ol.layer.Vector({
       source: new ol.source.Vector(),
       style: new ol.style.Style({
         stroke: new ol.style.Stroke({
-          color: '#ff0000',
-          width: 2
+          color: extentColor,
+          width: 3, // 增加线条宽度
+          lineDash: [5, 5] // 添加虚线效果，更明显
         }),
         fill: new ol.style.Fill({
-          color: 'rgba(255, 0, 0, 0.1)'
+          color: `rgba(${extentRgb}, 0.2)` // 增加填充透明度
         })
       })
     })
     overviewMap.value.addLayer(extentLayer.value)
     
-    // 监听主地图视图变化
+        // 监听主地图视图变化
     mapStore.map.getView().on('change:center', syncViews)
     mapStore.map.getView().on('change:resolution', syncViews)
+    
+    // 监听主题变化，重新初始化鹰眼
+    const handleThemeChange = () => {
+      if (overviewMap.value) {
+        // 重新获取视口框颜色
+        const newExtentColor = getComputedStyle(document.documentElement).getPropertyValue('--overview-extent-color').trim() || '#000000'
+        const newExtentRgb = getComputedStyle(document.documentElement).getPropertyValue('--overview-extent-rgb').trim() || '0, 0, 0'
+        
+        extentLayer.value.setStyle(new ol.style.Style({
+          stroke: new ol.style.Stroke({
+            color: newExtentColor,
+            width: 3,
+            lineDash: [5, 5]
+          }),
+          fill: new ol.style.Fill({
+            color: `rgba(${newExtentRgb}, 0.2)`
+          })
+        }))
+        
+        // 强制重绘
+        extentLayer.value.changed()
+      }
+    }
+    
+    // 监听主题变化
+    themeObserver = new MutationObserver(handleThemeChange)
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme']
+    })
     
     // 添加鹰眼点击导航功能
     overviewMap.value.on('click', (event: any) => {
@@ -187,7 +220,13 @@ const initOverviewMap = async () => {
     
     // 初始同步
     nextTick(() => {
-      syncViews()
+      try {
+        overviewMap.value.updateSize()
+        syncViews()
+        console.log('鹰眼初始化完成')
+      } catch (error) {
+        console.error('鹰眼初始同步失败:', error)
+      }
     })
     
   } catch (error) {
@@ -195,25 +234,67 @@ const initOverviewMap = async () => {
   }
 }
 
-// 切换鹰眼显示/隐藏
-const toggleOverview = () => {
-  isCollapsed.value = !isCollapsed.value
+// 销毁鹰眼地图实例
+const destroyOverviewMap = () => {
+  if (overviewMap.value) {
+    try {
+      // 移除事件监听
+      if (mapStore.map) {
+        const mainView = mapStore.map.getView()
+        mainView.un('change:center', syncViews)
+        mainView.un('change:resolution', syncViews)
+      }
+      
+      // 清理主题变化观察器
+      if (themeObserver) {
+        themeObserver.disconnect()
+        themeObserver = null
+      }
+      
+      // 清理地图实例
+      overviewMap.value.setTarget(undefined)
+      overviewMap.value = null
+      
+      // 清理视口框图层
+      extentLayer.value = null
+      
+      console.log('鹰眼地图实例已销毁')
+    } catch (error) {
+      console.error('销毁鹰眼地图实例失败:', error)
+    }
+  }
 }
 
-// 首次展开时再初始化，避免 0 尺寸容器报错
-watch(isCollapsed, (collapsed) => {
-  if (!collapsed) {
-    if (!overviewMap.value) {
-      nextTick(() => {
+// 监听鹰眼显示状态变化
+watch(() => mapStore.overviewMapVisible, (visible) => {
+  console.log('鹰眼显示状态变化:', visible)
+  
+  if (visible) {
+    // 延迟初始化，确保DOM已更新
+    setTimeout(() => {
+      if (!overviewMap.value) {
+        console.log('鹰眼地图实例不存在，开始初始化')
         initOverviewMap()
-      })
-    } else {
-      nextTick(() => {
-        try { overviewMap.value.updateSize() } catch (e) {}
-        // 展开后立即同步一次视口
-        syncViews()
-      })
-    }
+      } else {
+        console.log('鹰眼地图实例已存在，更新尺寸')
+        try { 
+          overviewMap.value.updateSize() 
+          // 显示后立即同步一次视口
+          syncViews()
+        } catch (e) {
+          console.warn('鹰眼地图更新尺寸失败，重新初始化:', e)
+          // 如果更新失败，重新初始化
+          destroyOverviewMap()
+          setTimeout(() => {
+            initOverviewMap()
+          }, 100)
+        }
+      }
+    }, 50)
+  } else {
+    // 隐藏时清理地图实例
+    console.log('隐藏鹰眼，清理地图实例')
+    destroyOverviewMap()
   }
 })
 
@@ -290,7 +371,7 @@ watch(() => themeStore.theme, () => {
 
 // 监听地图就绪状态
 watch(() => mapStore.isMapReady, (ready) => {
-  if (ready && !overviewMap.value && !isCollapsed.value) {
+  if (ready && !overviewMap.value && mapStore.overviewMapVisible) {
     nextTick(() => {
       initOverviewMap()
     })
@@ -299,7 +380,7 @@ watch(() => mapStore.isMapReady, (ready) => {
 
 // 生命周期
 onMounted(() => {
-  if (mapStore.isMapReady && !isCollapsed.value) {
+  if (mapStore.isMapReady && mapStore.overviewMapVisible) {
     nextTick(() => {
       initOverviewMap()
     })
@@ -307,10 +388,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  if (overviewMap.value) {
-    overviewMap.value.setTarget(undefined)
-    overviewMap.value = null
-  }
+  destroyOverviewMap()
 })
 </script>
 
@@ -357,25 +435,7 @@ onUnmounted(() => {
   user-select: none;
 }
 
-.overview-toggle-btn {
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: transparent;
-  color: var(--text);
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* 禁用过渡动画 */
-  transition: none !important;
-}
 
-.overview-toggle-btn:hover {
-  background: var(--surface-hover);
-  color: var(--accent);
-}
 
 .overview-map {
   width: 240px;
@@ -401,9 +461,7 @@ onUnmounted(() => {
   border-radius: 4px;
 }
 
-.overview-map.collapsed {
-  height: 0;
-}
+
 
 /* 响应式设计 */
 @media (max-width: 768px) {

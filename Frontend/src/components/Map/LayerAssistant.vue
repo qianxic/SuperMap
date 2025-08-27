@@ -18,13 +18,57 @@
         <path d="M19 13H5v-2h14v2z"/>
       </svg>
     </button>
+    
+    <!-- 鹰眼按钮 -->
+    <button 
+      @click="toggleOverviewMap" 
+      :class="['assistant-btn overview-btn', { active: mapStore.overviewMapVisible }]"
+      :title="mapStore.overviewMapVisible ? '隐藏鹰眼' : '显示鹰眼'"
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+      </svg>
+    </button>
+    
     <button 
       @click="toggleDistanceMeasure" 
       :class="['assistant-btn measure-btn', { active: mapStore.distanceMeasureMode }]"
       :title="mapStore.distanceMeasureMode ? '停止距离量算' : '开始距离量算'"
     >
-      <svg class="measure-icon" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+      <svg class="measure-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 12h18"/>
+        <path d="M3 8h2"/>
+        <path d="M3 16h2"/>
+        <path d="M7 8h2"/>
+        <path d="M7 16h2"/>
+        <path d="M11 8h2"/>
+        <path d="M11 16h2"/>
+        <path d="M15 8h2"/>
+        <path d="M15 16h2"/>
+        <path d="M19 8h2"/>
+        <path d="M19 16h2"/>
+        <circle cx="6" cy="12" r="1" fill="currentColor"/>
+        <circle cx="18" cy="12" r="1" fill="currentColor"/>
+      </svg>
+    </button>
+    
+    <!-- 面积测量按钮 -->
+    <button 
+      @click="toggleAreaMeasure" 
+      :class="['assistant-btn area-measure-btn', { active: mapStore.areaMeasureMode }]"
+      :title="mapStore.areaMeasureMode ? '停止面积量算' : '开始面积量算'"
+    >
+      <svg class="area-measure-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 3h18v18H3z"/>
+        <path d="M6 6h12v12H6z" fill="currentColor" opacity="0.2"/>
+        <path d="M6 6h12"/>
+        <path d="M6 12h12"/>
+        <path d="M6 18h12"/>
+        <path d="M6 6v12"/>
+        <path d="M12 6v12"/>
+        <path d="M18 6v12"/>
+        <circle cx="9" cy="9" r="1" fill="currentColor"/>
+        <circle cx="15" cy="15" r="1" fill="currentColor"/>
       </svg>
     </button>
     
@@ -76,8 +120,8 @@
     :visible="layerManager.confirmDialogVisible.value"
     :title="layerManager.confirmDialogConfig.value.title"
     :message="layerManager.confirmDialogConfig.value.message"
-    confirm-text="保存"
-    cancel-text="放弃"
+    confirm-text="保存图层"
+    cancel-text="直接清除"
     @confirm="layerManager.handleConfirmDialogConfirm"
     @cancel="layerManager.handleConfirmDialogCancel"
     @close="layerManager.handleConfirmDialogClose"
@@ -99,7 +143,8 @@ const layerManager = useLayerManager()
 const draw = ref<any>(null)
 const drawSource = ref<any>(null)
 const drawLayer = ref<any>(null)
-const currentDrawType = ref<string>('None')
+const currentDrawType = ref<string | null>('None')
+let themeObserver: MutationObserver | null = null // 主题变化观察器
 
 const ol = window.ol
 
@@ -127,11 +172,117 @@ const zoomOut = () => {
 
 const toggleDistanceMeasure = () => {
   if (mapStore.distanceMeasureMode) {
+    // 停止距离测量
     mapStore.stopDistanceMeasure()
     analysisStore.setDistanceMeasureMode(false)
   } else {
+    // 如果面积测量正在运行，先停止它
+    if (mapStore.areaMeasureMode) {
+      mapStore.stopAreaMeasure()
+      analysisStore.setAreaMeasureMode(false)
+    }
+    // 启动距离测量
     mapStore.startDistanceMeasure()
     analysisStore.setDistanceMeasureMode(true)
+  }
+}
+
+const toggleOverviewMap = () => {
+  mapStore.toggleOverviewMap()
+}
+
+const toggleAreaMeasure = () => {
+  if (mapStore.areaMeasureMode) {
+    // 停止面积测量
+    mapStore.stopAreaMeasure()
+    analysisStore.setAreaMeasureMode(false)
+  } else {
+    // 如果距离测量正在运行，先停止它
+    if (mapStore.distanceMeasureMode) {
+      mapStore.stopDistanceMeasure()
+      analysisStore.setDistanceMeasureMode(false)
+    }
+    // 启动面积测量
+    mapStore.startAreaMeasure()
+    analysisStore.setAreaMeasureMode(true)
+  }
+}
+
+// 更新绘制图层样式的函数
+const updateDrawLayerStyle = () => {
+  if (!drawLayer.value) return
+  
+  try {
+    const ol = window.ol
+    
+    // 重新获取绘制线条颜色
+    const drawColor = getComputedStyle(document.documentElement).getPropertyValue('--measure-line-color').trim() || '#212529'
+    const drawRgb = getComputedStyle(document.documentElement).getPropertyValue('--measure-line-rgb').trim() || '33, 37, 41'
+    
+    console.log('更新绘制图层样式，颜色:', drawColor, 'RGB:', drawRgb)
+    
+    // 创建新样式
+    const newStyle = new ol.style.Style({
+      stroke: new ol.style.Stroke({
+        color: drawColor,
+        width: 3,
+        lineCap: 'round',
+        lineJoin: 'round'
+      }),
+      fill: new ol.style.Fill({
+        color: `rgba(${drawRgb}, 0.1)`
+      }),
+              image: new ol.style.Circle({
+          radius: 6,
+          fill: new ol.style.Fill({
+            color: drawColor
+          }),
+          stroke: new ol.style.Stroke({
+            color: getComputedStyle(document.documentElement).getPropertyValue('--panel').trim() || '#ffffff',
+            width: 2
+          })
+        })
+    })
+    
+    // 设置新样式
+    drawLayer.value.setStyle(newStyle)
+    
+    // 强制重绘
+    drawLayer.value.changed()
+    
+    console.log('绘制图层样式更新完成')
+  } catch (error) {
+    console.error('更新绘制图层样式失败:', error)
+  }
+}
+
+// 监听主题变化的函数
+const handleThemeChange = () => {
+  console.log('检测到主题变化，更新绘制图层样式')
+  updateDrawLayerStyle()
+}
+
+// 初始化主题变化监听
+const initThemeObserver = () => {
+  if (themeObserver) {
+    themeObserver.disconnect()
+  }
+  
+  themeObserver = new MutationObserver(handleThemeChange)
+  themeObserver.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['data-theme']
+  })
+  
+  console.log('主题变化监听器已初始化')
+}
+
+// 清理主题变化监听
+const cleanupThemeObserver = () => {
+  if (themeObserver) {
+    themeObserver.disconnect()
+    themeObserver = null
+    console.log('主题变化监听器已清理')
   }
 }
 
@@ -156,24 +307,32 @@ const initDrawLayer = () => {
     drawSource.value = new ol.source.Vector({ wrapX: false })
     console.log('绘制数据源创建成功:', drawSource.value)
     
+    // 获取绘制线条颜色
+    const drawColor = getComputedStyle(document.documentElement).getPropertyValue('--measure-line-color').trim() || '#212529'
+    const drawRgb = getComputedStyle(document.documentElement).getPropertyValue('--measure-line-rgb').trim() || '33, 37, 41'
+    
+    console.log('初始化绘制图层，颜色:', drawColor, 'RGB:', drawRgb)
+    
     // 创建绘制图层
     drawLayer.value = new ol.layer.Vector({
       source: drawSource.value,
       style: new ol.style.Style({
         stroke: new ol.style.Stroke({
-          color: '#ff0000',
-          width: 2
+          color: drawColor,
+          width: 3,
+          lineCap: 'round',
+          lineJoin: 'round'
         }),
         fill: new ol.style.Fill({
-          color: 'rgba(255, 0, 0, 0.1)'
+          color: `rgba(${drawRgb}, 0.1)`
         }),
         image: new ol.style.Circle({
           radius: 6,
           fill: new ol.style.Fill({
-            color: '#ff0000'
+            color: drawColor
           }),
           stroke: new ol.style.Stroke({
-            color: '#ffffff',
+            color: getComputedStyle(document.documentElement).getPropertyValue('--panel').trim() || '#ffffff',
             width: 2
           })
         })
@@ -188,6 +347,9 @@ const initDrawLayer = () => {
     mapStore.map.addLayer(drawLayer.value)
     console.log('绘制图层已添加到地图')
     
+    // 初始化主题变化监听
+    initThemeObserver()
+    
   } catch (error) {
     console.error('初始化绘制图层失败:', error)
   }
@@ -201,6 +363,12 @@ const startDraw = (type: 'Point' | 'LineString' | 'Polygon') => {
   
   if (!mapStore.map) {
     console.error('地图实例未准备好')
+    return
+  }
+  
+  // 检查是否处于测量模式，如果是则不允许绘制
+  if (mapStore.distanceMeasureMode || mapStore.areaMeasureMode) {
+    console.warn('当前处于测量模式，无法启动绘制工具')
     return
   }
   
@@ -277,44 +445,94 @@ const clearDrawInteraction = () => {
 // 清除绘制内容
 const clearDrawFeatures = () => {
   if (drawSource.value) {
-    // 检查是否处于绘制模式且有绘制内容
-    if (layerManager.isDrawingMode() && drawSource.value.getFeatures().length > 0) {
-      // 使用图层管理器的处理逻辑
-      layerManager.handleDrawClear()
+    const features = drawSource.value.getFeatures()
+    
+    // 检查是否有绘制内容
+    if (features.length > 0) {
+      // 显示确认对话框询问是否保存
+      layerManager.showConfirmDialog(
+        '保存绘制内容',
+        `您已绘制了 ${features.length} 个要素，是否要保存为图层？`,
+        async () => {
+          // 用户确认保存
+          console.log('用户确认保存绘制内容')
+          const success = await layerManager.saveDrawAsLayer()
+          if (success) {
+            console.log('绘制内容保存成功')
+            stopDraw()
+          }
+        },
+        () => {
+          // 用户取消，直接清除
+          console.log('用户取消保存，直接清除绘制内容')
+          drawSource.value.clear()
+          stopDraw()
+        }
+      )
     } else {
-      // 直接清除
+      // 没有绘制内容，直接清除
       drawSource.value.clear()
+      stopDraw()
+    }
+  } else {
+    stopDraw()
+  }
+}
+
+// 清理绘制图层
+const cleanupDrawLayer = () => {
+  console.log('清理绘制图层...')
+  
+  // 清理主题变化监听
+  cleanupThemeObserver()
+  
+  // 清除绘制交互
+  clearDrawInteraction()
+  
+  // 清除绘制图层
+  if (drawLayer.value && mapStore.map) {
+    try {
+      mapStore.map.removeLayer(drawLayer.value)
+      drawLayer.value = null
+      console.log('绘制图层已移除')
+    } catch (error) {
+      console.error('移除绘制图层失败:', error)
     }
   }
-  stopDraw()
+  
+  // 清除绘制数据源
+  if (drawSource.value) {
+    try {
+      drawSource.value.clear()
+      drawSource.value = null
+      console.log('绘制数据源已清理')
+    } catch (error) {
+      console.error('清理绘制数据源失败:', error)
+    }
+  }
+  
+  // 重置当前绘制类型
+  currentDrawType.value = null
+  
+  console.log('绘制图层清理完成')
 }
 
 // 组件挂载时初始化
 onMounted(() => {
   console.log('LayerAssistant组件已挂载')
   
-  // 检查地图是否已准备好
-  if (mapStore.map && mapStore.isMapReady) {
-    console.log('地图已准备好，立即初始化绘制图层')
-    initDrawLayer()
-  } else {
-    console.log('地图未准备好，等待地图初始化完成...')
-    // 监听地图状态变化
-    const checkMapReady = () => {
-      if (mapStore.map && mapStore.isMapReady) {
-        console.log('地图初始化完成，开始初始化绘制图层')
-        initDrawLayer()
-      } else {
-        setTimeout(checkMapReady, 500)
-      }
+  // 延迟初始化，确保地图已准备好
+  setTimeout(() => {
+    if (mapStore.isMapReady) {
+      initDrawLayer()
     }
-    checkMapReady()
-  }
+  }, 1000)
 })
 
 // 组件卸载时清理
 onUnmounted(() => {
-  clearDrawInteraction()
+  console.log('LayerAssistant组件即将卸载')
+  cleanupDrawLayer()
 })
 </script>
 
@@ -385,9 +603,19 @@ onUnmounted(() => {
   color: white;
 }
 
-.clear-btn:hover {
-  background: #dc3545;
+.overview-btn.active {
+  background: var(--accent);
   color: white;
+}
+
+.area-measure-btn.active {
+  background: var(--accent);
+  color: white;
+}
+
+.clear-btn:hover {
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-color);
 }
 
 .tool-separator {
@@ -398,6 +626,11 @@ onUnmounted(() => {
 }
 
 .measure-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.area-measure-icon {
   width: 16px;
   height: 16px;
 }

@@ -22,6 +22,9 @@ export const useAnalysisStore = defineStore('analysis', () => {
   // 距离量测模式状态
   const isDistanceMeasureMode = ref<boolean>(false)
   
+  // 面积量测模式状态
+  const isAreaMeasureMode = ref<boolean>(false)
+  
   // Actions
   function setAnalysisStatus(status: string) {
     analysisStatus.value = status
@@ -64,6 +67,11 @@ export const useAnalysisStore = defineStore('analysis', () => {
     isDistanceMeasureMode.value = mode
   }
   
+  // 面积量测模式控制
+  function setAreaMeasureMode(mode: boolean) {
+    isAreaMeasureMode.value = mode
+  }
+  
   return {
     // State
     analysisStatus,
@@ -72,6 +80,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     selectionMode,
     currentLayer,
     isDistanceMeasureMode,
+    isAreaMeasureMode,
     
     // Actions
     setAnalysisStatus,
@@ -81,6 +90,7 @@ export const useAnalysisStore = defineStore('analysis', () => {
     setDrawMode,
     setSelectionMode,
     setCurrentLayer,
-    setDistanceMeasureMode
+    setDistanceMeasureMode,
+    setAreaMeasureMode
   }
 })

@@ -167,7 +167,7 @@ watch(() => analysisStore.toolPanel.activeTool, (tool) => {
 .result-title {
   font-size: 14px;
   font-weight: 600;
-  color: #28a745;
+  color: var(--text);
   margin-bottom: 12px;
 }
 

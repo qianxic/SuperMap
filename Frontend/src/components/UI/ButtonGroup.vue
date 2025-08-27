@@ -44,15 +44,18 @@ button {
   border-radius: 8px;
   font-size: 13px;
   font-weight: 500;
+  font-family: "Segoe UI", PingFang SC, Microsoft YaHei, Arial, sans-serif;
+  transition: all 0.2s ease;
 }
 
 button.active {
   background-color: var(--accent);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(0, 120, 212, 0.3);
+  box-shadow: 0 2px 8px rgba(var(--accent-rgb), 0.3);
 }
 
 button:not(.active):hover {
   color: var(--text);
+  background-color: var(--surface-hover);
 }
 </style>

@@ -17,7 +17,11 @@ const mapStore = useMapStore()
   z-index: 1000;
   font-family: monospace;
   font-size: 12px;
-  color: var(--accent);
+  color: var(--text);
   text-shadow: 0 0 8px rgba(66,165,245,0.35);
+  background: var(--panel);
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
 }
 </style>

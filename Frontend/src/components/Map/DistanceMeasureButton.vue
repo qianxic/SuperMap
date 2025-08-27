@@ -45,31 +45,32 @@ const toggleDistanceMeasure = () => {
   width: 40px;
   height: 40px;
   padding: 0;
-  background: white;
-  border: 1px solid #d0d7de;
+  background: var(--panel);
+  border: 1px solid var(--border);
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
-  color: #24292f;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  color: var(--text);
+  box-shadow: var(--glow);
   transition: all 0.2s ease;
 }
 
 .measure-btn:hover {
-  background: #f6f8fa;
-  border-color: #0969da;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.15);
+  background: var(--surface-hover);
+  border-color: var(--accent);
+  box-shadow: var(--glow);
 }
 
 .measure-btn.active {
-  background: #0969da;
-  border-color: #0969da;
+  background: var(--accent);
+  border-color: var(--accent);
   color: white;
 }
 
 .measure-btn.active:hover {
-  background: #0858b9;
+  background: var(--accent);
+  opacity: 0.9;
 }
 
 .measure-icon {

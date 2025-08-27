@@ -276,9 +276,8 @@ export const useFeatureQueryStore = defineStore('featureQuery', () => {
     if (!highlightedFeature.value || !mapStore.selectLayer) return
     const source = mapStore.selectLayer.getSource()
     if (!source) return
-    const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#007bff'
-    const grayFillColor = getComputedStyle(document.documentElement).getPropertyValue('--map-select-fill').trim() || 'rgba(128, 128, 128, 0.3)'
-    const highlightColor = '#ff6b35'
+    const grayFillColor = getComputedStyle(document.documentElement).getPropertyValue('--map-select-fill').trim() || (document.documentElement.getAttribute('data-theme') === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(33, 37, 41, 0.15)')
+    const highlightColor = getComputedStyle(document.documentElement).getPropertyValue('--map-highlight-color').trim() || (document.documentElement.getAttribute('data-theme') === 'dark' ? '#ffffff' : '#000000')
     const createStyle = () => (feature: any) => {
       const isHighlight = isSameFeature(feature, highlightedFeature.value)
       const geom = feature.getGeometry(); if (!geom) return null
@@ -286,31 +285,31 @@ export const useFeatureQueryStore = defineStore('featureQuery', () => {
       const styleCtor = window.ol.style
       if (isHighlight) {
         switch (type) {
-          case 'Point':
-          case 'MultiPoint':
-            return new styleCtor.Style({ image: new styleCtor.Circle({ radius: 12, stroke: new styleCtor.Stroke({ color: highlightColor, width: 4 }), fill: new styleCtor.Fill({ color: 'rgba(255, 107, 53, 0.4)' }) }) })
-          case 'LineString':
-          case 'MultiLineString':
-            return new styleCtor.Style({ stroke: new styleCtor.Stroke({ color: highlightColor, width: 6, lineCap: 'round', lineJoin: 'round' }) })
-          case 'Polygon':
-          case 'MultiPolygon':
-            return new styleCtor.Style({ stroke: new styleCtor.Stroke({ color: highlightColor, width: 4 }), fill: new styleCtor.Fill({ color: 'rgba(255, 107, 53, 0.3)' }) })
-          default:
-            return new styleCtor.Style({ image: new styleCtor.Circle({ radius: 12, stroke: new styleCtor.Stroke({ color: highlightColor, width: 4 }), fill: new styleCtor.Fill({ color: 'rgba(255, 107, 53, 0.4)' }) }), stroke: new styleCtor.Stroke({ color: highlightColor, width: 4 }), fill: new styleCtor.Fill({ color: 'rgba(255, 107, 53, 0.3)' }) })
+                     case 'Point':
+           case 'MultiPoint':
+             return new styleCtor.Style({ image: new styleCtor.Circle({ radius: 12, stroke: new styleCtor.Stroke({ color: highlightColor, width: 4 }), fill: new styleCtor.Fill({ color: grayFillColor }) }) })
+           case 'LineString':
+           case 'MultiLineString':
+             return new styleCtor.Style({ stroke: new styleCtor.Stroke({ color: highlightColor, width: 6, lineCap: 'round', lineJoin: 'round' }) })
+           case 'Polygon':
+           case 'MultiPolygon':
+             return new styleCtor.Style({ stroke: new styleCtor.Stroke({ color: highlightColor, width: 4 }), fill: new styleCtor.Fill({ color: grayFillColor }) })
+           default:
+             return new styleCtor.Style({ image: new styleCtor.Circle({ radius: 12, stroke: new styleCtor.Stroke({ color: highlightColor, width: 4 }), fill: new styleCtor.Fill({ color: grayFillColor }) }), stroke: new styleCtor.Stroke({ color: highlightColor, width: 4 }), fill: new styleCtor.Fill({ color: grayFillColor }) })
         }
       } else {
         switch (type) {
           case 'Point':
           case 'MultiPoint':
-            return new styleCtor.Style({ image: new styleCtor.Circle({ radius: 8, stroke: new styleCtor.Stroke({ color: accentColor, width: 3 }), fill: new styleCtor.Fill({ color: grayFillColor }) }) })
+            return new styleCtor.Style({ image: new styleCtor.Circle({ radius: 8, stroke: new styleCtor.Stroke({ color: highlightColor, width: 3 }), fill: new styleCtor.Fill({ color: grayFillColor }) }) })
           case 'LineString':
           case 'MultiLineString':
-            return new styleCtor.Style({ stroke: new styleCtor.Stroke({ color: accentColor, width: 5, lineCap: 'round', lineJoin: 'round' }) })
+            return new styleCtor.Style({ stroke: new styleCtor.Stroke({ color: highlightColor, width: 5, lineCap: 'round', lineJoin: 'round' }) })
           case 'Polygon':
           case 'MultiPolygon':
-            return new styleCtor.Style({ stroke: new styleCtor.Stroke({ color: accentColor, width: 3 }), fill: new styleCtor.Fill({ color: grayFillColor }) })
+            return new styleCtor.Style({ stroke: new styleCtor.Stroke({ color: highlightColor, width: 3 }), fill: new styleCtor.Fill({ color: grayFillColor }) })
           default:
-            return new styleCtor.Style({ image: new styleCtor.Circle({ radius: 8, stroke: new styleCtor.Stroke({ color: accentColor, width: 3 }), fill: new styleCtor.Fill({ color: grayFillColor }) }), stroke: new styleCtor.Stroke({ color: accentColor, width: 3 }), fill: new styleCtor.Fill({ color: grayFillColor }) })
+            return new styleCtor.Style({ image: new styleCtor.Circle({ radius: 8, stroke: new styleCtor.Stroke({ color: highlightColor, width: 3 }), fill: new styleCtor.Fill({ color: grayFillColor }) }), stroke: new styleCtor.Stroke({ color: highlightColor, width: 3 }), fill: new styleCtor.Fill({ color: grayFillColor }) })
         }
       }
     }
@@ -320,8 +319,8 @@ export const useFeatureQueryStore = defineStore('featureQuery', () => {
 
   const removeHighlightFeature = () => {
     if (!mapStore.selectLayer) return
-    const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#007bff'
-    const grayFillColor = getComputedStyle(document.documentElement).getPropertyValue('--map-select-fill').trim() || 'rgba(128, 128, 128, 0.3)'
+    const highlightColor = getComputedStyle(document.documentElement).getPropertyValue('--map-highlight-color').trim() || (document.documentElement.getAttribute('data-theme') === 'dark' ? '#ffffff' : '#000000')
+    const grayFillColor = getComputedStyle(document.documentElement).getPropertyValue('--map-select-fill').trim() || (document.documentElement.getAttribute('data-theme') === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(33, 37, 41, 0.15)')
     const restore = (feature: any) => {
       const geom = feature.getGeometry(); if (!geom) return null
       const type = geom.getType()
@@ -329,15 +328,15 @@ export const useFeatureQueryStore = defineStore('featureQuery', () => {
       switch (type) {
         case 'Point':
         case 'MultiPoint':
-          return new styleCtor.Style({ image: new styleCtor.Circle({ radius: 8, stroke: new styleCtor.Stroke({ color: accentColor, width: 3 }), fill: new styleCtor.Fill({ color: grayFillColor }) }) })
+          return new styleCtor.Style({ image: new styleCtor.Circle({ radius: 8, stroke: new styleCtor.Stroke({ color: highlightColor, width: 3 }), fill: new styleCtor.Fill({ color: grayFillColor }) }) })
         case 'LineString':
         case 'MultiLineString':
-          return new styleCtor.Style({ stroke: new styleCtor.Stroke({ color: accentColor, width: 5, lineCap: 'round', lineJoin: 'round' }) })
+          return new styleCtor.Style({ stroke: new styleCtor.Stroke({ color: highlightColor, width: 5, lineCap: 'round', lineJoin: 'round' }) })
         case 'Polygon':
         case 'MultiPolygon':
-          return new styleCtor.Style({ stroke: new styleCtor.Stroke({ color: accentColor, width: 3 }), fill: new styleCtor.Fill({ color: grayFillColor }) })
+          return new styleCtor.Style({ stroke: new styleCtor.Stroke({ color: highlightColor, width: 3 }), fill: new styleCtor.Fill({ color: grayFillColor }) })
         default:
-          return new styleCtor.Style({ image: new styleCtor.Circle({ radius: 8, stroke: new styleCtor.Stroke({ color: accentColor, width: 3 }), fill: new styleCtor.Fill({ color: grayFillColor }) }), stroke: new styleCtor.Stroke({ color: accentColor, width: 3 }), fill: new styleCtor.Fill({ color: grayFillColor }) })
+          return new styleCtor.Style({ image: new styleCtor.Circle({ radius: 8, stroke: new styleCtor.Stroke({ color: highlightColor, width: 3 }), fill: new styleCtor.Fill({ color: grayFillColor }) }), stroke: new styleCtor.Stroke({ color: highlightColor, width: 3 }), fill: new styleCtor.Fill({ color: grayFillColor }) })
       }
     }
     mapStore.selectLayer.setStyle(restore)

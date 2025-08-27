@@ -115,6 +115,11 @@
           :loading="isQuerying"
         />
         <SecondaryButton 
+          text="另存为图层"
+          @click="saveQueryResultsAsLayer"
+          :disabled="queryResults.length === 0"
+        />
+        <SecondaryButton 
           text="反选当前要素"
           @click="invertSelectedLayer"
           :disabled="isQuerying"
@@ -137,6 +142,7 @@ import { computed, onMounted, onUnmounted, watch, ref } from 'vue'
 import { useAnalysisStore } from '@/stores/analysisStore.ts'
 import { useFeatureQueryStore } from '@/stores/featureQueryStore.ts'
 import { useModeStateStore } from '@/stores/modeStateStore.ts'
+import { useLayerManager } from '@/composables/useLayerManager'
 import { getFeatureCompleteInfo, getFeatureGeometryDescription } from '@/utils/featureUtils'
 import DropdownSelect from '@/components/UI/DropdownSelect.vue'
 import SecondaryButton from '@/components/UI/SecondaryButton.vue'
@@ -149,6 +155,38 @@ import type { QueryCondition } from '@/types/query'
 const analysisStore = useAnalysisStore()
 const featureQuery = useFeatureQueryStore()
 const modeStateStore = useModeStateStore()
+
+// 使用图层管理 hook
+const { saveFeaturesAsLayer } = useLayerManager()
+
+// 生成基于SQL语句的图层名称
+const generateLayerNameFromQuery = () => {
+  const condition = queryConfig.value.condition
+  if (!condition || !condition.fieldName || !condition.value) {
+    return `属性查询_${new Date().toLocaleString()}`
+  }
+
+  // 获取图层名称
+  const layerName = getSelectedLayerName()
+  
+  // 获取操作符标签
+  const operatorLabel = getOperatorLabel(condition.operator)
+  
+  // 拼接图层名称：图层名称 字段 条件 值
+  const sqlLayerName = `${layerName} ${condition.fieldName} ${operatorLabel} ${condition.value}`
+  
+  return sqlLayerName
+}
+
+// 保存查询结果为图层
+const saveQueryResultsAsLayer = async () => {
+  if (queryResults.value.length === 0) {
+    return
+  }
+
+  const layerName = generateLayerNameFromQuery()
+  await saveFeaturesAsLayer(queryResults.value, layerName, 'query')
+}
  
 
 // 状态管理

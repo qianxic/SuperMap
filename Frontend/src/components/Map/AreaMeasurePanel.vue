@@ -1,15 +1,15 @@
 <template>
-  <div class="distance-measure-panel" v-if="mapStore.distanceMeasureMode">
+  <div class="area-measure-panel" v-if="mapStore.areaMeasureMode">
     <div class="panel-content">
       <div class="measure-instructions">
-        <p>请在地图上绘制线段进行距离量算</p>
+        <p>请在地图上绘制多边形进行面积量算</p>
         <p>双击结束绘制</p>
       </div>
       
-      <div class="measure-result" v-if="mapStore.distanceMeasureResult">
+      <div class="measure-result" v-if="mapStore.areaMeasureResult">
         <div class="result-item">
-          <span class="label">距离:</span>
-          <span class="value">{{ formatDistance(mapStore.distanceMeasureResult.distance, mapStore.distanceMeasureResult.unit).value }} {{ formatDistance(mapStore.distanceMeasureResult.distance, mapStore.distanceMeasureResult.unit).unit }}</span>
+          <span class="label">面积:</span>
+          <span class="value">{{ formatArea(mapStore.areaMeasureResult.area, mapStore.areaMeasureResult.unit).value }} {{ formatArea(mapStore.areaMeasureResult.area, mapStore.areaMeasureResult.unit).unit }}</span>
         </div>
       </div>
       
@@ -31,31 +31,25 @@ import { useMapStore } from '@/stores/mapStore'
 const mapStore = useMapStore()
 
 const stopMeasure = () => {
-  mapStore.stopDistanceMeasure()
+  mapStore.stopAreaMeasure()
 }
 
 const clearMeasure = () => {
-  mapStore.clearDistanceMeasure()
+  mapStore.clearAreaMeasure()
 }
 
-const formatDistance = (distance: number, unit: string): { value: string; unit: string } => {
-  if (unit === 'METER' && distance >= 1000) {
-    return {
-      value: (distance / 1000).toFixed(2),
-      unit: '千米'
-    }
-  }
+const formatArea = (area: number, unit: string): { value: string; unit: string } => {
   return {
-    value: distance.toFixed(2),
-    unit: unit === 'METER' ? '米' : unit
+    value: area.toFixed(4),
+    unit: '平方千米'
   }
 }
 </script>
 
 <style scoped>
-.distance-measure-panel {
+.area-measure-panel {
   position: absolute;
-  top: 128px;
+  top: 164px;
   left: 56px;
   width: 200px;
   background: var(--panel);
@@ -64,8 +58,6 @@ const formatDistance = (distance: number, unit: string): { value: string; unit: 
   z-index: 1000;
   border: 1px solid var(--border);
 }
-
-
 
 .panel-content {
   padding: 12px;

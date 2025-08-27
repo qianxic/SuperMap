@@ -125,7 +125,7 @@ onUnmounted(() => {
 
 .scale-line {
   height: 3px;
-  background: var(--accent);
+  background: var(--text);
   border-radius: 2px;
   box-shadow: 0 0 8px rgba(66,165,245,0.35);
   margin-bottom: 4px;
@@ -139,7 +139,7 @@ onUnmounted(() => {
   top: -2px;
   bottom: -2px;
   width: 2px;
-  background: var(--accent);
+  background: var(--text);
   border-radius: 1px;
 }
 
@@ -154,8 +154,12 @@ onUnmounted(() => {
 .scale-text {
   font-family: monospace;
   font-size: 12px;
-  color: var(--accent);
+  color: var(--text);
   text-shadow: 0 0 8px rgba(66,165,245,0.35);
   white-space: nowrap;
+  background: var(--panel);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
 }
 </style>

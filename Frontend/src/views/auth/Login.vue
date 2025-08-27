@@ -53,6 +53,9 @@
       <div class="login-footer">
         <p>默认账户：admin / admin@example.com / 13800138000 / 123456</p>
         <p>还没有账户？ <router-link to="/register" class="register-link">立即注册</router-link></p>
+        <p v-if="hasLoginHistory" class="history-link">
+          <a href="#" @click.prevent="showLoginHistory" class="history-text">查看登录历史</a>
+        </p>
       </div>
     </div>
   </div>
@@ -70,6 +73,7 @@ const account = ref('')
 const password = ref('')
 const rememberPassword = ref(false)
 const loading = ref(false)
+const hasLoginHistory = ref(false)
 
 // 验证是否为邮箱格式
 const isValidEmail = (email: string): boolean => {
@@ -97,11 +101,53 @@ const getAccountType = (account: string): 'username' | 'email' | 'phone' => {
 onMounted(() => {
   // 如果之前记住了密码，自动填充
   const rememberedUser = localStorage.getItem('rememberedUser')
+  const rememberedPassword = localStorage.getItem('rememberedPassword')
   if (rememberedUser) {
     account.value = rememberedUser
     rememberPassword.value = true
+    // 如果之前保存了密码，自动填充密码
+    if (rememberedPassword) {
+      password.value = rememberedPassword
+    }
   }
+  
+  // 检查是否有登录历史记录
+  const loginHistory = JSON.parse(localStorage.getItem('loginHistory') || '[]')
+  hasLoginHistory.value = loginHistory.length > 0
 })
+
+// 显示登录历史记录
+const showLoginHistory = () => {
+  const loginHistory = JSON.parse(localStorage.getItem('loginHistory') || '[]')
+  
+  if (loginHistory.length === 0) {
+    window.dispatchEvent(new CustomEvent('showNotification', {
+      detail: {
+        title: '登录历史',
+        message: '暂无登录历史记录',
+        type: 'info',
+        duration: 3000
+      }
+    }))
+    return
+  }
+  
+  // 格式化历史记录显示
+  const historyText = loginHistory.map((record: any, index: number) => {
+    const date = new Date(record.loginTime).toLocaleString('zh-CN')
+    return `${index + 1}. ${record.account} (${record.accountType}) - ${date}`
+  }).join('\n')
+  
+  // 显示历史记录
+  window.dispatchEvent(new CustomEvent('showNotification', {
+    detail: {
+      title: '登录历史记录',
+      message: historyText,
+      type: 'info',
+      duration: 5000
+    }
+  }))
+}
 
 const handleLogin = async () => {
   loading.value = true
@@ -162,12 +208,43 @@ const handleLogin = async () => {
       // 使用store管理登录状态
       userStore.login(userData, token)
       
-      // 记住密码
+      // 记住密码功能
       if (rememberPassword.value) {
+        // 保存用户名和密码到本地存储
         localStorage.setItem('rememberedUser', account.value)
+        localStorage.setItem('rememberedPassword', password.value)
+        
+        // 保存登录历史记录
+        const loginHistory = JSON.parse(localStorage.getItem('loginHistory') || '[]')
+        const loginRecord = {
+          account: account.value,
+          accountType: accountType,
+          loginTime: new Date().toISOString(),
+          rememberPassword: true
+        }
+        
+        // 避免重复记录，如果相同账号已存在则更新
+        const existingIndex = loginHistory.findIndex((record: any) => record.account === account.value)
+        if (existingIndex !== -1) {
+          loginHistory[existingIndex] = loginRecord
+        } else {
+          loginHistory.push(loginRecord)
+        }
+        
+        // 限制历史记录数量，最多保存10条
+        if (loginHistory.length > 10) {
+          loginHistory.splice(0, loginHistory.length - 10)
+        }
+        
+        localStorage.setItem('loginHistory', JSON.stringify(loginHistory))
       } else {
+        // 清除记住的密码信息
         localStorage.removeItem('rememberedUser')
+        localStorage.removeItem('rememberedPassword')
       }
+      
+      // 设置默认模式为LLM模式
+      localStorage.setItem('currentMode', 'llm')
       
       // 异步显示登录成功通知（不阻挡页面切换）
       setTimeout(() => {
@@ -181,8 +258,8 @@ const handleLogin = async () => {
         }))
       }, 100)
       
-      // 跳转到地图系统
-      router.push('/dashboard')
+      // 跳转到LLM模式
+      router.push('/dashboard/llm')
     } else {
       // 使用全局通知显示错误
       window.dispatchEvent(new CustomEvent('showNotification', {
@@ -419,6 +496,22 @@ const handleLogin = async () => {
 
 .register-link:hover {
   color: rgba(var(--accent-rgb), 0.8);
+  text-decoration: underline;
+}
+
+.history-link {
+  margin-top: 8px;
+}
+
+.history-text {
+  color: var(--sub);
+  text-decoration: none;
+  font-size: 12px;
+  transition: color 0.2s ease;
+}
+
+.history-text:hover {
+  color: var(--accent);
   text-decoration: underline;
 }
 

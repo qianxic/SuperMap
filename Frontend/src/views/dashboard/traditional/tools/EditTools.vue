@@ -53,6 +53,11 @@
           @click="invertSelectedLayer"
         />
         <SecondaryButton 
+          text="另存为图层"
+          @click="saveSelectedAsLayer"
+          :disabled="selectedFeatures.length === 0"
+        />
+        <SecondaryButton 
           text="清除选择"
           variant="danger"
           @click="clearSelection"
@@ -73,6 +78,7 @@ import { watch, computed, onMounted, onUnmounted } from 'vue'
 import { useAnalysisStore } from '@/stores/analysisStore.ts'
 import { useMapStore } from '@/stores/mapStore.ts'
 import { useFeatureSelection } from '@/composables/useFeatureSelection'
+import { useLayerManager } from '@/composables/useLayerManager'
 import { getFeatureCompleteInfo } from '@/utils/featureUtils'
 import SecondaryButton from '@/components/UI/SecondaryButton.vue'
 import PanelWindow from '@/components/UI/PanelWindow.vue'
@@ -94,6 +100,19 @@ const {
   getFeatureCoords,
   getFeatureGeometryInfo
 } = useFeatureSelection()
+
+// 使用图层管理 hook
+const { saveFeaturesAsLayer } = useLayerManager()
+
+// 保存选中要素为图层
+const saveSelectedAsLayer = async () => {
+  if (selectedFeatures.value.length === 0) {
+    return
+  }
+
+  const layerName = `区域选择_${new Date().toLocaleString()}`
+  await saveFeaturesAsLayer(selectedFeatures.value, layerName, 'area')
+}
 
 // 选中要素的详细信息
 const selectedFeatureInfo = computed(() => {

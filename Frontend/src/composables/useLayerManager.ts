@@ -351,21 +351,16 @@ export function useLayerManager() {
 
 
 
-  // 将绘制内容保存为GeoJSON图层
-  const saveDrawAsLayer = async () => {
-    console.log('开始保存绘制内容...')
+  // 通用保存要素为图层的插槽函数
+  const saveFeaturesAsLayer = async (
+    features: any[], 
+    layerName: string, 
+    sourceType: 'draw' | 'area' | 'query' = 'draw'
+  ) => {
+    console.log(`开始保存${sourceType}要素为图层: ${layerName}`)
     
-    const drawSource = getDrawLayerSource()
-    if (!drawSource) {
-      console.warn('未找到绘制图层数据源')
-      return false
-    }
-
-    const features = drawSource.getFeatures()
-    console.log('绘制要素数量:', features.length)
-    
-    if (features.length === 0) {
-      console.warn('绘制图层中没有要素')
+    if (!features || features.length === 0) {
+      console.warn('没有要素可保存')
       return false
     }
 
@@ -422,7 +417,7 @@ export function useLayerManager() {
           
           return {
             type: 'Feature',
-            id: `draw_${Date.now()}_${index}`,
+            id: `${sourceType}_${Date.now()}_${index}`,
             geometry: {
               type: geometryType,
               coordinates: coordinates
@@ -430,9 +425,9 @@ export function useLayerManager() {
             properties: {
               ...properties,
               ...geometricProperties,
-              drawType: analysisStore.drawMode,
-              drawTime: new Date().toISOString(),
-              layerName: `绘制图层_${new Date().toLocaleString()}`
+              sourceType: sourceType,
+              saveTime: new Date().toISOString(),
+              layerName: layerName
             }
           }
         }).filter(Boolean) // 过滤掉null值
@@ -448,40 +443,110 @@ export function useLayerManager() {
         })
       })
 
+      // 根据来源类型设置不同的样式
+      const getLayerStyle = () => {
+        const highlightColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || (document.documentElement.getAttribute('data-theme') === 'dark' ? '#000000' : '#212529')
+        
+        switch (sourceType) {
+          case 'draw':
+            return new ol.style.Style({
+              stroke: new ol.style.Stroke({
+                color: '#ff0000',
+                width: 2
+              }),
+              fill: new ol.style.Fill({
+                color: 'rgba(255, 0, 0, 0.1)'
+              }),
+              image: new ol.style.Circle({
+                radius: 6,
+                fill: new ol.style.Fill({
+                  color: '#ff0000'
+                }),
+                stroke: new ol.style.Stroke({
+                  color: getComputedStyle(document.documentElement).getPropertyValue('--panel').trim() || '#ffffff',
+                  width: 2
+                })
+              })
+            })
+          case 'area':
+            return new ol.style.Style({
+              stroke: new ol.style.Stroke({
+                color: '#ff0000',
+                width: 2
+              }),
+              fill: new ol.style.Fill({
+                color: 'rgba(255, 0, 0, 0.1)'
+              }),
+              image: new ol.style.Circle({
+                radius: 6,
+                fill: new ol.style.Fill({
+                  color: '#ff0000'
+                }),
+                stroke: new ol.style.Stroke({
+                  color: getComputedStyle(document.documentElement).getPropertyValue('--panel').trim() || '#ffffff',
+                  width: 2
+                })
+              })
+            })
+          case 'query':
+            return new ol.style.Style({
+              stroke: new ol.style.Stroke({
+                color: '#0000ff',
+                width: 2
+              }),
+              fill: new ol.style.Fill({
+                color: 'rgba(0, 0, 255, 0.1)'
+              }),
+              image: new ol.style.Circle({
+                radius: 6,
+                fill: new ol.style.Fill({
+                  color: '#0000ff'
+                }),
+                stroke: new ol.style.Stroke({
+                  color: getComputedStyle(document.documentElement).getPropertyValue('--panel').trim() || '#ffffff',
+                  width: 2
+                })
+              })
+            })
+          default:
+            return new ol.style.Style({
+              stroke: new ol.style.Stroke({
+                color: highlightColor,
+                width: 2
+              }),
+              fill: new ol.style.Fill({
+                color: `rgba(0, 123, 255, 0.1)`
+              }),
+              image: new ol.style.Circle({
+                radius: 6,
+                fill: new ol.style.Fill({
+                  color: highlightColor
+                }),
+                stroke: new ol.style.Stroke({
+                  color: getComputedStyle(document.documentElement).getPropertyValue('--panel').trim() || '#ffffff',
+                  width: 2
+                })
+              })
+            })
+        }
+      }
+
       const newLayer = new ol.layer.Vector({
         source: newSource,
-        style: new ol.style.Style({
-          stroke: new ol.style.Stroke({
-            color: '#ff0000',
-            width: 2
-          }),
-          fill: new ol.style.Fill({
-            color: 'rgba(255, 0, 0, 0.1)'
-          }),
-          image: new ol.style.Circle({
-            radius: 6,
-            fill: new ol.style.Fill({
-              color: '#ff0000'
-            }),
-            stroke: new ol.style.Stroke({
-              color: '#ffffff',
-              width: 2
-            })
-          })
-        })
+        style: getLayerStyle()
       })
 
       // 设置图层标识
       newLayer.set('isDrawLayer', false)
       newLayer.set('isSavedDrawLayer', true)
-      newLayer.set('layerName', geoJsonData.features[0]?.properties?.layerName || '绘制图层')
+      newLayer.set('layerName', layerName)
+      newLayer.set('sourceType', sourceType)
 
       // 添加到地图
       mapStore.map.addLayer(newLayer)
 
       // 添加到图层管理列表
-      const layerId = `draw_${Date.now()}`
-      const layerName = geoJsonData.features[0]?.properties?.layerName || '绘制图层'
+      const layerId = `${sourceType}_${Date.now()}`
       
       const layerInfo = {
         id: layerId,
@@ -498,16 +563,13 @@ export function useLayerManager() {
       // 强制触发响应式更新
       mapStore.vectorLayers = [...mapStore.vectorLayers]
 
-      // 清除原始绘制内容
-      drawSource.clear()
-
-      console.log('绘制内容保存成功')
+      console.log(`${sourceType}要素保存成功`)
 
       // 显示成功通知
       window.dispatchEvent(new CustomEvent('showNotification', {
         detail: {
           title: '保存成功',
-          message: `已保存 ${features.length} 个绘制要素为新图层`,
+          message: `已保存 ${features.length} 个${sourceType}要素为新图层`,
           type: 'success',
           duration: 3000
         }
@@ -515,7 +577,7 @@ export function useLayerManager() {
 
       return true
     } catch (error: any) {
-      console.error('保存绘制内容失败:', error)
+      console.error(`保存${sourceType}要素失败:`, error)
       console.error('错误详情:', error?.message || '未知错误')
       console.error('错误堆栈:', error?.stack || '无堆栈信息')
       
@@ -523,7 +585,7 @@ export function useLayerManager() {
       window.dispatchEvent(new CustomEvent('showNotification', {
         detail: {
           title: '保存失败',
-          message: `保存绘制内容时发生错误: ${error?.message || '未知错误'}`,
+          message: `保存${sourceType}要素时发生错误: ${error?.message || '未知错误'}`,
           type: 'error',
           duration: 5000
         }
@@ -531,6 +593,39 @@ export function useLayerManager() {
       
       return false
     }
+  }
+
+  // 将绘制内容保存为GeoJSON图层（保持向后兼容）
+  const saveDrawAsLayer = async () => {
+    console.log('开始保存绘制内容...')
+    
+    const drawSource = getDrawLayerSource()
+    if (!drawSource) {
+      console.warn('未找到绘制图层数据源')
+      return false
+    }
+
+    const features = drawSource.getFeatures()
+    console.log('绘制要素数量:', features.length)
+    
+    if (features.length === 0) {
+      console.warn('绘制图层中没有要素')
+      return false
+    }
+
+    // 使用通用插槽函数保存绘制要素
+    const success = await saveFeaturesAsLayer(
+      features, 
+      `绘制图层_${new Date().toLocaleString()}`, 
+      'draw'
+    )
+
+    if (success) {
+      // 清除原始绘制内容
+      drawSource.clear()
+    }
+
+    return success
   }
 
   // 处理绘制模式下的清除操作
@@ -549,29 +644,18 @@ export function useLayerManager() {
       return
     }
 
-    // 显示确认对话框
-    showConfirmDialog(
-      '保存绘制内容',
-      `检测到您有 ${features.length} 个绘制要素，是否要保存为新的图层？`,
-      () => {
-        // 用户选择保存
-        saveDrawAsLayer()
-      },
-      () => {
-        // 用户选择放弃，直接清除
-        drawSource.clear()
-        
-        // 显示通知
-        window.dispatchEvent(new CustomEvent('showNotification', {
-          detail: {
-            title: '已清除',
-            message: '绘制内容已清除',
-            type: 'info',
-            duration: 2000
-          }
-        }))
+    // 直接清除绘制内容，不提示保存
+    drawSource.clear()
+    
+    // 显示通知
+    window.dispatchEvent(new CustomEvent('showNotification', {
+      detail: {
+        title: '已清除',
+        message: '绘制内容已清除',
+        type: 'info',
+        duration: 2000
       }
-    )
+    }))
   }
 
   return {
@@ -585,7 +669,11 @@ export function useLayerManager() {
     handleDrawClear,
     saveDrawAsLayer,
 
+    // 通用保存功能
+    saveFeaturesAsLayer,
+
     // 确认对话框相关
+    showConfirmDialog,
     confirmDialogVisible,
     confirmDialogConfig,
     handleConfirmDialogConfirm,

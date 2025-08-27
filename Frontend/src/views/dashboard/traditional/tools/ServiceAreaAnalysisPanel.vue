@@ -137,7 +137,7 @@ watch(() => analysisStore.toolPanel.activeTool, (tool) => {
 .form-label { font-size: 12px; color: var(--sub); font-weight: 500; }
 
 .result-section { margin-top: 16px; padding: 16px; background: rgba(40, 167, 69, 0.05); border: 1px solid rgba(40, 167, 69, 0.2); border-radius: 8px; }
-.result-title { font-size: 14px; font-weight: 600; color: #28a745; margin-bottom: 12px; }
+.result-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 12px; }
 .result-item { display: flex; justify-content: space-between; margin-bottom: 8px; }
 .result-item:last-child { margin-bottom: 0; }
 .result-label { font-size: 13px; color: var(--sub); font-weight: 500; }

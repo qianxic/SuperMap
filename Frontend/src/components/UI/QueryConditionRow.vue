@@ -220,12 +220,12 @@ watch(() => props.condition.operator, () => {
 }
 
 .validation-success {
-  color: #28a745;
+  color: var(--text);
   background: rgba(40, 167, 69, 0.1);
 }
 
 .validation-warning {
-  color: #ffc107;
+  color: var(--text);
   background: rgba(255, 193, 7, 0.1);
 }
 

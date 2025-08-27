@@ -88,7 +88,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, provide, onMounted, computed } from 'vue'
+import { ref, provide, onMounted, computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import ButtonGroup from '@/components/UI/ButtonGroup.vue'
@@ -241,10 +241,35 @@ const setMode = (modeId: 'traditional' | 'llm') => {
   }
 };
 
-// 初始化主题
+// 初始化主题和模式状态
 onMounted(() => {
   applySystemTheme()
   setupSystemThemeListener()
+  
+  // 确保模式状态与当前路由同步
+  const currentPath = router.currentRoute.value.path
+  if (currentPath.includes('/dashboard/llm')) {
+    if (modeStateStore.currentMode !== 'llm') {
+      modeStateStore.switchMode('llm')
+    }
+  } else if (currentPath.includes('/dashboard/traditional')) {
+    if (modeStateStore.currentMode !== 'traditional') {
+      modeStateStore.switchMode('traditional')
+    }
+  }
+})
+
+// 监听路由变化，同步模式状态
+watch(() => router.currentRoute.value.path, (newPath) => {
+  if (newPath.includes('/dashboard/llm')) {
+    if (modeStateStore.currentMode !== 'llm') {
+      modeStateStore.switchMode('llm')
+    }
+  } else if (newPath.includes('/dashboard/traditional')) {
+    if (modeStateStore.currentMode !== 'traditional') {
+      modeStateStore.switchMode('traditional')
+    }
+  }
 })
 
 </script>
@@ -269,8 +294,10 @@ onMounted(() => {
 .screen-title {
   font-size: 20px;
   font-weight: 700;
-  color: var(--accent);
+  color: var(--text);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  font-family: "Segoe UI", PingFang SC, Microsoft YaHei, Arial, sans-serif;
+  transition: color 0.2s ease;
 }
 
 .header-left {
@@ -305,7 +332,6 @@ onMounted(() => {
 .user-dropdown {
   position: relative;
 }
-
 
 
 .user-menu {

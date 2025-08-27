@@ -9,30 +9,44 @@
     <!-- 地图图层管理 -->
     <div class="analysis-section">
       <div class="section-title">地图图层管理</div>
-      <div class="layer-list" :class="{ empty: groupedLayers.length === 0 }">
-        <div v-if="groupedLayers.length === 0" class="empty-state">
-          <div class="empty-icon">🗺️</div>
-          <div class="empty-text">暂无图层加载</div>
-          <div class="empty-desc">地图图层正在加载中，请稍候...</div>
-        </div>
-        <div class="layer-group" v-for="group in groupedLayers" :key="group.name">
-          <div class="group-title">{{ group.name }}</div>
-          <div class="group-items">
-            <div class="layer-item" v-for="item in group.items" :key="item.key">
-              <div class="layer-info">
-                <div class="layer-name">{{ item.displayName }}</div>
-                <div class="layer-desc">{{ item.desc }}</div>
+      <div class="layer-list-container">
+        <div class="layer-list" :class="{ empty: groupedLayers.length === 0 }">
+          <div v-if="groupedLayers.length === 0" class="empty-state">
+            <div class="empty-icon">🗺️</div>
+            <div class="empty-text">暂无图层加载</div>
+            <div class="empty-desc">地图图层正在加载中，请稍候...</div>
+          </div>
+          
+          <!-- 按来源分类的图层组 -->
+          <div class="layer-group" v-for="group in groupedLayers" :key="group.source">
+            <div class="group-header" @click="toggleGroupCollapse(group.source)">
+              <div class="group-title">
+                <span class="collapse-icon" :class="{ collapsed: collapsedGroups[group.source] }">
+                  ▼
+                </span>
+                {{ getSourceDisplayName(group.source) }}
+                <span class="layer-count">({{ group.items.length }})</span>
               </div>
-              <div class="layer-operations">
-                <SecondaryButton
-                  :text="item.visible ? '隐藏' : '显示'"
-                  @click="handleToggleVisibility(item)"
-                />
-                <SecondaryButton
-                  text="移除"
-                  variant="danger"
-                  @click="handleRemove(item)"
-                />
+            </div>
+            
+            <!-- 可折叠的图层列表 -->
+            <div class="group-items" v-show="!collapsedGroups[group.source]">
+              <div class="layer-item" v-for="item in group.items" :key="item.key">
+                <div class="layer-info">
+                  <div class="layer-name">{{ item.displayName }}</div>
+                  <div class="layer-desc">{{ item.desc }}</div>
+                </div>
+                <div class="layer-operations">
+                  <SecondaryButton
+                    :text="item.visible ? '隐藏' : '显示'"
+                    @click="handleToggleVisibility(item)"
+                  />
+                  <SecondaryButton
+                    text="移除"
+                    variant="danger"
+                    @click="handleRemove(item)"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -44,7 +58,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useMapStore } from '@/stores/mapStore'
 import { useAnalysisStore } from '@/stores/analysisStore'
 import SecondaryButton from '@/components/UI/SecondaryButton.vue'
@@ -54,85 +68,87 @@ import PanelWindow from '@/components/UI/PanelWindow.vue'
 interface MapLayerItem {
   key: string;
   name: string;
+  displayName: string;
   desc: string;
   visible: boolean;
-  isVector?: boolean; // 标识是否为矢量图层
+  source: string;
 }
-
 
 const mapStore = useMapStore()
 const analysisStore = useAnalysisStore()
 const { toggleLayerVisibility, removeLayer } = useLayerManager()
 
-const groupedLayers = computed(() => {
-  const groups = [
-    { name: '行政区划', layers: ['武汉_县级'] },
-    { name: '交通设施', layers: ['公路', '铁路'] },
-    { name: '水系', layers: ['水系线', '水系面'] },
-    { name: '建筑物', layers: ['建筑物面'] },
-    { name: '地名点', layers: ['居民地地名点'] },
-    { name: '公共服务', layers: ['医院', '学校'] }
-  ]
+// 折叠状态管理
+const collapsedGroups = ref<Record<string, boolean>>({
+  supermap: false,
+  local: false,
+  external: false
+})
 
-  // 获取所有图层
-  const allLayers = mapStore.vectorLayers
+// 切换分组折叠状态
+const toggleGroupCollapse = (source: string) => {
+  collapsedGroups.value[source] = !collapsedGroups.value[source]
+}
 
-  // 分类处理图层
-  const groupedItems = groups.map(group => {
-    const items = allLayers
-      .filter(vl => group.layers.includes(vl.name))
-      .map(vl => ({
-        key: vl.id,
-        name: vl.name,
-        displayName: `${group.name} - ${vl.name}`,
-        desc: inferDesc(vl.name, vl.type),
-        visible: vl.layer.getVisible(),
-        source: vl.source
-      }))
-    return { name: group.name, items }
-  }).filter(group => group.items.length > 0)
-
-  // 添加绘制图层组
-  const drawLayers = allLayers.filter(vl => vl.source === 'local' || vl.layer.get('isSavedDrawLayer'))
-  if (drawLayers.length > 0) {
-    const drawItems = drawLayers.map(vl => ({
-      key: vl.id,
-      name: vl.name,
-      displayName: vl.name,
-      desc: '用户绘制的图层',
-      visible: vl.layer.getVisible(),
-      source: vl.source
-    }))
-    groupedItems.push({ name: '绘制图层', items: drawItems })
+// 获取来源显示名称
+const getSourceDisplayName = (source: string): string => {
+  const sourceNames: Record<string, string> = {
+    supermap: 'SuperMap 服务图层',
+    local: '本地绘制图层',
+    external: '外部图层'
   }
+  return sourceNames[source] || source
+}
 
-  // 添加其他未分类的图层
-  const categorizedLayers = new Set()
-  groups.forEach(group => {
-    group.layers.forEach(layerName => {
-      categorizedLayers.add(layerName)
-    })
-  })
+// 按来源分组的图层
+const groupedLayers = computed(() => {
+  const allLayers = mapStore.vectorLayers
   
-  const uncategorizedLayers = allLayers.filter(vl => 
-    !categorizedLayers.has(vl.name) && 
-    vl.source !== 'local' && 
-    !vl.layer.get('isSavedDrawLayer')
-  )
+  // 按来源分组
+  const groupedBySource: Record<string, MapLayerItem[]> = {
+    supermap: [],
+    local: [],
+    external: []
+  }
   
-  if (uncategorizedLayers.length > 0) {
-    const otherItems = uncategorizedLayers.map(vl => ({
+  allLayers.forEach(vl => {
+    const source = vl.source || 'external'
+    const item: MapLayerItem = {
       key: vl.id,
       name: vl.name,
       displayName: vl.name,
       desc: inferDesc(vl.name, vl.type),
       visible: vl.layer.getVisible(),
-      source: vl.source
+      source: source
+    }
+    
+    // 特殊处理本地图层的显示名称
+    if (source === 'local') {
+      const layerName = vl.layer.get('layerName') || vl.name
+      const sourceType = vl.layer.get('sourceType') || 'draw'
+      const sourceTypeNames: Record<string, string> = {
+        draw: '绘制',
+        area: '区域选择',
+        query: '属性查询'
+      }
+      item.displayName = `${sourceTypeNames[sourceType] || '本地'}: ${layerName}`
+      item.desc = '用户创建的图层'
+    }
+    
+    if (groupedBySource[source]) {
+      groupedBySource[source].push(item)
+    } else {
+      groupedBySource[source] = [item]
+    }
+  })
+  
+  // 转换为数组格式，只返回有图层的分组
+  return Object.entries(groupedBySource)
+    .filter(([_, items]) => items.length > 0)
+    .map(([source, items]) => ({
+      source,
+      items
     }))
-    groupedItems.push({ name: '其他图层', items: otherItems })
-  }
-
-  return groupedItems
 })
 
 function inferDesc(name: string, type: string): string {
@@ -152,9 +168,6 @@ const handleRemove = (item: MapLayerItem) => {
     removeLayer(item.key)
   }
 }
-
-
-
 </script>
 
 <style scoped>
@@ -175,6 +188,18 @@ const handleRemove = (item: MapLayerItem) => {
   /* 禁用动画，防止主题切换闪烁 */
   animation: none !important;
   margin-bottom: 16px;
+  /* 确保内容可以滚动 */
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.layer-list-container {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 /* 保留fadeIn动画定义但不使用 */
@@ -196,138 +221,167 @@ const handleRemove = (item: MapLayerItem) => {
   font-weight: 600;
   letter-spacing: 0.5px;
 }
-.layer-list { display: flex; flex-direction: column; gap: 8px; }
-.layer-list.empty { color: var(--sub); font-size: 12px; padding: 12px; background: rgba(255,255,255,0.04); border-radius: 12px; }
 
-.empty-state {
+.layer-list {
   display: flex;
   flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 4px;
+  /* 确保滚动条样式正确 */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.layer-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.layer-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.layer-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+.layer-list::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+.layer-list.empty {
   align-items: center;
   justify-content: center;
-  padding: 40px 20px;
+  min-height: 200px;
+  overflow: hidden;
+}
+
+.empty-state {
   text-align: center;
   color: var(--sub);
-  /* 禁用动画，防止主题切换闪烁 */
-  animation: none !important;
 }
 
 .empty-icon {
   font-size: 48px;
-  margin-bottom: 16px;
-  opacity: 0.6;
+  margin-bottom: 12px;
 }
 
 .empty-text {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 8px;
-  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 4px;
 }
 
 .empty-desc {
-  font-size: 14px;
+  font-size: 12px;
   opacity: 0.8;
 }
 
-.layer-container { display: flex; flex-direction: column; }
-
-.layer-item {
-  display: flex; 
-  align-items: center; 
-  justify-content: space-between;
+.layer-group {
   background: var(--btn-secondary-bg);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 10px 14px;
-  /* 禁用动画，防止主题切换闪烁 */
-  animation: none !important;
-  /* 禁用过渡动画 */
-  transition: none !important;
-}
-.layer-info { display: flex; flex-direction: column; }
-.layer-name { font-size: 13px; color: var(--text); font-weight: 500; }
-.layer-desc { font-size: 11px; color: var(--sub); margin-top: 2px; }
-.layer-operations { display: flex; gap: 6px; }
-
-/* 要素列表样式 */
-.feature-list {
-  margin-top: 8px;
-  margin-left: 12px;
-  padding-left: 12px;
-  border-left: 2px solid var(--border);
+  overflow: hidden;
 }
 
-.feature-header {
+.group-header {
+  padding: 12px 16px;
+  background: var(--surface-hover);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease;
+}
+
+.group-header:hover {
+  background: var(--surface-hover);
+}
+
+.group-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.collapse-icon {
+  font-size: 10px;
+  transition: transform 0.2s ease;
+  color: var(--accent);
+}
+
+.collapse-icon.collapsed {
+  transform: rotate(-90deg);
+}
+
+.layer-count {
   font-size: 11px;
   color: var(--sub);
-  margin-bottom: 6px;
-  font-weight: 500;
+  font-weight: normal;
 }
 
-.feature-empty {
-  font-size: 11px;
-  color: var(--sub);
-  font-style: italic;
-}
-
-.feature-items {
+.group-items {
+  padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 
-.feature-item {
-  background: var(--surface, rgba(255,255,255,0.03));
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 10px 14px;
+.layer-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  cursor: pointer;
-  animation: fadeIn 0.3s ease-out;
+  justify-content: space-between;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  transition: all 0.2s ease;
 }
 
+.layer-item:hover {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+}
 
-
-
-
-.feature-content {
+.layer-info {
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-width: 0;
 }
 
-.feature-ops {
-  margin-left: 8px;
-  flex-shrink: 0;
-  display: flex;
-  gap: 4px;
-}
-
-.feature-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2px;
-}
-
-.feature-name {
+.layer-name {
   font-size: 12px;
   color: var(--text);
+  font-weight: 500;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.feature-type {
-  font-size: 10px;
-  color: var(--accent);
-  background: rgba(66,165,245,0.15);
-  padding: 2px 8px;
-  border-radius: 8px;
-}
-
-.feature-props {
+.layer-desc {
   font-size: 10px;
   color: var(--sub);
-  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.layer-operations {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.layer-operations :deep(.secondary-button) {
+  font-size: 10px;
+  padding: 4px 8px;
+  min-width: auto;
 }
 </style>
 
