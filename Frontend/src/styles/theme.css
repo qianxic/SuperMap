@@ -50,6 +50,11 @@
   --layer-fill-武汉_县级: rgba(0, 0, 0, 0.1);
 }
 
+/* Fluid root font-size for responsive scaling */
+html {
+  font-size: clamp(12px, 0.9vw + 8px, 16px);
+}
+
 /* Windows-style dark theme */
 [data-theme="dark"] {
   /* ===== 基础颜色 ===== */
@@ -292,8 +297,8 @@
   color: var(--btn-primary-color) !important;
   border: 1px solid var(--border) !important;
   border-radius: 6px !important;
-  width: 28px !important;
-  height: 28px !important;
+  width: 1.75rem !important;
+  height: 1.75rem !important;
 }
 
 .ol-control button:hover {

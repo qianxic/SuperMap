@@ -257,7 +257,7 @@ onMounted(() => {
 })
 
 // 监听路由变化，同步模式状态
-watch(() => router.currentRoute.value.path, (newPath) => {
+watch(() => router.currentRoute.value.path, (newPath: string) => {
   if (newPath.includes('/dashboard/llm')) {
     if (modeStateStore.currentMode !== 'llm') {
       modeStateStore.switchMode('llm')
@@ -273,11 +273,11 @@ watch(() => router.currentRoute.value.path, (newPath) => {
 
 <style scoped>
 .screen-header {
-  height: 64px;
+  height: clamp(48px, 6vh, 64px);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
+  padding: 0 clamp(12px, 2vw, 24px);
   letter-spacing: 0.5px;
   background: var(--panel);
   border-bottom: 1px solid var(--border);
@@ -289,7 +289,7 @@ watch(() => router.currentRoute.value.path, (newPath) => {
 }
 
 .screen-title {
-  font-size: 20px;
+  font-size: clamp(16px, 1.6vw, 20px);
   font-weight: 700;
   color: var(--text);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);

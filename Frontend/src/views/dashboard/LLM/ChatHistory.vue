@@ -57,7 +57,7 @@
           @click="selectRecord(record.id)"
         >
           <div class="record-info">
-            <div class="record-title">第{{ index + 1 }}次对话</div>
+            <div class="record-title">第{{ sortedHistory.length - index }}次对话</div>
             <div class="record-desc">{{ formatDate(record.timestamp) }} · {{ record.messages ? record.messages.length : 0 }}条消息</div>
           </div>
           <div class="record-operations">
@@ -98,9 +98,10 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import PanelWindow from '@/components/UI/PanelWindow.vue'
 import ConfirmDialog from '@/components/UI/ConfirmDialog.vue'
-import SecondaryButton from '@/components/UI/SecondaryButton.vue'
+import { useModeStateStore } from '@/stores/modeStateStore'
 
 const router = useRouter()
+const modeStateStore = useModeStateStore()
 
 // 响应式数据
 const chatHistory = ref<any[]>([])
@@ -155,9 +156,27 @@ const selectRecord = (recordId: string) => {
 }
 
 const toggleRecord = (recordId: string) => {
-  // 这里可以添加切换记录状态的功能
-  console.log('切换记录:', recordId)
-  // 例如：切换记录的可见性、重要性等
+  const record = chatHistory.value.find(r => r.id === recordId)
+  if (!record) return
+
+  // 将所选历史对话写入 LLM 模式状态，并跳转回 LLM 模式
+  modeStateStore.saveLLMState({
+    messages: Array.isArray(record.messages) ? record.messages : [],
+    inputText: '',
+    scrollPosition: 0
+  })
+
+  // 可选：提示已切换
+  window.dispatchEvent(new CustomEvent('showNotification', {
+    detail: {
+      title: '已切换对话',
+      message: '已加载所选历史对话',
+      type: 'success',
+      duration: 2000
+    }
+  }))
+
+  router.push('/dashboard/llm')
 }
 
 const deleteRecord = (recordId: string) => {
@@ -279,8 +298,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 2rem;
+  height: 2rem;
   background: var(--btn-secondary-bg);
   color: var(--text);
   border: 1px solid var(--border);
@@ -382,8 +401,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 2rem;
+  height: 2rem;
   background: var(--btn-secondary-bg);
   color: var(--text);
   border: 1px solid var(--border);
@@ -392,9 +411,7 @@ onMounted(() => {
   transition: all 0.2s ease;
 }
 
-.record-icon-btn:hover:not(:disabled) {
-  /* 移除悬停变色效果 */
-}
+
 
 .record-icon-btn:disabled {
   opacity: 0.5;
@@ -531,7 +548,7 @@ onMounted(() => {
 }
 
 .table-body {
-  max-height: 400px;
+  max-height: min(400px, 45vh);
   overflow-y: auto;
 }
 
@@ -602,7 +619,7 @@ onMounted(() => {
 }
 
 .messages-container {
-  max-height: 400px;
+  max-height: min(400px, 45vh);
   overflow-y: auto;
   display: flex;
   flex-direction: column;

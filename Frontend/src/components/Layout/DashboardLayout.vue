@@ -98,7 +98,7 @@ const modal = useGlobalModalStore()
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--glow);
-  padding: 10px;
+  padding: 0.625rem;
   position: relative;
   overflow: hidden;
 }

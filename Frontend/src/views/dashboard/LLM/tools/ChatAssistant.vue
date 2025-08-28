@@ -160,12 +160,7 @@ const handleScroll = () => {
   }, 500);
 };
 
-// 优化的滚动到底部函数
-const scrollToBottom = () => {
-  if (shouldAutoScroll()) {
-    smoothScrollToBottom();
-  }
-};
+
 
 const renderMarkdown = (md: string): string => {
   const lines = md.split('\n');
@@ -224,7 +219,8 @@ const demoMessage = (): string => {
 }
 
 const maybeAnnounceInitialLayers = () => {
-  if (props.mapReady && !hasAnnounced.value) {
+  // 不再依赖地图是否 ready，确保可直接开始对话
+  if (!hasAnnounced.value) {
     messages.value.push({
       id: Date.now() + 2,
       text: demoMessage(),
@@ -300,10 +296,9 @@ watch([messages, newMessage], () => {
   saveLLMState();
 }, { deep: true });
 
-watch(() => props.mapReady, (ready) => {
-  if (ready) {
-    maybeAnnounceInitialLayers();
-  }
+// 地图就绪与否均可发送消息，保留监听但不做限制
+watch(() => props.mapReady, () => {
+  maybeAnnounceInitialLayers();
 });
 
 watch(messages, async () => {
@@ -328,9 +323,8 @@ const sendMessage = () => {
   });
 
   // 处理用户输入并生成AI响应
-  const userInput = message.toLowerCase();
   
-  let aiResponse = `我理解您的需求："${message}"，正在处理中...`;
+  let aiResponse = `我理解您的需求：正在处理中...`;
   
   // 添加AI响应
   messages.value.push({
