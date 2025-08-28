@@ -393,9 +393,7 @@ onMounted(() => {
 }
 
 .record-icon-btn:hover:not(:disabled) {
-  background: var(--surface-hover);
-  /* 移除黑色边框效果 */
-  transform: translateY(-1px);
+  /* 移除悬停变色效果 */
 }
 
 .record-icon-btn:disabled {
@@ -409,10 +407,6 @@ onMounted(() => {
   border-color: var(--border);
 }
 
-.record-icon-btn.danger:hover:not(:disabled) {
-  background: var(--surface-hover);
-  border-color: var(--border);
-}
 
 /* 加载状态样式 */
 .loading-container {
