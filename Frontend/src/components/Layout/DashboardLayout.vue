@@ -18,8 +18,8 @@
     </div>
 
     <!-- 全局窗口：个人中心 / Agent 管理 -->
-    <UserProfile v-if="modal.visible && modal.type === 'profile'" />
-    <AIManagement v-if="modal.visible && modal.type === 'agent'" />
+    <UserProfile v-if="globalModal.visible && globalModal.type === 'profile'" />
+    <AIManagement v-if="globalModal.visible && globalModal.type === 'agent'" />
   </div>
 </template>
 
@@ -33,7 +33,7 @@ import UserProfile from '@/views/profile/UserProfile.vue'
 import AIManagement from '@/views/management/AIManagement.vue'
 import { useGlobalModalStore } from '@/stores/modalStore'
 
-const modal = useGlobalModalStore()
+const globalModal = useGlobalModalStore()
 </script>
 
 <style>

@@ -114,7 +114,7 @@ const useMapStore = defineStore('map', () => {
   
   // 计算属性
   const formattedCoordinate = computed(() => {
-    if (!currentCoordinate.value.lon || !currentCoordinate.value.lat) {
+    if (currentCoordinate.value.lon === null || currentCoordinate.value.lat === null) {
       return '经度: -, 纬度: -'
     }
     return `经度: ${currentCoordinate.value.lon.toFixed(6)}, 纬度: ${currentCoordinate.value.lat.toFixed(6)}`
@@ -253,6 +253,10 @@ const useMapStore = defineStore('map', () => {
       lon: coordinate[0],
       lat: coordinate[1]
     }
+  }
+
+  function clearCoordinate() {
+    currentCoordinate.value = { lon: null, lat: null }
   }
   
   function getSelectedFeatures(): any[] { // ol.Feature[]
@@ -632,6 +636,7 @@ const useMapStore = defineStore('map', () => {
     getSelectedFeatures,
     clearAllLayers,
     reloadConfig,
+    clearCoordinate,
     // 距离量算方法
     startDistanceMeasure,
     stopDistanceMeasure,

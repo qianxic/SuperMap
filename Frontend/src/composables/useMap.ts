@@ -709,9 +709,27 @@ export function useMap() {
     
     const resizeHandler = () => map.updateSize()
     window.addEventListener('resize', resizeHandler)
+
+    // 鼠标离开地图容器时清空经纬度显示
+    const containerEl = mapContainer.value
+    const handleMouseLeave = () => {
+      try { mapStore.clearCoordinate() } catch (_) {}
+    }
+    if (containerEl) {
+      containerEl.addEventListener('mouseleave', handleMouseLeave)
+      containerEl.addEventListener('mouseout', (e) => {
+        const related = (e as MouseEvent).relatedTarget as Node | null
+        if (!related || (containerEl && !containerEl.contains(related))) {
+          handleMouseLeave()
+        }
+      })
+    }
     
     return () => {
       try { window.removeEventListener('resize', resizeHandler) } catch (_) {}
+      if (containerEl) {
+        try { containerEl.removeEventListener('mouseleave', handleMouseLeave) } catch (_) {}
+      }
     }
   }
 

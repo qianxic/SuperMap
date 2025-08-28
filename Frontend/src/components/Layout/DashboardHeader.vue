@@ -88,7 +88,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, provide, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import ButtonGroup from '@/components/UI/ButtonGroup.vue'
@@ -254,6 +254,20 @@ onMounted(() => {
       modeStateStore.switchMode('traditional')
     }
   }
+
+  // 预加载传统模式相关组件与重型依赖，降低首次切换延迟
+  setTimeout(() => {
+    void Promise.all([
+      import('@/views/dashboard/traditional/TraditionalMode.vue'),
+      import('@/views/dashboard/traditional/tools/LayerManager.vue'),
+      import('@/views/dashboard/traditional/tools/FeatureQueryPanel.vue'),
+      import('@/views/dashboard/traditional/tools/EditTools.vue'),
+      import('@/views/dashboard/traditional/tools/BufferAnalysisPanel.vue'),
+      import('@/views/dashboard/traditional/tools/DistanceAnalysisPanel.vue'),
+      import('@/views/dashboard/traditional/tools/ServiceAreaAnalysisPanel.vue'),
+      import('ol')
+    ]).catch(() => {})
+  }, 0)
 })
 
 // 监听路由变化，同步模式状态

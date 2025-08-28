@@ -44,6 +44,11 @@
   /* ===== 头像颜色 ===== */
   --avatar-ai-bg: #212529;
   --avatar-user-bg: #212529;
+
+  /* ===== 悬浮功能按钮（固定） ===== */
+  --fixed-btn-bg: rgba(249, 249, 249, 0.9); /* 与 --panel 对齐的 rgba 版本 */
+  --fixed-btn-bg-hover: rgba(249, 249, 249, 0.95);
+  --fixed-btn-border: #dee2e6; /* 与 --border 对齐 */
   
   /* ===== 武汉市县级图层 - 浅色主题 ===== */
   --layer-stroke-武汉_县级: #000000;
@@ -106,6 +111,11 @@ html {
   /* ===== 头像颜色 ===== */
   --avatar-ai-bg: #000000;
   --avatar-user-bg: #000000;
+
+  /* ===== 悬浮功能按钮（固定）- 深色 ===== */
+  --fixed-btn-bg: rgba(38, 38, 38, 0.9); /* 与 --panel(#262626) 对齐的 rgba 版本 */
+  --fixed-btn-bg-hover: rgba(38, 38, 38, 0.95);
+  --fixed-btn-border: #3c3c3c; /* 与 --border 对齐 */
   
   /* ===== 武汉市县级图层 - 深色主题 ===== */
   --layer-stroke-武汉_县级: #ffffff;

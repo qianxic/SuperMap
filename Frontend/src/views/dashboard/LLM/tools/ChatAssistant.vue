@@ -3,30 +3,28 @@
     <!-- 功能按钮固定在聊天容器外部 -->
     <div class="fixed-buttons">
       <!-- 新对话按钮 -->
-      <IconButton 
-        class="new-chat-button" 
-        size="medium"
-        :title="'开启新对话'"
+      <SecondaryButton
+        class="new-chat-button"
+        variant="secondary"
         @click="startNewConversation"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 5v14M5 12h14"/>
         </svg>
         <span class="button-text">新对话</span>
-      </IconButton>
+      </SecondaryButton>
       
       <!-- 历史记录按钮 -->
-      <IconButton 
-        class="history-button" 
-        size="medium"
-        :title="'查看历史聊天记录'"
+      <SecondaryButton
+        class="history-button"
+        variant="secondary"
         @click="showChatHistory"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
         </svg>
         <span class="button-text">历史记录</span>
-      </IconButton>
+      </SecondaryButton>
     </div>
     
     <!-- 聊天记录显示区域 -->
@@ -85,7 +83,7 @@ import { useRouter } from 'vue-router';
 import { useThemeStore } from '@/stores/themeStore';
 import { useModeStateStore } from '@/stores/modeStateStore';
 import LLMInputGroup from '@/components/UI/LLMInputGroup.vue';
-import IconButton from '@/components/UI/IconButton.vue';
+import SecondaryButton from '@/components/UI/SecondaryButton.vue';
 
 interface Message {
   id: number;
@@ -463,17 +461,21 @@ const startNewConversation = () => {
   /* 浮动按钮效果 - 确保完全浮动 */
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
   backdrop-filter: blur(8px) !important;
-  background: rgba(var(--panel-rgb), 0.9) !important;
-  border: 1px solid var(--border) !important;
+  background: var(--fixed-btn-bg) !important;
+  border: 1px solid var(--fixed-btn-border) !important;
   border-radius: 8px !important;
-  transition: all 0.2s ease !important;
+  /* 限制过渡属性，避免主题切换时边界闪烁 */
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+  animation: none !important;
+  will-change: transform, box-shadow;
 }
 
 .history-button:hover,
 .new-chat-button:hover {
   transform: translateY(-1px) !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
-  background: rgba(var(--panel-rgb), 0.95) !important;
+  /* 避免在主题切换瞬间对背景/边框做动画 */
+  background: var(--fixed-btn-bg-hover) !important;
   /* 移除黑色边框效果 */
 }
 
