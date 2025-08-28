@@ -39,6 +39,8 @@ const globalModal = useGlobalModalStore()
 <style>
 .splitpanes__pane {
   background-color: transparent !important;
+  min-width: 0;
+  min-height: 0;
 }
 
 .splitpanes__splitter {
@@ -81,7 +83,7 @@ const globalModal = useGlobalModalStore()
 }
 
 .screen-main {
-  height: calc(100vh - 64px);
+  height: calc(100vh - clamp(48px, 6vh, 64px));
   width: 100%;
   padding: 0;
 }
@@ -89,11 +91,13 @@ const globalModal = useGlobalModalStore()
 /* 确保分割面板充满可用高度，避免子容器高度为0 */
 .screen-main > .default-theme {
   height: 100%;
+  min-width: 0;
 }
 
 .map-container {
   width: 100%;
   height: 100%;
+  min-width: 0;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -106,6 +110,7 @@ const globalModal = useGlobalModalStore()
 .right-panel-container {
   width: 100%;
   height: 100%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
 }

@@ -19,6 +19,7 @@
     "@supermapgis/iclient-leaflet": "^12.0.0-r",
     "ant-design-vue": "^4.2.6",
     "axios": "^1.11.0",
+    "default-passive-events": "^4.0.0",
     "ol": "^10.6.1",
     "pinia": "^3.0.3",
     "splitpanes": "^4.0.4",

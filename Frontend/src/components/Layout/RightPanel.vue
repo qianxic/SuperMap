@@ -24,6 +24,7 @@ import PanelWindow from '@/components/UI/PanelWindow.vue'
   box-shadow: var(--glow);
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 96px);
+  height: 100%;
+  min-height: 0;
 }
 </style>

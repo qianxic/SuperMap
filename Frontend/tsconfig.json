@@ -1,13 +1,11 @@
 {
   "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "target": "ES2020",
     "useDefineForClassFields": true,
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
     "skipLibCheck": true,
-    "moduleResolution": "node",
-    "allowImportingTsExtensions": true,
-    "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "strict": true,
@@ -16,14 +14,17 @@
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "types": ["vite/client", "vue"],
-    "paths": {
-      "@/*": ["./src/*"]
-    },
+    "paths": { "@/*": ["./src/*"] },
     "allowJs": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true
   },
+  "plugins": [
+    {
+      "name": "@vue/typescript-plugin",
+      "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"]
+    }
+  ],
   "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue", "src/types/**/*.d.ts"],
   "exclude": ["node_modules", "dist"]
 }
-
