@@ -17,6 +17,9 @@ const usePopupStore = defineStore('popup', () => {
   // 弹窗坐标
   const coordinate = ref<number[] | null>(null)
   
+  // 动画触发器 - 用于重新播放动画
+  const animationKey = ref<number>(0)
+  
   // Actions
   function showPopup(
     pos: { x: number, y: number }, 
@@ -28,7 +31,14 @@ const usePopupStore = defineStore('popup', () => {
     content.value = cont
     feature.value = feat
     coordinate.value = coord
-    visible.value = true
+    
+    if (!visible.value) {
+      // 首次显示
+      visible.value = true
+    } else {
+      // 已显示时，触发动画重新播放
+      animationKey.value++
+    }
   }
   
   function hidePopup() {
@@ -57,6 +67,7 @@ const usePopupStore = defineStore('popup', () => {
     content,
     feature,
     coordinate,
+    animationKey,
     
     // Actions
     showPopup,

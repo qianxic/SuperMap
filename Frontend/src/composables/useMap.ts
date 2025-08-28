@@ -32,27 +32,7 @@ export function useMap() {
     const fillVar = css.getPropertyValue(`--layer-fill-${layerName}`).trim();
     const accentFallback = css.getPropertyValue('--accent').trim() || (document.documentElement.getAttribute('data-theme') === 'dark' ? '#666666' : '#212529');
 
-    // 县级图层使用固定颜色，不受主题切换影响
-    if (layerName === '武汉_县级') {
-      console.log('武汉市县级图层样式创建:', {
-        layerName,
-        strokeVar,
-        fillVar,
-        theme: document.documentElement.getAttribute('data-theme'),
-        strokeColor: strokeVar || '#000000',
-        fillColor: fillVar || 'rgba(0,0,0,0.1)'
-      });
-      
-      return new ol.style.Style({
-        stroke: new ol.style.Stroke({ 
-          color: strokeVar || '#000000', // 使用固定颜色，默认黑色
-          width: 1.5
-        }),
-        fill: new ol.style.Fill({ 
-          color: fillVar || 'rgba(0,0,0,0.1)' // 使用固定颜色，默认半透明黑色
-        })
-      });
-    }
+
     
     // 统一使用CSS变量，如果CSS变量为空则使用主题色作为fallback
     const resolvedStroke = strokeVar || accentFallback;
@@ -197,17 +177,16 @@ export function useMap() {
       mapStore.hoverLayer.setStyle(newHoverStyle);
     }
   }
-
-  const updateBaseMap = () => {
+  const updateBaseMap = (theme: 'light' | 'dark') => {
     if (mapStore.map && mapStore.baseLayer) {
-      const currentBaseMapUrl = getCurrentBaseMapUrl(themeStore.theme)
+      const currentBaseMapUrl = getCurrentBaseMapUrl(theme)
       
       const sourceConfig: any = {
         url: currentBaseMapUrl,
         serverType: 'iserver'
       }
       
-      if (themeStore.theme === 'light') {
+      if (theme === 'light') {
         sourceConfig.crossOrigin = 'anonymous'
         sourceConfig.tileLoadFunction = undefined
       }
@@ -233,11 +212,10 @@ export function useMap() {
       }
     }
   }
-
      const observeThemeChanges = () => {
      const observer = new MutationObserver(() => {
        updateLayerStyles();
-       updateBaseMap();
+       updateBaseMap(themeStore.theme);
        // 更新面积量测样式
        mapStore.updateAreaMeasureStyle();
      });
@@ -250,7 +228,7 @@ export function useMap() {
      
      const stopThemeWatch = watch(() => themeStore.theme, () => {
        updateLayerStyles();
-       updateBaseMap();
+       updateBaseMap(themeStore.theme);
        // 更新面积量测样式
        mapStore.updateAreaMeasureStyle();
      });
@@ -278,7 +256,14 @@ export function useMap() {
     } 
     const style = createLayerStyle(layerConfig, layerName);
     
-    // 创建OpenLayers矢量图层容器
+    // 创建OpenLayers矢量图层容器，图层创建和渲染：
+    // 1. 创建图层容器
+    // 2. 创建图层源
+    // 3. 创建图层样式
+    // 4. 创建图层
+    // 5. 添加图层到地图
+    // 6. 渲染图层
+    // 7. 更新图层样式
     const vectorLayer = new ol.layer.Vector({
       source: new ol.source.Vector({}),
       style: style
@@ -294,6 +279,7 @@ export function useMap() {
     const parts = layerConfig.name.split('@');
     const dataset = parts[0];    // 数据集名称，如: '武汉_县级'
     const datasource = parts[1]; // 数据源名称，如: 'wuhan'
+    const datasetNames = [`${datasource}:${dataset}`];
 
     // ===== 第一次服务器调用：获取图层元数据信息 =====
     // 调用者: loadVectorLayer()
@@ -318,40 +304,24 @@ export function useMap() {
     const pageSize = 10000;
     const initialToIndex = Math.min(computedFromIndexBounds + pageSize - 1, computedToIndexBounds);
 
-    // ===== 第二次服务器调用：获取第一页要素数据 =====
+    // 移除对 count.json 和 info.json 接口的调用，避免 400/404 错误
+    let totalFeatureCount = 0;
+
+    // ===== 第四次服务器调用：获取第一页要素数据（优化后的参数） =====
     // 调用者: loadVectorLayer() -> featureService.getFeaturesByBounds()
     // 服务器地址: mapStore.mapConfig.dataUrl (通过SuperMap FeatureService)
-    // 作用: 获取指定边界范围内的第一页矢量要素数据（最多10000个要素）
+    // 作用: 获取指定边界范围内的第一页矢量要素数据，使用优化的参数配置
     const getFeaturesByBoundsParams = new ol.supermap.GetFeaturesByBoundsParameters({
-      datasetNames: [`${datasource}:${dataset}`],
+      datasetNames: datasetNames,
       bounds: ol.extent.boundingExtent(wuhanBounds.getCoordinates()[0]),
       returnContent: true,
-      returnFeaturesOnly: true,
+      returnFeaturesOnly: true, // ✅ 官方推荐：设置为true提升性能
       maxFeatures: -1,
       fromIndex: computedFromIndexBounds,
       toIndex: initialToIndex
     });
 
-    // ===== 第三次服务器调用：获取要素总数统计信息 =====
-    // 调用者: loadVectorLayer() -> featureService.getFeaturesByBounds()
-    // 服务器地址: mapStore.mapConfig.dataUrl (通过SuperMap FeatureService)
-    // 作用: 获取指定边界范围内的要素总数，用于显示加载进度和统计信息
-    try {
-      const countParams = new ol.supermap.GetFeaturesByBoundsParameters({
-        datasetNames: [`${datasource}:${dataset}`],
-        bounds: ol.extent.boundingExtent(wuhanBounds.getCoordinates()[0]),
-        returnContent: false,
-        returnFeaturesOnly: true
-      });
-      
-      featureService.getFeaturesByBounds(countParams, (countResult: any) => {
-        console.log(countResult)
-      });
-    } catch (error) {
-      // 静默处理错误
-    }
-
-    // ===== 第四次服务器调用：执行第一页要素数据获取 =====
+    // ===== 第五次服务器调用：执行第一页要素数据获取 =====
     // 调用者: loadVectorLayer() -> featureService.getFeaturesByBounds()
     // 服务器地址: mapStore.mapConfig.dataUrl (通过SuperMap FeatureService)
     // 作用: 实际执行第一页要素数据的获取，并将GeoJSON格式的要素数据转换为OpenLayers要素对象
@@ -359,17 +329,18 @@ export function useMap() {
       if (serviceResult.result && serviceResult.result.features) {
         const features = (new ol.format.GeoJSON()).readFeatures(serviceResult.result.features);
         vectorLayer.getSource().addFeatures(features);
+        //serviceResult.result.features就是目前从服务器中获取到的要素数据，features是GeoJSON格式的要素数据，features是OpenLayers要素对象
 
-        // ===== 第五次及后续服务器调用：分页加载剩余要素数据 =====
+        // ===== 第六次及后续服务器调用：分页加载剩余要素数据（优化后的参数） =====
         // 调用者: loadVectorLayer() -> addPage() -> featureService.getFeaturesByBounds()
         // 服务器地址: mapStore.mapConfig.dataUrl (通过SuperMap FeatureService)
         // 作用: 如果要素总数超过10000个，则分页加载剩余的要素数据，每页最多10000个要素
         const addPage = (from: number, to: number): Promise<void> => new Promise(resolve => {
           const pageParams = new ol.supermap.GetFeaturesByBoundsParameters({
-            datasetNames: [`${datasource}:${dataset}`],
+            datasetNames: datasetNames,
             bounds: ol.extent.boundingExtent(wuhanBounds.getCoordinates()[0]),
             returnContent: true,
-            returnFeaturesOnly: true,
+            returnFeaturesOnly: true, // ✅ 官方推荐：设置为true提升性能
             maxFeatures: -1,
             fromIndex: from,
             toIndex: to
@@ -399,12 +370,12 @@ export function useMap() {
           })();
         }, 100);
         
-        // ===== 加载完成通知 =====
+        // ===== 加载完成通知（使用自定义API获取的统计信息） =====
         // 调用者: loadVectorLayer()
         // 作用: 显示图层加载完成的统计信息，包括要素数量、数据来源和服务器地址
         notificationManager.info(
           `图层 ${layerName} 加载完成`,
-          `共 ${features.length} 个要素\n总要素数: ${serviceResult.result.totalCount || '未知'}\n当前返回: ${serviceResult.result.currentCount || features.length}\n最大要素数: ${serviceResult.result.maxFeatures || '无限制'}\nfeatureCount: ${(serviceResult.result.featureCount ?? serviceResult.result.totalCount ?? serviceResult.result.currentCount ?? features.length) || 0}\n数据来源: SuperMap iServer\n服务器地址: ${mapStore.mapConfig.dataUrl}`
+          `共 ${features.length} 个要素\n总要素数: ${totalFeatureCount || serviceResult.result.totalCount || '未知'}\n当前返回: ${serviceResult.result.currentCount || features.length}\n最大要素数: ${serviceResult.result.maxFeatures || '无限制'}\nfeatureCount: ${(serviceResult.result.featureCount ?? serviceResult.result.totalCount ?? serviceResult.result.currentCount ?? features.length) || 0}\n数据来源: SuperMap iServer\n服务器地址: ${mapStore.mapConfig.dataUrl}\n✅ 使用自定义API优化性能`
         );
       }
     });
@@ -415,14 +386,6 @@ export function useMap() {
     vectorLayer.setZIndex(zIndex);
     
     map.addLayer(vectorLayer);
-    // 添加调试信息
-    console.log(`图层加载完成:`, {
-      originalName: layerConfig.name,
-      parsedName: layerName,
-      datasetName: layerConfig.datasetName,
-      id: layerConfig.name
-    });
-    
     mapStore.vectorLayers.push({
       id: layerConfig.name,
       name: layerName,

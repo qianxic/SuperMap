@@ -71,7 +71,7 @@ watch(() => props.modelValue, adjustHeight, { immediate: true });
 /* 输入元素样式 */
 .input-element {
   flex: 1;
-  font-size: 14px;
+  font-size: 12px;
   padding: 6px 8px;
   background: transparent;
   border: none;

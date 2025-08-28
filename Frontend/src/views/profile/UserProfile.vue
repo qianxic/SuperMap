@@ -11,7 +11,13 @@
           </svg>
         </button>
       </div>
-      <PanelContainer class="user-profile">
+      <PanelWindow 
+        :visible="true"
+        :embed="true"
+        :width="'100%'"
+        :height="'100%'"
+        class="user-profile"
+      >
     <div class="profile-header">
       <h1 class="profile-title">个人中心</h1>
       <p class="profile-subtitle">管理您的账户信息和设置</p>
@@ -99,20 +105,11 @@
               <div class="setting-desc">选择您喜欢的界面主题</div>
             </div>
             <div class="setting-control">
-              <button 
-                class="theme-btn" 
-                :class="{ active: theme === 'light' }"
-                @click="setTheme('light')"
-              >
-                浅色
-              </button>
-              <button 
-                class="theme-btn" 
-                :class="{ active: theme === 'dark' }"
-                @click="setTheme('dark')"
-              >
-                深色
-              </button>
+              <ButtonGroup 
+                :buttons="themeButtons"
+                :active-button="theme"
+                @select="setTheme"
+              />
             </div>
           </div>
 
@@ -161,7 +158,7 @@
         </div>
       </div>
     </div>
-      </PanelContainer>
+      </PanelWindow>
     </div>
   </div>
   </teleport>
@@ -172,7 +169,8 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/userStore'
 import { useThemeStore } from '@/stores/themeStore'
-import PanelContainer from '@/components/UI/PanelContainer.vue'
+import PanelWindow from '@/components/UI/PanelWindow.vue'
+import ButtonGroup from '@/components/UI/ButtonGroup.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -209,6 +207,12 @@ const userInfo = computed(() => {
 })
 
 const theme = computed(() => themeStore.theme)
+
+// 主题按钮配置
+const themeButtons = [
+  { id: 'light', text: '浅色' },
+  { id: 'dark', text: '深色' }
+]
 
 // 方法
 import { useGlobalModalStore } from '@/stores/modalStore'
@@ -316,7 +320,8 @@ onMounted(() => {
 
 .page-modal-content {
   width: 90%;
-  max-width: 880px;
+  max-width: 40vw;
+  max-height: 70vh;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -361,25 +366,32 @@ onMounted(() => {
 
 .user-profile {
   width: 100%;
-  padding: 12px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.user-profile .panel-content {
+  padding: 8px;
   overflow-y: auto;
-  max-height: 60vh;
+  flex: 1;
+  min-height: 0;
 }
 
 .profile-header {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 20px;
 }
 
 .profile-title {
-  font-size: 28px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--text);
   margin-bottom: 8px;
 }
 
 .profile-subtitle {
-  font-size: 16px;
+  font-size: 13px;
   color: var(--sub);
   margin: 0;
 }
@@ -387,14 +399,14 @@ onMounted(() => {
 .profile-content {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
 }
 
 .profile-card {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 24px;
+  border-radius: 12px;
+  padding: 16px;
   box-shadow: var(--glow);
 }
 
@@ -402,11 +414,11 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .card-title {
-  font-size: 18px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text);
   margin: 0;
@@ -416,14 +428,15 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 16px;
+  padding: 6px 8px;
   background: var(--btn-primary-bg);
   color: var(--btn-primary-color);
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 12px;
   transition: all 0.2s ease;
+  min-height: 32px;
 }
 
 .edit-btn:hover {
@@ -433,8 +446,8 @@ onMounted(() => {
 
 .info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
 }
 
 .info-item {
@@ -444,25 +457,26 @@ onMounted(() => {
 }
 
 .info-label {
-  font-size: 14px;
+  font-size: 12px;
   color: var(--sub);
   font-weight: 500;
 }
 
 .info-value {
-  font-size: 16px;
+  font-size: 13px;
   color: var(--text);
   font-weight: 500;
 }
 
 .info-input {
-  padding: 10px 12px;
+  padding: 6px 8px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--bg);
   color: var(--text);
-  font-size: 14px;
+  font-size: 12px;
   transition: all 0.2s ease;
+  min-height: 32px;
 }
 
 .info-input:focus {
@@ -483,9 +497,9 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px;
+  padding: 12px;
   background: var(--surface);
-  border-radius: 12px;
+  border-radius: 8px;
   border: 1px solid var(--border);
 }
 
@@ -496,7 +510,7 @@ onMounted(() => {
 
 .security-title,
 .setting-title {
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text);
   margin-bottom: 4px;
@@ -504,20 +518,21 @@ onMounted(() => {
 
 .security-desc,
 .setting-desc {
-  font-size: 14px;
+  font-size: 12px;
   color: var(--sub);
 }
 
 .security-btn,
 .setting-btn {
-  padding: 8px 16px;
+  padding: 6px 8px;
   background: var(--btn-primary-bg);
   color: var(--btn-primary-color);
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 12px;
   transition: all 0.2s ease;
+  min-height: 32px;
 }
 
 .security-btn:hover,
@@ -527,29 +542,10 @@ onMounted(() => {
 
 .setting-control {
   display: flex;
-  gap: 8px;
+  align-items: center;
 }
 
-.theme-btn {
-  padding: 8px 16px;
-  background: var(--surface);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: all 0.2s ease;
-}
 
-.theme-btn.active {
-  background: var(--accent);
-  color: white;
-  border-color: var(--accent);
-}
-
-.theme-btn:hover:not(.active) {
-  background: var(--surface-hover);
-}
 
 /* 模态框样式 */
 .modal-overlay {
@@ -562,7 +558,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 4000;
 }
 
 .modal-content {
@@ -584,7 +580,7 @@ onMounted(() => {
 
 .modal-header h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text);
 }
@@ -605,7 +601,7 @@ onMounted(() => {
 }
 
 .modal-body {
-  padding: 24px;
+  padding: 16px;
 }
 
 .form-item {
@@ -618,7 +614,7 @@ onMounted(() => {
 
 .form-item label {
   display: block;
-  font-size: 14px;
+  font-size: 12px;
   color: var(--text);
   margin-bottom: 8px;
   font-weight: 500;
@@ -626,13 +622,14 @@ onMounted(() => {
 
 .form-item input {
   width: 100%;
-  padding: 10px 12px;
+  padding: 6px 8px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--bg);
   color: var(--text);
-  font-size: 14px;
+  font-size: 12px;
   transition: all 0.2s ease;
+  min-height: 32px;
 }
 
 .form-item input:focus {
@@ -644,20 +641,21 @@ onMounted(() => {
 .modal-footer {
   display: flex;
   gap: 12px;
-  padding: 20px 24px;
+  padding: 16px;
   border-top: 1px solid var(--border);
   justify-content: flex-end;
 }
 
 .btn-primary,
 .btn-secondary {
-  padding: 10px 20px;
+  padding: 6px 8px;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
   transition: all 0.2s ease;
+  min-height: 32px;
 }
 
 .btn-primary {
@@ -680,12 +678,17 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
-  .user-profile {
-    padding: 16px;
+  .page-modal-content {
+    max-width: 95vw;
+    max-height: 80vh;
+  }
+  
+  .user-profile .panel-content {
+    padding: 8px;
   }
   
   .profile-title {
-    font-size: 24px;
+    font-size: 16px;
   }
   
   .info-grid {

@@ -33,12 +33,32 @@
     <div class="messages-container" ref="messagesContainer" @scroll="handleScroll">
       <!-- 用户消息 -->
       <div v-for="msg in messages" :key="msg.id" class="message-wrapper" :class="msg.sender">
-        <div class="avatar" v-if="msg.sender === 'system'">AI</div>
+        <div class="avatar" v-if="msg.sender === 'system'">
+          <!-- AI机器人图标 -->
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="8" width="16" height="12" rx="2" ry="2"></rect>
+            <rect x="6" y="4" width="12" height="6" rx="1" ry="1"></rect>
+            <circle cx="9" cy="7" r="1"></circle>
+            <circle cx="15" cy="7" r="1"></circle>
+            <path d="M8 12h8"></path>
+            <path d="M8 15h8"></path>
+            <path d="M8 18h8"></path>
+            <path d="M10 20h4"></path>
+          </svg>
+        </div>
         <div class="message-bubble">
           <div v-if="msg.sender === 'system'" class="message-content" v-html="renderMarkdown(msg.text)"></div>
           <div v-else class="message-content">{{ msg.text }}</div>
         </div>
-        <div class="avatar" v-if="msg.sender === 'user'">我</div>
+        <div class="avatar" v-if="msg.sender === 'user'">
+          <!-- 用户图标 -->
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+            <path d="M12 11v4"></path>
+            <path d="M9 15h6"></path>
+          </svg>
+        </div>
       </div>
     </div>
     
@@ -424,7 +444,7 @@ const startNewConversation = () => {
   gap: 10px;
   animation: none; /* 禁用动画，防止主题切换闪烁 */
   min-height: 120px;
-  margin-bottom: 8px;
+  margin-bottom: 2px;
   user-select: text;
   -webkit-user-select: text;
   -moz-user-select: text;
@@ -500,7 +520,7 @@ const startNewConversation = () => {
   position: relative;
   z-index: 1;
   animation: none; /* 禁用动画，防止主题切换闪烁 */
-  margin-top: 8px;
+  margin-top: 2px;
 }
 
 
@@ -562,16 +582,39 @@ const startNewConversation = () => {
 }
 
 .avatar {
-  width: 20px;
-  height: 20px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  background: rgba(255,255,255,0.12);
-  border: 1px solid var(--border);
+  color: white;
+  border: 2px solid var(--border);
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+}
+
+/* AI机器人头像样式 */
+.message-wrapper.system .avatar {
+  background: var(--avatar-ai-bg);
+  border-color: var(--avatar-ai-bg);
+}
+
+/* 用户头像样式 */
+.message-wrapper.user .avatar {
+  background: var(--avatar-user-bg);
+  border-color: var(--avatar-user-bg);
+}
+
+.avatar:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.avatar svg {
+  width: 18px;
+  height: 18px;
 }
 
 .nickname {
@@ -632,7 +675,7 @@ const startNewConversation = () => {
   line-height: 1.3;
   margin: 0;
   color: inherit;
-  font-family: "Times New Roman", "SimSun", serif;
+  font-family: "Segoe UI", PingFang SC, Microsoft YaHei, Arial, sans-serif;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

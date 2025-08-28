@@ -36,17 +36,18 @@ export const createAPIConfig = (): APIConfig => {
       // 作用: 提供浅色和深色主题的底图瓦片服务，根据主题自动切换
       baseMaps: {
         light: 'https://www.supermapol.com/proxy/gqzvimgx/iserver/services/map_china-1-_331nhzuk/rest/maps/China_Light?prjCoordSys=%7B%22epsgCode%22:4326%7D',
-        dark: 'https://www.supermapol.com/proxy/dd2z0vuq/iserver/services/map_china-1-_hl5n2ma6/rest/maps/China_Dark'
+        dark: 'https://www.supermapol.com/proxy/zef8uhlm/iserver/services/map-china400/rest/maps/ChinaDark?prjCoordSys=%7B%22epsgCode%22:4326%7D'
       },
       
       // ===== 备用底图服务配置 =====
-      // 调用者: useMap.ts -> updateBaseMap() (备用方案)
-      // 服务器地址: https://www.supermapol.com/proxy/... (SuperMap在线底图服务)
-      // 作用: 当主底图服务不可用时的备用底图服务
+      // 调用者: useMap.ts -> updateBaseMap() -> getCurrentBaseMapUrl()
+      // 服务器地址: 备用底图服务地址
+      // 作用: 当主底图服务不可用时，提供备用的底图瓦片服务
       fallbackBaseMaps: {
         light: 'https://www.supermapol.com/proxy/gqzvimgx/iserver/services/map_china-1-_331nhzuk/rest/maps/China_Light?prjCoordSys=%7B%22epsgCode%22:4326%7D',
-        dark: 'https://www.supermapol.com/proxy/dd2z0vuq/iserver/services/map_china-1-_hl5n2ma6/rest/maps/China_Dark'
+        dark: 'https://www.supermapol.com/proxy/zef8uhlm/iserver/services/map-china400/rest/maps/ChinaDark?prjCoordSys=%7B%22epsgCode%22:4326%7D'
       },
+      
           // ===== 武汉矢量图层配置 =====
       // 调用者: useMap.ts -> loadVectorLayers() -> loadVectorLayer()
       // 服务器地址: ${baseUrl}/${dataService}/datasources/wuhan/datasets/{数据集名}

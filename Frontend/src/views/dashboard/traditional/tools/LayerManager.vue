@@ -42,7 +42,7 @@
                   />
                   <SecondaryButton
                     text="移除"
-                    variant="danger"
+                    :variant="selectedLayerKey === item.key ? 'secondary' : 'danger'"
                     @click.stop="handleRemove(item)"
                   />
                 </div>
@@ -81,7 +81,7 @@
                   />
                   <SecondaryButton
                     text="移除"
-                    variant="danger"
+                    :variant="selectedLayerKey === item.key ? 'secondary' : 'danger'"
                     @click.stop="handleRemove(item)"
                   />
                 </div>
@@ -120,7 +120,7 @@
                   />
                   <SecondaryButton
                     text="移除"
-                    variant="danger"
+                    :variant="selectedLayerKey === item.key ? 'secondary' : 'danger'"
                     @click.stop="handleRemove(item)"
                   />
                 </div>
@@ -253,31 +253,9 @@ const allLayers = computed(() => {
   return layers
 })
 
-// 按来源分组的图层
-const groupedLayers = computed(() => {
-  const groupedBySource: Record<string, MapLayerItem[]> = {
-    supermap: [],
-    draw: [],
-    query: [],
-    external: []
-  }
-  
-  allLayers.value.forEach(item => {
-    if (groupedBySource[item.source]) {
-      groupedBySource[item.source].push(item)
-    } else {
-      groupedBySource[item.source] = [item]
-    }
-  })
-  
-  // 转换为数组格式，只返回有图层的分组
-  return Object.entries(groupedBySource)
-    .filter(([_, items]) => items.length > 0)
-    .map(([source, items]) => ({
-      source,
-      items
-    }))
-})
+
+
+
 
 function inferDesc(name: string, type: string): string {
   if (type === 'raster') return '栅格数据 (DEM)'

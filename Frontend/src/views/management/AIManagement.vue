@@ -11,7 +11,13 @@
           </svg>
         </button>
       </div>
-      <PanelContainer class="Agent-management">
+      <PanelWindow 
+        :visible="true"
+        :embed="true"
+        :width="'100%'"
+        :height="'100%'"
+        class="Agent-management"
+      >
     <div class="management-header">
       <h1 class="management-title">Agent管理</h1>
       <p class="management-subtitle">管理Agent助手的配置和个性化设置</p>
@@ -330,7 +336,7 @@
       @close="closeEditModal"
       @save="handleSave"
     />
-      </PanelContainer>
+      </PanelWindow>
     </div>
   </div>
   </teleport>
@@ -338,7 +344,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import PanelContainer from '@/components/UI/PanelContainer.vue'
+import PanelWindow from '@/components/UI/PanelWindow.vue'
 import EditModal from '@/components/UI/EditModal.vue'
 import { useGlobalModalStore } from '@/stores/modalStore'
 
@@ -732,7 +738,8 @@ const deleteAgent = (id: number) => {
 
 .page-modal-content {
   width: 90%;
-  max-width: 980px;
+  max-width: 40vw;
+  max-height: 70vh;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -746,13 +753,13 @@ const deleteAgent = (id: number) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--border);
 }
 
 .page-modal-header h2 {
   margin: 0;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text);
 }
@@ -763,8 +770,8 @@ const deleteAgent = (id: number) => {
   color: var(--sub);
   cursor: pointer;
   border-radius: 6px;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -777,25 +784,32 @@ const deleteAgent = (id: number) => {
 
 .Agent-management {
   width: 100%;
-  padding: 12px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.Agent-management .panel-content {
+  padding: 8px;
   overflow-y: auto;
-  max-height: 60vh;
+  flex: 1;
+  min-height: 0;
 }
 
 .management-header {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 20px;
 }
 
 .management-title {
-  font-size: 28px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--text);
   margin-bottom: 8px;
 }
 
 .management-subtitle {
-  font-size: 16px;
+  font-size: 13px;
   color: var(--sub);
   margin: 0;
 }
@@ -803,14 +817,14 @@ const deleteAgent = (id: number) => {
 .management-content {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
 }
 
 .management-card {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 24px;
+  border-radius: 12px;
+  padding: 16px;
   box-shadow: var(--glow);
 }
 
@@ -818,11 +832,11 @@ const deleteAgent = (id: number) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .card-title {
-  font-size: 18px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text);
   margin: 0;
@@ -832,14 +846,15 @@ const deleteAgent = (id: number) => {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 16px;
+  padding: 6px 8px;
   background: var(--btn-primary-bg);
   color: var(--btn-primary-color);
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 12px;
   transition: all 0.2s ease;
+  min-height: 32px;
 }
 
 .add-btn:hover {
@@ -853,7 +868,7 @@ const deleteAgent = (id: number) => {
 .agents-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .api-key-item,
@@ -863,9 +878,9 @@ const deleteAgent = (id: number) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px;
+  padding: 12px;
   background: var(--surface);
-  border-radius: 12px;
+  border-radius: 8px;
   border: 1px solid var(--border);
 }
 
@@ -880,7 +895,7 @@ const deleteAgent = (id: number) => {
 .preference-category,
 .prompt-name,
 .agent-name {
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text);
   margin-bottom: 4px;
@@ -891,7 +906,7 @@ const deleteAgent = (id: number) => {
 .preference-content,
 .prompt-description,
 .agent-description {
-  font-size: 14px;
+  font-size: 12px;
   color: var(--sub);
   margin-bottom: 4px;
 }
@@ -991,8 +1006,8 @@ const deleteAgent = (id: number) => {
 }
 
 .action-btn {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border: none;
   background: transparent;
   color: var(--sub);
@@ -1027,14 +1042,15 @@ const deleteAgent = (id: number) => {
 }
 
 .add-first-btn {
-  padding: 8px 16px;
+  padding: 6px 8px;
   background: var(--btn-primary-bg);
   color: var(--btn-primary-color);
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 12px;
   transition: all 0.2s ease;
+  min-height: 32px;
 }
 
 .add-first-btn:hover {
@@ -1050,8 +1066,8 @@ const deleteAgent = (id: number) => {
 
 .file-upload-area {
   border: 2px dashed var(--border);
-  border-radius: 12px;
-  padding: 40px 20px;
+  border-radius: 8px;
+  padding: 30px 16px;
   text-align: center;
   cursor: pointer;
   background: var(--surface);
@@ -1074,14 +1090,14 @@ const deleteAgent = (id: number) => {
 }
 
 .upload-title {
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text);
   margin-bottom: 8px;
 }
 
 .upload-subtitle {
-  font-size: 14px;
+  font-size: 12px;
   color: var(--sub);
   margin: 0;
 }
@@ -1098,14 +1114,14 @@ const deleteAgent = (id: number) => {
 }
 
 .files-header h3 {
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text);
   margin: 0;
 }
 
 .file-count {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--sub);
   background: var(--surface);
   padding: 4px 8px;
@@ -1115,16 +1131,16 @@ const deleteAgent = (id: number) => {
 .files-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .file-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px;
+  padding: 12px;
   background: var(--surface);
-  border-radius: 12px;
+  border-radius: 8px;
   border: 1px solid var(--border);
 }
 
@@ -1144,20 +1160,20 @@ const deleteAgent = (id: number) => {
 }
 
 .file-name {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--text);
   margin-bottom: 4px;
 }
 
 .file-size {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--sub);
   margin-bottom: 4px;
 }
 
 .file-status {
-  font-size: 11px;
+  font-size: 10px;
   padding: 2px 8px;
   border-radius: 12px;
   display: inline-block;
@@ -1184,7 +1200,12 @@ const deleteAgent = (id: number) => {
 }
 
 @media (max-width: 768px) {
-  .Agent-management {
+  .page-modal-content {
+    max-width: 95vw;
+    max-height: 80vh;
+  }
+  
+  .Agent-management .panel-content {
     padding: 16px;
   }
   

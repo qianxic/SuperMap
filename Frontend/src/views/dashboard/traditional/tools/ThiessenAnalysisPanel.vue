@@ -1,6 +1,6 @@
 <template>
   <PanelWindow 
-    :visible="analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'gotowhere'"
+    :visible="analysisStore.toolPanel.visible && analysisStore.toolPanel.activeTool === 'thiessen'"
     :embed="true"
     :width="'100%'"
     :height="'100%'"
@@ -72,13 +72,13 @@ const {
 } = useThiessenAnalysis()
 
 // 是否正在选择点
-const isSelectingPoints = computed(() => analysisStore.toolPanel.activeTool === 'gotowhere')
+const isSelectingPoints = computed(() => analysisStore.toolPanel.activeTool === 'thiessen')
 
 watch(extentText, (text) => setExtentFromText(text))
 
 // 监听工具面板变化
 watch(() => analysisStore.toolPanel.activeTool, (tool) => {
-  if (tool === 'gotowhere') {
+  if (tool === 'thiessen') {
     selectPoints()
   } else {
     clearSelection()

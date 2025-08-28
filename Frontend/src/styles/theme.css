@@ -16,6 +16,10 @@
   --btn-secondary-bg: #e0e0e0;
   --btn-secondary-color: #212529;
 
+  /* ===== 链接颜色 ===== */
+  --link-color: #212529;
+  --link-hover-color: rgba(33, 37, 41, 0.8);
+
   /* ===== 交互颜色 ===== */
   --surface: rgba(0, 0, 0, 0.03);
   --surface-hover: rgba(0, 0, 0, 0.06);
@@ -36,6 +40,10 @@
   /* ===== 弹窗颜色 ===== */
   --field-label-color: #6c757d;
   --field-value-color: #212529;
+  
+  /* ===== 头像颜色 ===== */
+  --avatar-ai-bg: #212529;
+  --avatar-user-bg: #212529;
   
   /* ===== 武汉市县级图层 - 浅色主题 ===== */
   --layer-stroke-武汉_县级: #000000;
@@ -59,6 +67,10 @@
   --btn-primary-color: #ffffff;
   --btn-secondary-bg: #373737;
   --btn-secondary-color: #ffffff;
+
+  /* ===== 链接颜色 ===== */
+  --link-color: #ffffff;
+  --link-hover-color: rgba(255, 255, 255, 0.8);
 
   /* ===== 交互颜色 ===== */
   --surface: rgba(255, 255, 255, 0.03);
@@ -85,6 +97,10 @@
   /* ===== 弹窗颜色 ===== */
   --field-label-color: #cccccc;
   --field-value-color: #ffffff;
+  
+  /* ===== 头像颜色 ===== */
+  --avatar-ai-bg: #000000;
+  --avatar-user-bg: #000000;
   
   /* ===== 武汉市县级图层 - 深色主题 ===== */
   --layer-stroke-武汉_县级: #ffffff;

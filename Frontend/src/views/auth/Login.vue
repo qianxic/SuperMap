@@ -307,10 +307,14 @@ const handleLogin = async () => {
   background: var(--panel);
   padding: 40px;
   border-radius: 16px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+  box-shadow: var(--glow);
   width: 400px;
   max-width: 90vw;
   border: 1px solid var(--border);
+  min-height: 600px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .login-header {
@@ -439,7 +443,7 @@ const handleLogin = async () => {
   top: 1px;
   width: 4px;
   height: 8px;
-  border: solid white;
+  border: solid var(--btn-primary-color);
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);
 }
@@ -451,7 +455,7 @@ const handleLogin = async () => {
 .login-btn {
   padding: 14px;
   background: linear-gradient(135deg, var(--accent) 0%, rgba(var(--accent-rgb), 0.9) 100%);
-  color: white;
+  color: var(--btn-primary-color);
   border: none;
   border-radius: 8px;
   font-size: 16px;
@@ -488,14 +492,14 @@ const handleLogin = async () => {
 }
 
 .register-link {
-  color: var(--accent);
+  color: var(--link-color);
   text-decoration: none;
   font-weight: 500;
   transition: color 0.2s ease;
 }
 
 .register-link:hover {
-  color: rgba(var(--accent-rgb), 0.8);
+  color: var(--link-hover-color);
   text-decoration: underline;
 }
 
@@ -511,7 +515,7 @@ const handleLogin = async () => {
 }
 
 .history-text:hover {
-  color: var(--accent);
+  color: var(--link-color);
   text-decoration: underline;
 }
 

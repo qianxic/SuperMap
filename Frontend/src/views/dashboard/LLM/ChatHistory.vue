@@ -404,7 +404,7 @@ onMounted(() => {
 }
 
 .record-icon-btn.danger {
-  background: var(--surface);
+  background: var(--btn-secondary-bg);
   color: var(--text);
   border-color: var(--border);
 }
@@ -457,7 +457,7 @@ onMounted(() => {
 
 .empty-text {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   margin-bottom: 4px;
   color: var(--text);
 }

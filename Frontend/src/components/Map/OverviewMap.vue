@@ -15,7 +15,7 @@
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useMapStore } from '@/stores/mapStore'
 import { useThemeStore } from '@/stores/themeStore'
-import { getCurrentBaseMapUrl } from '@/utils/config'
+import {getCurrentBaseMapUrl } from '@/utils/config'
 
 const mapStore = useMapStore()
 const themeStore = useThemeStore()
@@ -60,7 +60,7 @@ const syncViews = () => {
     
     // 同步中心点和缩放级别
     overviewView.setCenter(mainView.getCenter())
-    overviewView.setZoom(Math.max(4, mainView.getZoom() - 3))
+    overviewView.setZoom(Math.max(2, mainView.getZoom() - 4)) // 鹰眼显示更大范围
     
     // 更新视口框
     updateExtentBox()
@@ -82,7 +82,7 @@ const initOverviewMap = async () => {
       overviewMapElement.value.style.display = 'block'
     }
     
-    // 创建鹰眼的地图实例
+    // 创建鹰眼的地图实例 - 使用与主地图相同的方法
     const currentBaseMapUrl = getCurrentBaseMapUrl(themeStore.theme)
     
     const sourceConfig: any = {
@@ -90,9 +90,9 @@ const initOverviewMap = async () => {
       serverType: 'iserver'
     }
     
-    // 确保在浅色模式下正确加载地图
     if (themeStore.theme === 'light') {
       sourceConfig.crossOrigin = 'anonymous'
+      sourceConfig.tileLoadFunction = undefined
     }
     
     const overviewLayer = new ol.layer.Tile({
@@ -101,12 +101,20 @@ const initOverviewMap = async () => {
       opacity: 0.8 // 降低透明度，让视口框更明显
     })
     
-    // 创建鹰眼视图
+    // 创建与主地图相同的分辨率配置
+    const resolutions: number[] = [];
+    for (let i = 0; i < 19; i++) {
+        resolutions[i] = 180 / 256 / Math.pow(2, i);
+    }
+    
+    // 创建鹰眼视图 - 使用与主地图相同的配置
     const overviewView = new ol.View({
       projection: mapStore.mapConfig.projection,
+      resolutions: resolutions, // 添加分辨率配置
       center: mapStore.mapConfig.center,
-      zoom: 6, // 鹰眼显示更大范围
-      maxZoom: 10
+      zoom: 4, // 鹰眼显示更大范围，更符合鹰眼定义
+      maxZoom: 8, // 限制最大缩放，保持鹰眼的概览特性
+      minZoom: 2 // 设置最小缩放，确保能看到足够大的范围
     })
     
     // 创建鹰眼
@@ -197,7 +205,7 @@ const initOverviewMap = async () => {
       condition: ol.events.condition.always
     })
     
-    dragPan.on('panend', (event: any) => {
+    dragPan.on('panend', () => {
       if (!mapStore.map) return
       
       const overviewView = overviewMap.value.getView()
@@ -304,9 +312,10 @@ const rebuildOverviewLayer = () => {
   
   try {
     const ol = window.ol
+    // 使用与主地图相同的方法
     const currentBaseMapUrl = getCurrentBaseMapUrl(themeStore.theme)
     
-    // 创建新的底图源
+    // 创建新的底图源 - 使用与主地图相同的方法
     const sourceConfig: any = {
       url: currentBaseMapUrl,
       serverType: 'iserver'
@@ -314,6 +323,7 @@ const rebuildOverviewLayer = () => {
     
     if (themeStore.theme === 'light') {
       sourceConfig.crossOrigin = 'anonymous'
+      sourceConfig.tileLoadFunction = undefined
     }
     
     const newSource = new ol.source.TileSuperMapRest(sourceConfig)
@@ -346,7 +356,7 @@ const rebuildOverviewLayer = () => {
         
         // 同步中心点和缩放级别
         overviewView.setCenter(mainView.getCenter())
-        overviewView.setZoom(Math.max(4, mainView.getZoom() - 3))
+        overviewView.setZoom(Math.max(2, mainView.getZoom() - 4)) // 鹰眼显示更大范围
         
         // 更新视口框
         setTimeout(() => updateExtentBox(), 50)

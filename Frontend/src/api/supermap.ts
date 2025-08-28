@@ -1,6 +1,28 @@
 import type { ServiceResponse } from '@/types/map'
 import { createAPIConfig } from '@/utils/config'
 
+/**
+ * SuperMap iClient API 优化使用指南
+ * 
+ * 官方推荐的最佳实践：
+ * 1. 设置 returnFeaturesOnly = true 来提升性能
+ * 2. 合理使用分页加载大数据集
+ * 
+ * 性能优化要点：
+ * - 设置 returnFeaturesOnly = true 减少数据传输
+ * - 使用空间边界过滤减少查询范围
+ * - 合理设置分页大小（建议10000-50000）
+ * 
+ * 使用示例：
+ * ```typescript
+ * // ✅ 推荐：使用优化的要素查询
+ * const featuresResult = await superMapClient.getFeaturesByBoundsOptimized(
+ *   ['wuhan:武汉_县级'],
+ *   [113.7, 29.97, 115.08, 31.36],
+ *   { fromIndex: 0, toIndex: 9999 }
+ * )
+ * ```
+ */
 export class SuperMapError extends Error {
   constructor(
     message: string,
@@ -40,11 +62,7 @@ export class SuperMapClient {
            (error.type === 'network' || error.type === 'timeout')
   }
 
-  private createTimeoutPromise<T>(ms: number): Promise<T> {
-    return new Promise((_, reject) => {
-      setTimeout(() => reject(new SuperMapError('请求超时', 408, 'timeout')), ms)
-    })
-  }
+
 
   async checkServiceHealth(): Promise<ServiceResponse<boolean>> {
     return this.executeWithRetry(async () => {
@@ -112,6 +130,72 @@ export class SuperMapClient {
     })
   }
 
+
+
+  /**
+   * 优化的要素查询方法 - 使用官方推荐的参数配置
+   * @param datasetNames 数据集名称数组
+   * @param bounds 空间边界范围
+   * @param options 查询选项
+   */
+  async getFeaturesByBoundsOptimized(
+    datasetNames: string[],
+    bounds: number[],
+    options: {
+      fromIndex?: number
+      toIndex?: number
+      maxFeatures?: number
+      attributeFilter?: string
+      spatialQueryMode?: string
+    } = {}
+  ): Promise<ServiceResponse<any>> {
+    return this.executeWithRetry(async () => {
+      try {
+        const datasetName = datasetNames[0]
+        const parts = datasetName.split(':')
+        const datasource = parts[0]
+        const dataset = parts[1]
+        
+        // 构建查询参数
+        const params = new URLSearchParams({
+          returnContent: 'true',
+          returnFeaturesOnly: 'true', // ✅ 官方推荐：设置为true提升性能
+          maxFeatures: (options.maxFeatures || -1).toString(),
+          fromIndex: (options.fromIndex || 0).toString(),
+          toIndex: (options.toIndex || -1).toString(),
+          bounds: bounds.join(','),
+          spatialQueryMode: options.spatialQueryMode || 'INTERSECT'
+        })
+        
+        if (options.attributeFilter) {
+          params.append('attributeFilter', options.attributeFilter)
+        }
+        
+        const url = `${this.config.baseUrl}/${this.config.dataService}/datasources/${datasource}/datasets/${dataset}/features.json?${params}`
+        const response = await fetch(url, {
+          signal: AbortSignal.timeout(this.config.timeout)
+        })
+        
+        if (!response.ok) {
+          throw new SuperMapError(`要素查询失败: HTTP ${response.status}`, response.status)
+        }
+        
+        const data = await response.json()
+        return {
+          success: true,
+          data: data,
+          error: undefined
+        }
+      } catch (error) {
+        return {
+          success: false,
+          data: null,
+          error: error instanceof Error ? error.message : '要素查询失败'
+        }
+      }
+    })
+  }
+
   /**
    * 加载数据集的所有要素
    * @param datasetName 数据集名称
@@ -125,9 +209,7 @@ export class SuperMapClient {
   ): Promise<ServiceResponse<any[]>> {
     return this.executeWithRetry(async () => {
       try {
-        const parts = datasetName.split('@')
-        const dataset = parts[0]
-        const datasource = parts[1] || 'wuhan'
+
         
         // 首先获取数据集信息
         const listResult = await this.getFeaturesList(datasetName)

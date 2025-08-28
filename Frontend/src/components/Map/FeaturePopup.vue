@@ -11,6 +11,7 @@
     :focusable="true"
     :closeable="true"
     :resizable="true"
+    :animation-key="popupStore.animationKey"
     @close="handleClose"
   >
     <div class="popup-body" v-html="popupStore.content"></div>
@@ -292,10 +293,6 @@ const adjustedPosition = computed(() => {
   word-break: keep-all;
 }
 
-/* 多要素信息样式 */
-.popup-body :deep(.multi-feature-info) {
-  /* 移除所有可能导致滚动条的样式 */
-}
 
 .popup-body :deep(.feature-count) {
   font-size: 13px;

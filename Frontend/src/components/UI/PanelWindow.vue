@@ -3,9 +3,13 @@
     v-show="visible"
     ref="panelRef"
     class="panel-window"
-    :class="{ 'focusable': focusable }"
+    :class="{ 
+      'focusable': focusable,
+      'panel-window--animated': animated && !embed
+    }"
     :style="panelStyle"
     :data-embed="embed"
+    :key="animationKey"
     @click="handleClick"
     @wheel="handleWheel"
     @keydown="handleKeyDown"
@@ -15,7 +19,7 @@
   >
     <div class="panel-title" v-if="!embed && title">
       <span>{{ title }}</span>
-      <SecondaryButton 
+      <button 
         v-if="closeable"
         class="close-btn" 
         @click="handleClose"
@@ -23,7 +27,7 @@
         aria-label="关闭面板"
       >
         ×
-      </SecondaryButton>
+      </button>
     </div>
     <div class="panel-content">
       <slot></slot>
@@ -34,7 +38,6 @@
 <script setup lang="ts">
 import { computed, ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import type { CSSProperties } from 'vue'
-import SecondaryButton from './SecondaryButton.vue'
 import { useModeStateStore } from '@/stores/modeStateStore'
 
 const emit = defineEmits<{
@@ -56,6 +59,8 @@ interface Props {
   focusable?: boolean;
   closeable?: boolean;
   componentId?: string; // 可选：用于持久化布局
+  animated?: boolean; // 新增：是否启用动画效果
+  animationKey?: number; // 新增：动画触发器
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -71,7 +76,9 @@ const props = withDefaults(defineProps<Props>(), {
   zIndex: 1300,
   focusable: false,
   closeable: false,
-  componentId: undefined
+  componentId: undefined,
+  animated: true, // 默认启用动画
+  animationKey: 0 // 默认动画键值
 })
 
 const panelStyle = computed((): CSSProperties => {
@@ -104,12 +111,14 @@ const panelStyle = computed((): CSSProperties => {
     styles.left = 'auto'
     styles.top = 'auto'
     styles.width = '100%'
-    // 对于嵌入模式，不强制设置高度，让父容器控制
+    // 对于嵌入模式，让父容器控制高度
     if (props.height === 'auto') {
       styles.height = '100%'
     } else {
       styles.height = typeof props.height === 'number' ? `${props.height}px` : props.height
     }
+    // 确保嵌入模式下可以正常滚动
+    styles.overflow = 'hidden'
   }
   
   if (props.resizable) {
@@ -204,6 +213,29 @@ onUnmounted(() => {
   outline: none;
   display: flex;
   flex-direction: column;
+  /* 启用GPU加速 */
+  will-change: opacity, transform;
+  transform: translateZ(0);
+}
+
+/* 动画效果 */
+.panel-window--animated {
+  animation: panelWindowFadeIn 0.3s ease-out;
+  transition: all 0.2s ease;
+}
+
+
+
+/* 淡入动画 */
+@keyframes panelWindowFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* 嵌入模式下的特殊样式 */
@@ -232,20 +264,24 @@ onUnmounted(() => {
 }
 
 .close-btn {
-  width: 20px;
-  height: 20px;
-  padding: 0 !important;
-  font-size: 18px;
-  font-weight: bold;
-  line-height: 1;
-  border-radius: 4px !important;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--sub);
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 6px;
+  font-size: 20px;
+  /* 简化过渡动画 */
+  transition: background-color 0.15s ease;
 }
 
 .close-btn:hover {
-  transform: scale(1.1);
+  background: var(--surface-hover);
+  color: var(--text);
 }
 
 .panel-content {
@@ -260,7 +296,6 @@ onUnmounted(() => {
 .panel-window[data-embed="true"] .panel-content {
   overflow: auto;
   min-height: 0;
-  height: 100%;
   flex: 1;
 }
 

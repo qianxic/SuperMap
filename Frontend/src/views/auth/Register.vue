@@ -243,23 +243,27 @@ const handleRegister = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background: linear-gradient(135deg, var(--bg) 0%, var(--surface) 100%);
   font-family: "Segoe UI", PingFang SC, Microsoft YaHei, Arial, sans-serif;
 }
 
 /* 深色主题背景 */
 [data-theme="dark"] .register-container {
-  background: linear-gradient(135deg, #2d2d30 0%, #1e1e1e 100%);
+  background: linear-gradient(135deg, var(--bg) 0%, var(--surface) 100%);
 }
 
 .register-box {
   background: var(--panel);
   padding: 40px;
   border-radius: 16px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+  box-shadow: var(--glow);
   width: 400px;
   max-width: 90vw;
   border: 1px solid var(--border);
+  min-height: 600px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .register-header {
@@ -391,7 +395,7 @@ const handleRegister = async () => {
   top: 1px;
   width: 4px;
   height: 8px;
-  border: solid white;
+  border: solid var(--btn-primary-color);
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);
 }
@@ -403,7 +407,7 @@ const handleRegister = async () => {
 .register-btn {
   padding: 14px;
   background: linear-gradient(135deg, var(--accent) 0%, rgba(var(--accent-rgb), 0.9) 100%);
-  color: white;
+  color: var(--btn-primary-color);
   border: none;
   border-radius: 8px;
   font-size: 16px;
@@ -436,18 +440,18 @@ const handleRegister = async () => {
 }
 
 .login-link {
-  color: var(--accent);
+  color: var(--link-color);
   text-decoration: none;
   font-weight: 500;
   transition: color 0.2s ease;
 }
 
 .login-link:visited {
-  color: var(--accent);
+  color: var(--link-color);
 }
 
 .login-link:hover {
-  color: rgba(var(--accent-rgb), 0.8);
+  color: var(--link-hover-color);
   text-decoration: underline;
 }
 

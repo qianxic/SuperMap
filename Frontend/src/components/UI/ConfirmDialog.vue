@@ -87,7 +87,7 @@ watch(() => props.visible, (newVisible) => {
   align-items: center;
   justify-content: center;
   z-index: 10000;
-  backdrop-filter: blur(4px);
+  /* 移除 backdrop-filter 以提升性能 */
 }
 
 .confirm-dialog {
@@ -99,17 +99,20 @@ watch(() => props.visible, (newVisible) => {
   width: 90%;
   max-height: 90vh;
   overflow: hidden;
-  animation: dialogSlideIn 0.3s ease-out;
+  /* 简化动画，只使用透明度变化 */
+  animation: dialogFadeIn 0.2s ease-out;
+  /* 启用GPU加速 */
+  will-change: opacity;
+  transform: translateZ(0);
 }
 
-@keyframes dialogSlideIn {
+/* 简化的动画，只使用透明度 */
+@keyframes dialogFadeIn {
   from {
     opacity: 0;
-    transform: scale(0.9) translateY(-20px);
   }
   to {
     opacity: 1;
-    transform: scale(1) translateY(0);
   }
 }
 
@@ -141,7 +144,8 @@ watch(() => props.visible, (newVisible) => {
   justify-content: center;
   border-radius: 6px;
   font-size: 20px;
-  transition: all 0.2s ease;
+  /* 简化过渡动画 */
+  transition: background-color 0.15s ease;
 }
 
 .close-btn:hover {
@@ -180,7 +184,8 @@ watch(() => props.visible, (newVisible) => {
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  /* 简化过渡动画，只保留必要的属性 */
+  transition: background-color 0.15s ease;
   min-width: 80px;
 }
 
@@ -192,7 +197,6 @@ watch(() => props.visible, (newVisible) => {
 .btn-primary:hover {
   background: var(--accent);
   opacity: 0.9;
-  transform: translateY(-1px);
 }
 
 .btn-secondary {
@@ -203,7 +207,6 @@ watch(() => props.visible, (newVisible) => {
 
 .btn-secondary:hover {
   background: var(--surface-hover);
-  transform: translateY(-1px);
 }
 
 /* 响应式设计 */
